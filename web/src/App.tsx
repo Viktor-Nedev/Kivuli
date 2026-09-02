@@ -9,7 +9,7 @@ import { HeatNote } from './components/HeatNote';
 
 type State =
   | { phase: 'loading' }
-  | { phase: 'error'; message: string; hint?: string }
+  | { phase: 'error'; message: string; hint?: string; detail?: string }
   | { phase: 'ready'; data: TodayResponse };
 
 export default function App() {
@@ -30,7 +30,14 @@ export default function App() {
         if (cancelled) return;
 
         if (!res.ok) {
-          setState({ phase: 'error', message: body.error ?? 'Request failed', hint: body.hint });
+          setState({
+            phase: 'error',
+            message: body.error ?? 'Request failed',
+            hint: body.hint,
+            // e.g. the station's own "Wrong Email or APIKey" rejection —
+            // without it a bad key looks like a generic outage.
+            detail: body.detail,
+          });
           return;
         }
         setState({ phase: 'ready', data: body as TodayResponse });
@@ -63,7 +70,10 @@ export default function App() {
       <Shell>
         <div className="py-16">
           <p className="font-display text-2xl text-ember">{state.message}</p>
-          {state.hint && <p className="mt-2 text-sm text-shade-200">{state.hint}</p>}
+          {state.detail && (
+            <p className="mt-2 font-mono text-sm text-shade-200">{state.detail}</p>
+          )}
+          {state.hint && <p className="mt-2 text-sm text-shade-400">{state.hint}</p>}
         </div>
       </Shell>
     );

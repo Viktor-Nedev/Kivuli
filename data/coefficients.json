@@ -1,0 +1,66 @@
+{
+  "generated_at": "2026-09-02T13:17:29+00:00",
+  "source": "Open-Meteo ERA5 archive vs JKUAT Conduit station",
+  "site": {
+    "latitude": -1.0954,
+    "longitude": 37.0144,
+    "elevation_m": 1527
+  },
+  "validation": "leave-one-out",
+  "variables": {
+    "tempC": {
+      "model": "constant",
+      "bias": -1.1201,
+      "metrics": {
+        "n": 24,
+        "mae_before": 1.12,
+        "mae_after": 0.565,
+        "rmse_before": 1.306,
+        "rmse_after": 0.7
+      },
+      "n_train": 24
+    },
+    "humidityPct": {
+      "model": "constant",
+      "bias": 3.5542,
+      "metrics": {
+        "n": 24,
+        "mae_before": 5.688,
+        "mae_after": 5.139,
+        "rmse_before": 6.622,
+        "rmse_after": 5.831
+      },
+      "n_train": 24
+    },
+    "windSpeedMs": {
+      "model": "constant",
+      "bias": 1.7271,
+      "metrics": {
+        "n": 24,
+        "mae_before": 1.727,
+        "mae_after": 0.915,
+        "rmse_before": 2.062,
+        "rmse_after": 1.176
+      },
+      "n_train": 24
+    },
+    "pressureHpa": {
+      "model": "constant",
+      "bias": 2.6743,
+      "metrics": {
+        "n": 24,
+        "mae_before": 2.674,
+        "mae_after": 1.236,
+        "rmse_before": 3.007,
+        "rmse_after": 1.434
+      },
+      "n_train": 24
+    }
+  },
+  "training_window": {
+    "from": "2026-09-01",
+    "to": "2026-09-01",
+    "station_hours": 24,
+    "note": "Fitted on a small sample. Offsets are validated leave-one-out, but a longer record via the live Conduit API would make them more reliable."
+  }
+}

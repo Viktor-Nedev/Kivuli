@@ -167,5 +167,15 @@ export function createRouter(root: string): Router {
     res.json({ ok: true, source: source.name });
   });
 
+  /**
+   * Client-safe config. Mapbox public tokens are meant to be exposed in
+   * frontend code (Mapbox scopes them and expects this), so serving it from
+   * the same `.env` the server already reads avoids a second env mechanism
+   * just for Vite's `VITE_` prefix convention.
+   */
+  router.get('/api/config', (_req, res) => {
+    res.json({ mapboxToken: process.env.MAPBOX_TOKEN ?? null });
+  });
+
   return router;
 }

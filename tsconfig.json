@@ -11,7 +11,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
-    "types": ["node"]
+    "types": ["node", "geojson"]
   },
   "include": ["server/**/*.ts", "web/src/**/*.ts", "web/src/**/*.tsx"]
 }

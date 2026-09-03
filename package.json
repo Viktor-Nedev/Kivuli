@@ -10,10 +10,12 @@
     "dev:web": "vite --config web/vite.config.ts",
     "build": "vite build --config web/vite.config.ts",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test --test-reporter=spec \"server/**/*.test.ts\""
+    "test": "tsx --test --test-reporter=spec \"server/**/*.test.ts\" \"web/src/map/**/*.test.ts\""
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "mapbox-gl": "^3.9.0",
+    "suncalc": "^1.9.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
@@ -29,6 +31,9 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "@types/mapbox-gl": "^3.4.1",
+    "@types/suncalc": "^1.9.2",
+    "@types/geojson": "^7946.0.14"
   }
 }

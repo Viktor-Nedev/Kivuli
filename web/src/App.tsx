@@ -6,6 +6,7 @@ import { Timeline } from './components/Timeline';
 import { StationPanel } from './components/StationPanel';
 import { CalibrationTable } from './components/Calibration';
 import { HeatNote } from './components/HeatNote';
+import { ShadeMap } from './components/ShadeMap';
 
 type State =
   | { phase: 'loading' }
@@ -14,6 +15,16 @@ type State =
 
 export default function App() {
   const [state, setState] = useState<State>({ phase: 'loading' });
+  const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Best-effort: the shade map is an optional module, so a failed fetch
+    // here should not block the rest of the dashboard from rendering.
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then((c) => setMapboxToken(c.mapboxToken ?? null))
+      .catch(() => setMapboxToken(null));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,6 +129,8 @@ export default function App() {
       <StationPanel reading={data.latest} sourceName={data.source} />
 
       <HeatNote heat={d.heat} thi={d.thi} />
+
+      <ShadeMap token={mapboxToken} dayDate={data.timeline[0]?.ts.slice(0, 10) ?? ''} timeline={data.timeline} />
 
       <CalibrationTable calibration={data.calibration} />
     </Shell>

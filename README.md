@@ -52,8 +52,19 @@ CONDUIT_EMAIL=your-registered-email
 Restart. The adapter switches to the live API with no code change; the console line at startup
 says which source is active.
 
+To enable the campus shade map, add a Mapbox public token (starts `pk.`) to `.env`:
+
+```
+MAPBOX_TOKEN=pk.your-token
+```
+
+The server reads it from the same `.env` and hands it to the client over `/api/config` — Mapbox
+public tokens are meant to be exposed in frontend code, so this avoids a second env mechanism just
+for Vite's `VITE_` prefix convention. Without a token, the shade map section shows a short note
+instead of failing.
+
 ```bash
-npm test        # 27 tests across ingest, indices, decisions, calibration
+npm test        # 35 tests across ingest, indices, decisions, calibration, shadow geometry
 npm run typecheck
 npm run build
 ```
@@ -79,6 +90,17 @@ window.
 **Heat exposure** — WBGT is measured directly and mapped to ISO 7243 work/rest bands. This site
 sits at 1527 m and peaks at 21.5 °C WBGT, below the 28 °C first action threshold, so the honest
 answer is "no heat restriction" rather than a manufactured alert. Reported plainly for that reason.
+
+**Campus shade map** — projects building shadows across JKUAT for a chosen time of day, from real
+footprint geometry and the sun's actual position (SunCalc), not from interpolating the station's
+single reading across the campus. A time slider scrubs the day; a sample walking route is scored
+by how much of it sits in shade at that moment. Mapbox's own vector tiles already carry a height
+for every building in this area (confirmed via its tilequery API), so the 3D buildings need no
+manual data — but shadow *casting* needs real coordinates that vector tiles don't expose to
+JavaScript, so `analysis/build_campus_geojson.py` bakes 133 real OSM footprints, with height from
+the OSM tag where present and a synthetic default otherwise, into a static file the client reads
+directly. Only 18 of those 133 carry a surveyed height; the rest use the same default Mapbox
+itself applies.
 
 ---
 
@@ -119,9 +141,9 @@ server/
   calibration/  applies coefficients fitted offline
   indices/      spray (Delta-T), drying, WBGT, THI
   decisions/    thresholds turned into instructions, English + Swahili
-  api/          Express routes
-analysis/       calibrate.py — fits the bias model, writes coefficients.json
-web/            React + Vite + Tailwind
+  api/          Express routes (+ /api/config for the Mapbox token)
+analysis/       calibrate.py (bias model) and build_campus_geojson.py (building footprints)
+web/            React + Vite + Tailwind + Mapbox GL
 data/           station CSV, coefficients, forecast cache
 ```
 
@@ -134,10 +156,10 @@ arithmetic. One runtime in production, with the notebook-style script kept as ev
 historical day whose last row falls at 02:55 local, so the interface defaults to `?at=13:00` to
 open on a working-hours decision instead of a dead night-time reading. A live feed needs no pin.
 
----
+### Shade map rendering note
 
-## Not built
-
-The shade map was scoped and deliberately deferred: only 4 of 60 JKUAT buildings in OpenStreetMap
-carry height data, so a shadow layer would need hand-authored building heights. Ranked below
-calibration and the decision engine, and left out rather than shipped half-working.
+Mapbox GL always composites `fill-extrusion` layers in front of plain 2D `fill` layers,
+regardless of style order. A flat fill shadow layer disappears behind the extruded buildings at
+this map's pitch even when it is listed above them in the style. Shadows are drawn as a very
+short (1.2 m) `fill-extrusion` instead, which keeps them in the same 3D pass as the buildings they
+sit beside.

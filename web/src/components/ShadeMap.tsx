@@ -13,6 +13,7 @@ import {
 } from '../map/shadows';
 import buildingsGeoJson from '../map/jkuat_buildings.geojson?url';
 import type { TimelinePoint } from '../lib/types';
+import { Gauge } from './Gauge';
 
 const SHADOW_SOURCE = 'kivuli-shadows';
 const SHADOW_LAYER = 'kivuli-shadows-fill';
@@ -239,10 +240,10 @@ export function ShadeMap({
         type: 'line',
         source: ROUTE_SOURCE,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#f2b955', 'line-width': 4 },
+        paint: { 'line-color': '#5aa07d', 'line-width': 4 },
       });
 
-      new mapboxgl.Marker({ color: '#d2603a' })
+      new mapboxgl.Marker({ color: '#b8433a' })
         .setLngLat([SITE.longitude, SITE.latitude])
         .setPopup(new mapboxgl.Popup({ offset: 12 }).setText('Conduit station'))
         .addTo(map);
@@ -311,13 +312,13 @@ export function ShadeMap({
 
   if (!token) {
     return (
-      <section className="border-t border-shade-700 py-8">
+      <section className="border-t border-shade-700 py-10 sm:py-12">
         <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
           Campus shade map
         </h2>
         <p className="mt-3 text-sm text-shade-200">
-          Set <code className="rounded bg-shade-800 px-1.5 py-0.5 text-sun-300">MAPBOX_TOKEN</code>{' '}
-          in <code className="rounded bg-shade-800 px-1.5 py-0.5 text-sun-300">.env</code> to enable
+          Set <code className="rounded bg-shade-800 px-1.5 py-0.5 text-amber-300">MAPBOX_TOKEN</code>{' '}
+          in <code className="rounded bg-shade-800 px-1.5 py-0.5 text-amber-300">.env</code> to enable
           the shade map.
         </p>
       </section>
@@ -325,7 +326,7 @@ export function ShadeMap({
   }
 
   return (
-    <section className="border-t border-shade-700 py-8">
+    <section className="border-t border-shade-700 py-10 sm:py-12">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
           Campus shade map
@@ -351,23 +352,19 @@ export function ShadeMap({
           step={5}
           value={minutes}
           onChange={(e) => setMinutes(Number(e.target.value))}
-          className="w-full accent-sun-400"
+          className="w-full accent-kenya-green-400"
           aria-label="Time of day"
         />
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div>
-          <p className="text-xs text-shade-400">Ground WBGT at this time</p>
-          <p className="mt-1 font-display text-2xl tabular-nums text-bleach">
-            {wbgtNow != null ? `${wbgtNow.toFixed(1)} °C` : '—'}
-          </p>
+      <div className="mt-6 grid grid-cols-2 gap-4">
+        <div className="lift-on-hover flex flex-col items-center rounded-lg py-2">
+          <Gauge value={wbgtNow ?? 0} min={0} max={35} unit="°C" color="#b8433a" size={92} />
+          <p className="mt-3 text-xs text-shade-400">Ground WBGT at this time</p>
         </div>
-        <div>
-          <p className="text-xs text-shade-400">Sample walking route, in shade</p>
-          <p className="mt-1 font-display text-2xl tabular-nums text-bleach">
-            {routeShadeNote != null ? `${routeShadeNote}%` : '—'}
-          </p>
+        <div className="lift-on-hover flex flex-col items-center rounded-lg py-2">
+          <Gauge value={routeShadeNote ?? 0} min={0} max={100} unit="%" color="#8697b8" size={92} />
+          <p className="mt-3 text-xs text-shade-400">Sample walking route, in shade</p>
         </div>
       </div>
 

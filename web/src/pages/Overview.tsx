@@ -1,5 +1,6 @@
 import { useOutletContext } from 'react-router-dom';
 import { Hero } from '../components/Hero';
+import { HeroMedia } from '../components/HeroMedia';
 import { Reveal } from '../components/Reveal';
 import type { AppContext } from '../lib/outletContext';
 
@@ -15,7 +16,7 @@ export function Overview() {
   if (!d) {
     return (
       <div className="py-16">
-        <p className="font-display text-2xl text-ember">No observations to decide on.</p>
+        <p className="font-display text-2xl text-kenya-red-400">No observations to decide on.</p>
         <p className="mt-2 text-sm text-shade-200">
           The station returned no rows for the most recent day.
         </p>
@@ -25,8 +26,10 @@ export function Overview() {
 
   return (
     <>
+      <HeroMedia />
+
       {data.forecastDegraded && (
-        <p className="mt-6 rounded border border-sun-500/30 bg-sun-500/10 px-4 py-3 text-sm text-sun-300">
+        <p className="mt-6 rounded border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
           The forecast service is unreachable, so rain is not being checked. Spray and drying advice
           below accounts for humidity and wind only — confirm the sky yourself before acting.
         </p>

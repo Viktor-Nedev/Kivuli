@@ -1,36 +1,22 @@
-import { useEffect, useState } from 'react';
-import {
-  HashRouter,
-  Routes,
-  Route,
-  Outlet,
-  NavLink,
-  useNavigate,
-  type NavigateFunction,
-  type NavigateOptions,
-  type To,
-} from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { HashRouter, Routes, Route, Outlet, useLocation } from 'react-router-dom';
+import gsap from 'gsap';
 import type { TodayResponse } from './lib/types';
 import type { AppContext } from './lib/outletContext';
 import { longDate } from './lib/format';
+import { prefersReducedMotion } from './lib/prefersReducedMotion';
 import { Overview } from './pages/Overview';
 import { TimelinePage } from './pages/TimelinePage';
 import { StationPage } from './pages/StationPage';
 import { ShadeMapPage } from './pages/ShadeMapPage';
 import { CalibrationPage } from './pages/CalibrationPage';
+import { SiteHeader } from './components/SiteHeader';
+import { SiteFooter } from './components/SiteFooter';
 
 type State =
   | { phase: 'loading' }
   | { phase: 'error'; message: string; hint?: string; detail?: string }
   | { phase: 'ready'; data: TodayResponse };
-
-const NAV_ITEMS = [
-  { to: '/', label: 'Overview', end: true },
-  { to: '/timeline', label: 'Working day' },
-  { to: '/station', label: 'Station' },
-  { to: '/shade-map', label: 'Shade map' },
-  { to: '/calibration', label: 'Calibration' },
-] as const;
 
 export default function App() {
   return (
@@ -48,29 +34,9 @@ export default function App() {
   );
 }
 
-/**
- * Wraps navigate() in the native View Transitions API so page changes cross-
- * fade instead of hard-cutting. Falls back to a plain navigate() where the
- * API is unavailable (Safari/Firefox as of early 2026) — an invisible
- * degrade, not a broken feature.
- */
-function useViewTransitionNavigate(): NavigateFunction {
-  const navigate = useNavigate();
-  return ((to: To, options?: NavigateOptions) => {
-    if (typeof document === 'undefined' || !('startViewTransition' in document)) {
-      navigate(to as string, options);
-      return;
-    }
-    (document as Document & { startViewTransition: (cb: () => void) => void }).startViewTransition(
-      () => navigate(to as string, options),
-    );
-  }) as NavigateFunction;
-}
-
 function AppLayout() {
   const [state, setState] = useState<State>({ phase: 'loading' });
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
-  const viewTransitionNavigate = useViewTransitionNavigate();
 
   useEffect(() => {
     // Best-effort: the shade map is an optional module, so a failed fetch
@@ -127,16 +93,16 @@ function AppLayout() {
     state.phase === 'ready' ? longDate(state.data.timeline[0]?.ts ?? state.data.decisions?.ts) : undefined;
 
   return (
-    <Shell subtitle={subtitle} navigate={viewTransitionNavigate}>
+    <Shell subtitle={subtitle}>
       {state.phase === 'loading' && (
-        <div key="loading" className="page-enter py-16">
+        <div key="loading" className="py-16">
           <p className="text-shade-200">Reading the station…</p>
         </div>
       )}
 
       {state.phase === 'error' && (
-        <div key="error" className="page-enter py-16">
-          <p className="font-display text-2xl text-ember">{state.message}</p>
+        <div key="error" className="py-16">
+          <p className="font-display text-2xl text-kenya-red-400">{state.message}</p>
           {state.detail && (
             <p className="mt-2 font-mono text-sm text-shade-200">{state.detail}</p>
           )}
@@ -145,69 +111,73 @@ function AppLayout() {
       )}
 
       {state.phase === 'ready' && (
-        <Outlet key="ready" context={{ data: state.data, mapboxToken } satisfies AppContext} />
+        <PageTransition>
+          <Outlet context={{ data: state.data, mapboxToken } satisfies AppContext} />
+        </PageTransition>
       )}
     </Shell>
   );
 }
 
-function Shell({
-  children,
-  subtitle,
-  navigate,
-}: {
-  children: React.ReactNode;
-  subtitle?: string;
-  navigate: NavigateFunction;
-}) {
+/**
+ * GSAP-driven page transition: on every route change (nav click or browser
+ * back/forward), the new page's content fades and rises in. React Router
+ * unmounts the old route's tree immediately on navigation, so there is no
+ * outgoing element left to animate out by the time this effect runs — this
+ * animates the incoming page instead, which is the transition that is
+ * actually achievable without a library-level exit-animation coordinator
+ * (e.g. Framer Motion's AnimatePresence).
+ */
+function PageTransition({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (prefersReducedMotion()) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        el,
+        { opacity: 0, y: 16 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          ease: 'power2.out',
+          // Left in place, GSAP's own inline transform (even resolved to an
+          // identity matrix at y: 0) creates a new containing block for any
+          // descendant `position: fixed` element — which silently breaks
+          // HeroMedia's fullscreen video-scrub section, positioning it
+          // relative to this wrapper instead of the viewport. Clearing the
+          // transform/opacity inline styles once the tween finishes removes
+          // that side effect entirely.
+          clearProps: 'transform,opacity',
+        },
+      );
+    }, el);
+    return () => ctx.revert();
+  }, [pathname]);
+
   return (
-    <div className="mx-auto min-h-screen max-w-5xl px-5 pb-20 sm:px-8">
-      <header className="pt-10 sm:pt-14">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h1 className="font-display text-3xl tracking-tight text-bleach sm:text-4xl">KIVULI</h1>
-          <p className="text-sm text-shade-200">
-            Field decisions from the JKUAT Conduit station, Juja
-          </p>
-        </div>
-        {subtitle && <p className="mt-1 text-sm text-shade-400">{subtitle}</p>}
+    <div key={pathname} ref={ref}>
+      {children}
+    </div>
+  );
+}
 
-        <nav className="mt-6 flex gap-x-5 gap-y-2 overflow-x-auto whitespace-nowrap border-t border-shade-700 pt-4 sm:flex-wrap">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={'end' in item ? item.end : false}
-              onClick={(e) => {
-                // Intercept plain left-clicks to run navigation through the
-                // View Transition wrapper; let modified clicks (open in new
-                // tab, etc.) behave as normal links.
-                if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
-                  return;
-                }
-                e.preventDefault();
-                navigate(item.to);
-              }}
-              className={({ isActive }) =>
-                `font-display text-sm uppercase tracking-[0.2em] transition-colors ${
-                  isActive ? 'text-sun-400' : 'text-shade-200 hover:text-bleach'
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-      </header>
-
-      <main>{children}</main>
-
-      <footer className="mt-16 border-t border-shade-700 pt-6 text-xs leading-relaxed text-shade-400">
-        <p>
-          Observations come from the Conduit climate station at JKUAT. Forecast and reanalysis come
-          from Open-Meteo. The station measures weather only — it carries no soil, vegetation or
-          water-quality sensors, and nothing here is derived from them.
-        </p>
-      </footer>
+/**
+ * Only `<main>`'s data-dense content (tables, gauges, timeline bands) keeps a
+ * readable max-width — the header and footer are full-bleed siblings outside
+ * that constraint, so imagery can genuinely reach the viewport edges instead
+ * of fighting an inherited max-width via negative margins.
+ */
+function Shell({ children, subtitle }: { children: React.ReactNode; subtitle?: string }) {
+  return (
+    <div className="min-h-screen">
+      <SiteHeader subtitle={subtitle} />
+      <main className="mx-auto max-w-5xl px-5 pb-20 sm:px-8">{children}</main>
+      <SiteFooter />
     </div>
   );
 }

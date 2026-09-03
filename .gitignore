@@ -7,3 +7,4 @@ dist/
 data/cache/
 .DS_Store
 .scratch/
+.claude/

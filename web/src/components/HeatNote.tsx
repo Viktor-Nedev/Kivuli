@@ -1,3 +1,5 @@
+import { Gauge } from './Gauge';
+
 /**
  * Heat and livestock indices.
  *
@@ -13,27 +15,26 @@ export function HeatNote({
   thi: { thi: number; band: string; instruction: string };
 }) {
   return (
-    <section className="border-t border-shade-700 py-8">
+    <section className="border-t border-shade-700 py-10 sm:py-12">
       <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
         Heat exposure
       </h2>
 
-      <div className="mt-5 grid gap-6 sm:grid-cols-2">
-        <div>
-          <p className="text-xs text-shade-400">WBGT, measured</p>
-          <p className="mt-1 font-display text-4xl tabular-nums text-bleach">
-            {heat.wbgtC.toFixed(1)}
-            <span className="ml-1 text-lg text-shade-400">°C</span>
-          </p>
-          <p className="mt-1 text-sm text-shade-200">{heat.instruction}</p>
+      <div className="mt-6 grid gap-6 sm:grid-cols-2">
+        <div className="lift-on-hover flex items-center gap-5 rounded-lg py-2">
+          <Gauge value={heat.wbgtC} min={0} max={35} unit="°C" color="#b8433a" size={92} />
+          <div>
+            <p className="text-xs text-shade-400">WBGT, measured</p>
+            <p className="mt-1 text-sm text-shade-200">{heat.instruction}</p>
+          </div>
         </div>
 
-        <div>
-          <p className="text-xs text-shade-400">Cattle heat index (THI)</p>
-          <p className="mt-1 font-display text-4xl tabular-nums text-bleach">
-            {thi.thi.toFixed(0)}
-          </p>
-          <p className="mt-1 text-sm text-shade-200">{thi.instruction}</p>
+        <div className="lift-on-hover flex items-center gap-5 rounded-lg py-2">
+          <Gauge value={thi.thi} min={40} max={100} color="#4a5f86" size={92} />
+          <div>
+            <p className="text-xs text-shade-400">Cattle heat index (THI)</p>
+            <p className="mt-1 text-sm text-shade-200">{thi.instruction}</p>
+          </div>
         </div>
       </div>
 

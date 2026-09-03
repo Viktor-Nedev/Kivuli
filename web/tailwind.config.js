@@ -10,7 +10,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Shade-to-sun axis: the physical thing the station measures.
+        // Dark base — reads as the flag's black. Kept from the original
+        // shade-to-sun palette; only the accent colors below changed.
         shade: {
           900: '#0b1220',
           800: '#131c2e',
@@ -19,12 +20,36 @@ export default {
           400: '#4a5f86',
           200: '#8697b8',
         },
-        sun: {
+        // Primary accent, replacing the old amber "sun" family: a muted
+        // Kenyan green, desaturated so it never sits at full flag saturation.
+        // Used for "go"/positive status, links, and the primary brand accent.
+        kenya: {
+          green: {
+            500: '#3d8361',
+            400: '#5aa07d',
+            300: '#8fc2a5',
+          },
+          // Danger/"stop" accent, muted flag red. Kept visually distinct from
+          // kenya-green (never adjacent in one control) — full-saturation
+          // red+green next to each other is a known deuteranopia/protanopia
+          // failure pair, so both are desaturated and used in disjoint roles
+          // instead of relying on hue alone.
+          red: {
+            500: '#b8433a',
+            400: '#cc5c4f',
+          },
+          // Decorative-only accent for dividers/ornaments — never used for
+          // text or status, so it can sit apart from the semantic palette.
+          ochre: '#a8683d',
+        },
+        // A third, non-flag "wait"/caution state — collapsing it into green
+        // or red would misrepresent an in-between status, so it keeps its
+        // own warm-amber identity distinct from both.
+        amber: {
           500: '#e8a33d',
           400: '#f2b955',
           300: '#f7cd82',
         },
-        ember: '#d2603a',
         bleach: '#f5efe4',
       },
       fontFamily: {

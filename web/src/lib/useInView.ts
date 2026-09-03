@@ -35,7 +35,19 @@ export function useInView<T extends HTMLElement>(threshold = 0.15) {
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
+
+    // Safety net: content must never depend on a scroll that might not
+    // happen (a very short viewport, a tool that captures the page without
+    // scrolling, an observer that never fires for some reason) to become
+    // visible at all. A fixed delay is a plain worst-case backstop, not the
+    // primary mechanism — the observer above still fires immediately for any
+    // element already on screen.
+    const fallback = setTimeout(() => setInView(true), 2500);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(fallback);
+    };
   }, [threshold]);
 
   return { ref, inView };

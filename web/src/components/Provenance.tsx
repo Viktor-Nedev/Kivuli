@@ -7,7 +7,7 @@ const LABEL: Record<Provenance, string> = {
 };
 
 const STYLE: Record<Provenance, string> = {
-  measured: 'bg-sun-500/15 text-sun-300 ring-sun-500/30',
+  measured: 'bg-kenya-green-500/15 text-kenya-green-300 ring-kenya-green-500/30',
   bias_corrected: 'bg-shade-400/20 text-shade-200 ring-shade-400/40',
   raw_forecast: 'bg-shade-700 text-shade-200 ring-shade-600',
 };

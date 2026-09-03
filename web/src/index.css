@@ -10,25 +10,90 @@
 
   /* Keyboard focus must stay visible against the dark ground. */
   :focus-visible {
-    @apply outline outline-2 outline-offset-2 outline-sun-400;
+    @apply outline outline-2 outline-offset-2 outline-kenya-green-400;
   }
 }
 
-@keyframes fade-up {
+@keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
-/* Each route mounts a fresh DOM subtree, so this replays naturally on every
-   page navigation with no router or animation library involvement. */
-.page-enter {
-  animation: fade-up 320ms ease-out both;
+@keyframes ken-burns {
+  from {
+    transform: scale(1.08) translateY(0);
+  }
+  to {
+    transform: scale(1.16) translateY(-1.5%);
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-ken-burns {
+  animation: ken-burns 20s ease-out both alternate infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 4s ease-in-out infinite;
+}
+
+@keyframes title-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+    letter-spacing: 0.15em;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    letter-spacing: normal;
+  }
+}
+
+/* The header title's entrance: a touch more presence than the plain fade-up
+   used for page transitions, since this is the one-time "front door" moment
+   rather than a per-navigation repeat. */
+.animate-title-in {
+  animation: title-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-title-in-delayed {
+  animation: title-in 900ms cubic-bezier(0.16, 1, 0.3, 1) 250ms both;
+}
+
+/* Cards/rows that should feel touchable: a small lift plus a brighter ring,
+   applied via one class instead of repeating the same three utilities. */
+.lift-on-hover {
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms ease-out,
+    border-color 220ms ease-out;
+}
+.lift-on-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px -12px rgb(0 0 0 / 0.45);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { TimelinePoint } from '../lib/types';
 import { DAY_MINUTES, hhmm, makeDayAxis } from '../lib/format';
 
@@ -71,6 +71,12 @@ function segmentsFor(
  */
 export function Timeline({ points }: { points: TimelinePoint[] }) {
   const [hovered, setHovered] = useState<Segment | null>(null);
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setRevealed(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   const { axis, span, hours } = useMemo(() => {
     const raw = makeDayAxis(points[0]?.ts ?? new Date().toISOString());
@@ -98,7 +104,7 @@ export function Timeline({ points }: { points: TimelinePoint[] }) {
   );
 
   return (
-    <section className="border-t border-shade-700 py-8">
+    <section className="border-t border-shade-700 py-10 sm:py-12">
       <div className="flex items-baseline justify-between gap-4">
         <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
           The working day
@@ -107,7 +113,7 @@ export function Timeline({ points }: { points: TimelinePoint[] }) {
       </div>
 
       <div className="mt-6 space-y-5">
-        {bands.map((band) => (
+        {bands.map((band, bandIndex) => (
           <div key={band.key}>
             <div className="mb-1.5 flex items-baseline gap-3">
               <span className="w-24 shrink-0 font-display text-base text-bleach sm:w-28">
@@ -116,7 +122,13 @@ export function Timeline({ points }: { points: TimelinePoint[] }) {
               <span className="text-xs text-shade-400">{band.hint}</span>
             </div>
 
-            <div className="relative h-8 w-full overflow-hidden rounded bg-shade-800 ring-1 ring-shade-700">
+            <div
+              className="relative h-8 w-full overflow-hidden rounded bg-shade-800 ring-1 ring-shade-700"
+              style={{
+                clipPath: revealed ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)',
+                transition: `clip-path 700ms cubic-bezier(0.16, 1, 0.3, 1) ${bandIndex * 150}ms`,
+              }}
+            >
               {band.segments.map((s, i) => (
                 <button
                   key={i}
@@ -126,8 +138,8 @@ export function Timeline({ points }: { points: TimelinePoint[] }) {
                   onFocus={() => setHovered(s)}
                   onBlur={() => setHovered(null)}
                   aria-label={`${band.label} ${s.pass ? 'suitable' : 'not suitable'} ${hhmm(s.startTs)} to ${hhmm(s.endTs)}${s.reason ? `: ${s.reason}` : ''}`}
-                  className={`absolute top-0 h-full transition-opacity hover:opacity-80 ${
-                    s.pass ? 'bg-sun-500' : 'bg-shade-600'
+                  className={`absolute top-0 h-full origin-center transition-all duration-200 hover:z-10 hover:scale-y-110 hover:brightness-110 focus-visible:z-10 focus-visible:scale-y-110 ${
+                    s.pass ? 'bg-kenya-green-500 shadow-[0_0_12px_-2px_rgba(90,160,125,0.6)]' : 'bg-shade-600'
                   }`}
                   style={{ left: `${s.startPct}%`, width: `${s.widthPct}%` }}
                 />

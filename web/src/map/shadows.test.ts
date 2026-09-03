@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   castShadow,
   isPointShaded,
+  lightPresetFor,
   pointInRing,
   shadowsAt,
   sunPositionAt,
@@ -122,4 +123,24 @@ test('sun position matches the known solar noon at this longitude', () => {
 
   const midnight = sunPositionAt(new Date('2026-09-01T21:32:00Z'));
   assert.ok(midnight.altitude < 0, 'sun should be below the horizon at local midnight');
+});
+
+test('lightPresetFor buckets by sun altitude and, near the horizon, by azimuth', () => {
+  assert.equal(lightPresetFor({ altitude: -0.1, azimuth: 0 }), 'night');
+  assert.equal(lightPresetFor({ altitude: 0, azimuth: 0 }), 'night');
+  assert.equal(lightPresetFor({ altitude: 1.2, azimuth: 0 }), 'day');
+  // Below the twilight threshold, azimuth < 0 (east, SunCalc convention) is morning.
+  assert.equal(lightPresetFor({ altitude: 0.1, azimuth: -0.5 }), 'dawn');
+  assert.equal(lightPresetFor({ altitude: 0.1, azimuth: 0.5 }), 'dusk');
+});
+
+test('lightPresetFor matches real sun positions across the JKUAT day', () => {
+  // Local midnight: sun well below the horizon.
+  assert.equal(lightPresetFor(sunPositionAt(new Date('2026-09-01T21:00:00Z'))), 'night');
+  // Solar noon (~09:32 UTC at this longitude): sun high overhead.
+  assert.equal(lightPresetFor(sunPositionAt(new Date('2026-09-01T09:32:00Z'))), 'day');
+  // Shortly after sunrise: low sun, morning side of the sky.
+  assert.equal(lightPresetFor(sunPositionAt(new Date('2026-09-01T03:45:00Z'))), 'dawn');
+  // Shortly before sunset: low sun, evening side of the sky.
+  assert.equal(lightPresetFor(sunPositionAt(new Date('2026-09-01T15:15:00Z'))), 'dusk');
 });

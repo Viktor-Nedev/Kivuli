@@ -2,7 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { SITE } from '../lib/site';
-import { shadowsAt, sunPositionAt, isPointShaded, type Building, type ShadowFeature } from '../map/shadows';
+import {
+  shadowsAt,
+  sunPositionAt,
+  isPointShaded,
+  lightPresetFor,
+  type Building,
+  type LightPreset,
+  type ShadowFeature,
+} from '../map/shadows';
 import buildingsGeoJson from '../map/jkuat_buildings.geojson?url';
 import type { TimelinePoint } from '../lib/types';
 
@@ -113,7 +121,12 @@ export function ShadeMap({
     mapboxgl.accessToken = token;
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      // Standard style (not a fixed dark-v11) so the map's own lighting can
+      // shift across the day via setConfigProperty('basemap', 'lightPreset', ...)
+      // below, without ever calling setStyle() again — setStyle() removes every
+      // custom source/layer added after load, which would undo the shadow and
+      // building layers added here.
+      style: 'mapbox://styles/mapbox/standard',
       center: [SITE.longitude, SITE.latitude],
       zoom: 16.2,
       // A steeper pitch (tried 55°) buried ground-level shadows behind the
@@ -128,17 +141,44 @@ export function ShadeMap({
     mapRef.current = map;
     if (import.meta.env.DEV) (window as any).__kivuliDebugMap = map;
 
-    map.on('load', () => {
+    // 'style.load' rather than 'load': the Standard style declares its
+    // sources (e.g. "composite") via a style import that is not always fully
+    // attached by the time the generic 'load' event fires, which surfaced as
+    // `source "composite" not found` when adding the 3d-buildings layer.
+    // 'style.load' fires once for the initial style too, not only after a
+    // later setStyle() call, so this is a safe drop-in for the one-time
+    // setup this map does.
+    map.on('style.load', () => {
+      // Standard's own building layer would otherwise render alongside this
+      // project's #273553 extrusion — confirmed via the style's own config
+      // schema that show3dBuildings is the property scoped to just buildings
+      // (not show3dObjects, which would also hide trees/landmarks).
+      map.setConfigProperty('basemap', 'show3dBuildings', false);
+
+      // The Standard style's own buildings live inside its imported "basemap"
+      // fragment, which is opaque to the top-level style API: addLayer
+      // referencing source: 'composite' throws `source "composite" not
+      // found`, confirmed live (getStyle() reports zero Mapbox-provided
+      // sources/layers on a Standard-style map — only ones added here).
+      // Extrude the project's own building footprints instead, the same
+      // GeoJSON already used for shadow casting, as an ordinary GeoJSON
+      // source loaded directly from its URL.
+      map.addSource('kivuli-buildings', {
+        type: 'geojson',
+        data: buildingsGeoJson,
+      });
       map.addLayer({
         id: '3d-buildings',
-        source: 'composite',
-        'source-layer': 'building',
+        source: 'kivuli-buildings',
         type: 'fill-extrusion',
-        minzoom: 14,
+        // Places this layer among the Standard style's own layers (roads,
+        // labels) rather than on top of everything, so streets and place
+        // labels still render over the extrusions as expected.
+        slot: 'middle',
         paint: {
           'fill-extrusion-color': '#273553',
-          'fill-extrusion-height': ['coalesce', ['get', 'height'], 6.2],
-          'fill-extrusion-base': ['coalesce', ['get', 'min_height'], 0],
+          'fill-extrusion-height': ['coalesce', ['get', 'heightM'], 6.2],
+          'fill-extrusion-base': 0,
           'fill-extrusion-opacity': 0.85,
         },
       });
@@ -147,14 +187,17 @@ export function ShadeMap({
       // product's sun palette rather than as flat basemap grey, so shade
       // shows up as a visible absence of that warmth rather than needing a
       // dark-on-dark overlay to register against the dark basemap.
-      map.addLayer(
-        {
-          id: 'ground-exposure',
-          type: 'background',
-          paint: { 'background-color': '#e8a33d', 'background-opacity': 0.16 },
-        },
-        '3d-buildings',
-      );
+      //
+      // Placed via slot: 'bottom' rather than beforeId: '3d-buildings' — the
+      // buildings layer now lives in the 'middle' slot rather than at a
+      // fixed stack position, so a beforeId reference to it is no longer a
+      // reliable way to say "under everything."
+      map.addLayer({
+        id: 'ground-exposure',
+        type: 'background',
+        slot: 'bottom',
+        paint: { 'background-color': '#e8a33d', 'background-opacity': 0.16 },
+      });
 
       map.addSource(SHADOW_SOURCE, {
         type: 'geojson',
@@ -212,6 +255,23 @@ export function ShadeMap({
       mapRef.current = null;
     };
   }, [token]);
+
+  // Switch the basemap's own lighting to match the selected time of day.
+  // Guarded on the bucket actually changing, not run on every slider tick:
+  // the bucket only flips 3-4 times across the full 06:00-18:00 range, so a
+  // time-based debounce would be solving a problem that mostly doesn't occur,
+  // and setConfigProperty is cheap enough that skipping unchanged calls is
+  // enough on its own.
+  const lastPresetRef = useRef<LightPreset | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+
+    const preset = lightPresetFor(sun);
+    if (lastPresetRef.current === preset) return;
+    lastPresetRef.current = preset;
+    map.setConfigProperty('basemap', 'lightPreset', preset);
+  }, [sun, ready]);
 
   // Recompute and redraw shadows whenever the time or building set changes.
   useEffect(() => {

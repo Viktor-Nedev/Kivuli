@@ -1,21 +1,76 @@
 import { useEffect, useState } from 'react';
+import {
+  HashRouter,
+  Routes,
+  Route,
+  Outlet,
+  NavLink,
+  useNavigate,
+  type NavigateFunction,
+  type NavigateOptions,
+  type To,
+} from 'react-router-dom';
 import type { TodayResponse } from './lib/types';
+import type { AppContext } from './lib/outletContext';
 import { longDate } from './lib/format';
-import { Hero } from './components/Hero';
-import { Timeline } from './components/Timeline';
-import { StationPanel } from './components/StationPanel';
-import { CalibrationTable } from './components/Calibration';
-import { HeatNote } from './components/HeatNote';
-import { ShadeMap } from './components/ShadeMap';
+import { Overview } from './pages/Overview';
+import { TimelinePage } from './pages/TimelinePage';
+import { StationPage } from './pages/StationPage';
+import { ShadeMapPage } from './pages/ShadeMapPage';
+import { CalibrationPage } from './pages/CalibrationPage';
 
 type State =
   | { phase: 'loading' }
   | { phase: 'error'; message: string; hint?: string; detail?: string }
   | { phase: 'ready'; data: TodayResponse };
 
+const NAV_ITEMS = [
+  { to: '/', label: 'Overview', end: true },
+  { to: '/timeline', label: 'Working day' },
+  { to: '/station', label: 'Station' },
+  { to: '/shade-map', label: 'Shade map' },
+  { to: '/calibration', label: 'Calibration' },
+] as const;
+
 export default function App() {
+  return (
+    <HashRouter>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route index element={<Overview />} />
+          <Route path="timeline" element={<TimelinePage />} />
+          <Route path="station" element={<StationPage />} />
+          <Route path="shade-map" element={<ShadeMapPage />} />
+          <Route path="calibration" element={<CalibrationPage />} />
+        </Route>
+      </Routes>
+    </HashRouter>
+  );
+}
+
+/**
+ * Wraps navigate() in the native View Transitions API so page changes cross-
+ * fade instead of hard-cutting. Falls back to a plain navigate() where the
+ * API is unavailable (Safari/Firefox as of early 2026) — an invisible
+ * degrade, not a broken feature.
+ */
+function useViewTransitionNavigate(): NavigateFunction {
+  const navigate = useNavigate();
+  return ((to: To, options?: NavigateOptions) => {
+    if (typeof document === 'undefined' || !('startViewTransition' in document)) {
+      navigate(to as string, options);
+      return;
+    }
+    (document as Document & { startViewTransition: (cb: () => void) => void }).startViewTransition(
+      () => navigate(to as string, options),
+    );
+  }) as NavigateFunction;
+}
+
+function AppLayout() {
   const [state, setState] = useState<State>({ phase: 'loading' });
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+  const viewTransitionNavigate = useViewTransitionNavigate();
 
   useEffect(() => {
     // Best-effort: the shade map is an optional module, so a failed fetch
@@ -68,76 +123,43 @@ export default function App() {
     };
   }, []);
 
-  if (state.phase === 'loading') {
-    return (
-      <Shell>
-        <p className="py-16 text-shade-200">Reading the station…</p>
-      </Shell>
-    );
-  }
+  const subtitle =
+    state.phase === 'ready' ? longDate(state.data.timeline[0]?.ts ?? state.data.decisions?.ts) : undefined;
 
-  if (state.phase === 'error') {
-    return (
-      <Shell>
-        <div className="py-16">
+  return (
+    <Shell subtitle={subtitle} navigate={viewTransitionNavigate}>
+      {state.phase === 'loading' && (
+        <div key="loading" className="page-enter py-16">
+          <p className="text-shade-200">Reading the station…</p>
+        </div>
+      )}
+
+      {state.phase === 'error' && (
+        <div key="error" className="page-enter py-16">
           <p className="font-display text-2xl text-ember">{state.message}</p>
           {state.detail && (
             <p className="mt-2 font-mono text-sm text-shade-200">{state.detail}</p>
           )}
           {state.hint && <p className="mt-2 text-sm text-shade-400">{state.hint}</p>}
         </div>
-      </Shell>
-    );
-  }
-
-  const { data } = state;
-  const d = data.decisions;
-
-  if (!d) {
-    return (
-      <Shell>
-        <div className="py-16">
-          <p className="font-display text-2xl text-ember">No observations to decide on.</p>
-          <p className="mt-2 text-sm text-shade-200">
-            The station returned no rows for the most recent day.
-          </p>
-        </div>
-      </Shell>
-    );
-  }
-
-  return (
-    <Shell subtitle={longDate(data.timeline[0]?.ts ?? d.ts)}>
-      {data.forecastDegraded && (
-        <p className="mt-6 rounded border border-sun-500/30 bg-sun-500/10 px-4 py-3 text-sm text-sun-300">
-          The forecast service is unreachable, so rain is not being checked. Spray and drying advice
-          below accounts for humidity and wind only — confirm the sky yourself before acting.
-        </p>
       )}
 
-      <Hero
-        label="Spraying"
-        instruction={d.spray}
-        metric={d.spray.assessment.deltaT.toFixed(1)}
-        metricUnit="°C Delta-T"
-      />
-
-      <Hero label="Grain drying" instruction={d.drying} />
-
-      <Timeline points={data.timeline} />
-
-      <StationPanel reading={data.latest} sourceName={data.source} />
-
-      <HeatNote heat={d.heat} thi={d.thi} />
-
-      <ShadeMap token={mapboxToken} dayDate={data.timeline[0]?.ts.slice(0, 10) ?? ''} timeline={data.timeline} />
-
-      <CalibrationTable calibration={data.calibration} />
+      {state.phase === 'ready' && (
+        <Outlet key="ready" context={{ data: state.data, mapboxToken } satisfies AppContext} />
+      )}
     </Shell>
   );
 }
 
-function Shell({ children, subtitle }: { children: React.ReactNode; subtitle?: string }) {
+function Shell({
+  children,
+  subtitle,
+  navigate,
+}: {
+  children: React.ReactNode;
+  subtitle?: string;
+  navigate: NavigateFunction;
+}) {
   return (
     <div className="mx-auto min-h-screen max-w-5xl px-5 pb-20 sm:px-8">
       <header className="pt-10 sm:pt-14">
@@ -148,8 +170,37 @@ function Shell({ children, subtitle }: { children: React.ReactNode; subtitle?: s
           </p>
         </div>
         {subtitle && <p className="mt-1 text-sm text-shade-400">{subtitle}</p>}
+
+        <nav className="mt-6 flex gap-x-5 gap-y-2 overflow-x-auto whitespace-nowrap border-t border-shade-700 pt-4 sm:flex-wrap">
+          {NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={'end' in item ? item.end : false}
+              onClick={(e) => {
+                // Intercept plain left-clicks to run navigation through the
+                // View Transition wrapper; let modified clicks (open in new
+                // tab, etc.) behave as normal links.
+                if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+                  return;
+                }
+                e.preventDefault();
+                navigate(item.to);
+              }}
+              className={({ isActive }) =>
+                `font-display text-sm uppercase tracking-[0.2em] transition-colors ${
+                  isActive ? 'text-sun-400' : 'text-shade-200 hover:text-bleach'
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
       </header>
+
       <main>{children}</main>
+
       <footer className="mt-16 border-t border-shade-700 pt-6 text-xs leading-relaxed text-shade-400">
         <p>
           Observations come from the Conduit climate station at JKUAT. Forecast and reanalysis come

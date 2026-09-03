@@ -14,6 +14,23 @@
   }
 }
 
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Each route mounts a fresh DOM subtree, so this replays naturally on every
+   page navigation with no router or animation library involvement. */
+.page-enter {
+  animation: fade-up 320ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

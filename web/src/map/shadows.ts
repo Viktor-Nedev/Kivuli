@@ -24,6 +24,29 @@ export function sunPositionAt(date: Date): SunPosition {
   return { altitude: pos.altitude, azimuth: pos.azimuth };
 }
 
+/** Mapbox Standard style's basemap.lightPreset values, confirmed against the live style schema. */
+export type LightPreset = 'dawn' | 'day' | 'dusk' | 'night';
+
+/** Sun altitude, radians, below which low-angle light reads as dawn/dusk rather than full day. */
+const TWILIGHT_ALTITUDE_RAD = 0.26; // ~15 degrees
+
+/**
+ * Picks a time-of-day map style bucket from the sun's actual position, not a
+ * clock hour: sunrise/sunset time is what determines how a place actually
+ * looks, and this reuses the same sun position already computed for shadow
+ * casting rather than a second, clock-based notion of "time of day."
+ *
+ * SunCalc's azimuth is measured from south; negative values sit in the
+ * eastern half of the sky (morning), positive in the western half
+ * (afternoon/evening) — exactly the dawn/dusk split, with no separate solar
+ * noon calculation needed.
+ */
+export function lightPresetFor(sun: SunPosition): LightPreset {
+  if (sun.altitude <= 0) return 'night';
+  if (sun.altitude >= TWILIGHT_ALTITUDE_RAD) return 'day';
+  return sun.azimuth < 0 ? 'dawn' : 'dusk';
+}
+
 export type Ring = [number, number][];
 
 export interface Building {

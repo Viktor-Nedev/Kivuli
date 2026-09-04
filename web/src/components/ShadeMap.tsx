@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { SITE } from '../lib/site';
@@ -14,13 +14,26 @@ import {
 import buildingsGeoJson from '../map/jkuat_buildings.geojson?url';
 import type { TimelinePoint } from '../lib/types';
 import { Gauge } from './Gauge';
+import { LegendRow, MapPanel } from './MapPanels';
+import { groundExposurePaint, routeColorFor, shadowPaint } from '../map/sunTint';
 
 const SHADOW_SOURCE = 'kivuli-shadows';
 const SHADOW_LAYER = 'kivuli-shadows-fill';
 const ROUTE_SOURCE = 'kivuli-route';
 const ROUTE_LAYER = 'kivuli-route-line';
 
-/** Two points a short walk apart on campus, used to demonstrate a shaded route. */
+type BuildingsState =
+  | { phase: 'loading' }
+  | { phase: 'ready'; buildings: Building[]; surveyed: number }
+  | { phase: 'error' };
+
+/**
+ * Two points across campus. This is a straight transect, not a mapped
+ * footpath — it cuts through buildings. The shade measured along it is real
+ * (real footprints, real sun geometry), so it answers "how much shade would a
+ * walk across this area find right now"; it does not claim to be a route
+ * anyone actually walks, and the label says so.
+ */
 const ROUTE_ENDPOINTS: [[number, number], [number, number]] = [
   [37.0132, -1.0962],
   [37.0158, -1.0946],
@@ -74,7 +87,14 @@ export function ShadeMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [ready, setReady] = useState(false);
   const [minutes, setMinutes] = useState(13 * 60);
-  const [buildings, setBuildings] = useState<Building[] | null>(null);
+  // A bare `Building[] | null` could not tell "still loading" apart from
+  // "loaded, but the fetch failed and we substituted an empty array" — and
+  // the latter renders a perfectly plausible map with zero shadows and 0%
+  // shade, presenting a failure as fact. On a project that tags every other
+  // number with its provenance, that was the worst available failure mode.
+  const [buildingsState, setBuildingsState] = useState<BuildingsState>({ phase: 'loading' });
+  const [mapError, setMapError] = useState<string | null>(null);
+  const buildings = buildingsState.phase === 'ready' ? buildingsState.buildings : null;
 
   const selectedDate = useMemo(() => minutesToDate(dayDate, minutes), [dayDate, minutes]);
   const sun = useMemo(() => sunPositionAt(selectedDate), [selectedDate]);
@@ -99,7 +119,10 @@ export function ShadeMap({
   useEffect(() => {
     let cancelled = false;
     fetch(buildingsGeoJson)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((fc: GeoJSON.FeatureCollection) => {
         if (cancelled) return;
         const parsed: Building[] = fc.features.map((f, i) => ({
@@ -107,9 +130,16 @@ export function ShadeMap({
           footprint: (f.geometry as GeoJSON.Polygon).coordinates[0] as [number, number][],
           heightM: Number(f.properties?.heightM ?? 6.2),
         }));
-        setBuildings(parsed);
+        // Counted from the data rather than written into the caption, so the
+        // provenance note cannot go stale when the geojson is regenerated.
+        const surveyed = fc.features.filter(
+          (f) => f.properties?.heightSource && f.properties.heightSource !== 'default',
+        ).length;
+        setBuildingsState({ phase: 'ready', buildings: parsed, surveyed });
       })
-      .catch(() => setBuildings([]));
+      .catch(() => {
+        if (!cancelled) setBuildingsState({ phase: 'error' });
+      });
     return () => {
       cancelled = true;
     };
@@ -138,9 +168,21 @@ export function ShadeMap({
       pitch: 35,
       bearing: -17,
       antialias: true,
+      // A viewport-height map otherwise captures every wheel event as zoom,
+      // trapping the page scroll. Cooperative gestures require ctrl/cmd (or
+      // two fingers) to zoom, and pass a plain scroll through to the page.
+      cooperativeGestures: true,
     });
     mapRef.current = map;
     if (import.meta.env.DEV) (window as any).__kivuliDebugMap = map;
+
+    // The no-token branch below covers a *missing* token; this covers one
+    // that is present but rejected, which otherwise renders a black
+    // rectangle and console noise with no signal in the UI.
+    map.on('error', (e) => {
+      const message = e?.error?.message ?? 'The map failed to load.';
+      setMapError(message);
+    });
 
     // 'style.load' rather than 'load': the Standard style declares its
     // sources (e.g. "composite") via a style import that is not always fully
@@ -184,20 +226,23 @@ export function ShadeMap({
         },
       });
 
-      // A warm ground wash under everything: exposed ground reads in the
-      // product's sun palette rather than as flat basemap grey, so shade
-      // shows up as a visible absence of that warmth rather than needing a
-      // dark-on-dark overlay to register against the dark basemap.
+      // A warm cast over the whole scene, tying the basemap to the product's
+      // sun palette so shade reads as an absence of warmth.
       //
-      // Placed via slot: 'bottom' rather than beforeId: '3d-buildings' — the
-      // buildings layer now lives in the 'middle' slot rather than at a
-      // fixed stack position, so a beforeId reference to it is no longer a
-      // reliable way to say "under everything."
+      // Kept deliberately faint. A `background` layer covers the entire
+      // viewport — roads, water and parks included, not just open ground —
+      // so at the 0.16 opacity this started with, the basemap flattened into
+      // a single sheet of peach and the shadow polygons had nothing to
+      // contrast against. The wash is a tint, not a fill; the shadows are
+      // what the eye should be reading.
+      //
+      // `slot: 'bottom'` puts it beneath the basemap's labels and roads
+      // rather than over them, so place names stay crisp.
       map.addLayer({
         id: 'ground-exposure',
         type: 'background',
         slot: 'bottom',
-        paint: { 'background-color': '#e8a33d', 'background-opacity': 0.16 },
+        paint: { 'background-color': '#e8a33d', 'background-opacity': 0.05 },
       });
 
       map.addSource(SHADOW_SOURCE, {
@@ -220,7 +265,7 @@ export function ShadeMap({
         type: 'fill-extrusion',
         source: SHADOW_SOURCE,
         paint: {
-          'fill-extrusion-color': '#0b1220',
+          'fill-extrusion-color': '#1e3a6b',
           // Tall enough to catch the renderer's own directional lighting on
           // its vertical faces (a pure 0.05-0.2m sliver reads as flat and
           // blends into the ground plane at this pitch); still far too short
@@ -240,8 +285,42 @@ export function ShadeMap({
         type: 'line',
         source: ROUTE_SOURCE,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#5aa07d', 'line-width': 4 },
+        paint: {
+          // Per-segment, not one flat colour: the gauge already reports the
+          // aggregate percentage, so a single-colour line would just repeat
+          // it. Colouring each sampled span shows *where* the shade falls,
+          // which nothing else on screen conveys.
+          'line-color': ['case', ['get', 'shaded'], routeColorFor(1), routeColorFor(0)],
+          'line-width': 5,
+          'line-opacity': 0.9,
+        },
       });
+
+      // Our layers ease between values instead of snapping. Mapbox's own
+      // `basemap.lightPreset` still steps through its four buckets — this
+      // build exposes no `lightPresetTransition`, and `setLights` is
+      // runtime-only with no typings — but since the ground wash and the
+      // shadows carry most of this map's visual weight, easing them across
+      // the moment the basemap flips is enough that the change reads as
+      // continuous.
+      map.setPaintProperty('ground-exposure', 'background-color-transition', {
+        duration: 600,
+        delay: 0,
+      });
+      map.setPaintProperty('ground-exposure', 'background-opacity-transition', {
+        duration: 600,
+        delay: 0,
+      });
+      map.setPaintProperty(SHADOW_LAYER, 'fill-extrusion-color-transition', {
+        duration: 400,
+        delay: 0,
+      });
+      map.setPaintProperty(SHADOW_LAYER, 'fill-extrusion-opacity-transition', {
+        duration: 400,
+        delay: 0,
+      });
+
+      map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
 
       new mapboxgl.Marker({ color: '#b8433a' })
         .setLngLat([SITE.longitude, SITE.latitude])
@@ -274,41 +353,69 @@ export function ShadeMap({
     map.setConfigProperty('basemap', 'lightPreset', preset);
   }, [sun, ready]);
 
-  // Recompute and redraw shadows whenever the time or building set changes.
+  // One computation per tick, shared by the redraw and the readouts.
+  // These previously ran shadowsAt(133 buildings, each a convex hull) twice
+  // for the same instant — once here and once in the percentage memo.
+  //
+  // `useDeferredValue` lets React drop intermediate frames while the slider
+  // is being dragged; the clock label above still reads from the undeferred
+  // `minutes`, so the time stays responsive while the geometry catches up.
+  const deferredDate = useDeferredValue(selectedDate);
+  const frame = useMemo(() => {
+    if (!buildings) return null;
+    const shadows: ShadowFeature[] = shadowsAt(buildings, deferredDate);
+    const routePts = sampleRoute(...ROUTE_ENDPOINTS);
+    const shadedFlags = routePts.map((p) => isPointShaded(p, shadows));
+    const shadedCount = shadedFlags.filter(Boolean).length;
+    return {
+      shadows,
+      routePts,
+      shadedFlags,
+      shadedFraction: routePts.length ? shadedCount / routePts.length : 0,
+    };
+  }, [buildings, deferredDate]);
+
+  const deferredSun = useMemo(() => sunPositionAt(deferredDate), [deferredDate]);
+
+  // Push geometry and the continuously-interpolated paint in one pass.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready || !buildings) return;
+    if (!map || !ready || !frame) return;
 
-    const shadows: ShadowFeature[] = shadowsAt(buildings, selectedDate);
-    const source = map.getSource(SHADOW_SOURCE) as mapboxgl.GeoJSONSource | undefined;
-    source?.setData({ type: 'FeatureCollection', features: shadows });
+    const shadowSource = map.getSource(SHADOW_SOURCE) as mapboxgl.GeoJSONSource | undefined;
+    shadowSource?.setData({ type: 'FeatureCollection', features: frame.shadows });
 
-    // Colour the route by how much of it sits in shade at this time, so the
-    // line itself communicates the "cool route" rather than a separate label.
-    const routePts = sampleRoute(...ROUTE_ENDPOINTS);
-    const shadedCount = routePts.filter((p) => isPointShaded(p, shadows)).length;
-    const shadedFraction = shadedCount / routePts.length;
-
-    const routeSource = map.getSource(ROUTE_SOURCE) as mapboxgl.GeoJSONSource | undefined;
-    routeSource?.setData({
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: { shadedFraction },
-          geometry: { type: 'LineString', coordinates: routePts },
+    // One feature per sampled span, each carrying whether that span is
+    // shaded, so the line shows *where* the shade is rather than repeating
+    // the aggregate percentage the gauge already gives.
+    const segments: GeoJSON.Feature[] = [];
+    for (let i = 0; i < frame.routePts.length - 1; i++) {
+      segments.push({
+        type: 'Feature',
+        properties: { shaded: frame.shadedFlags[i] && frame.shadedFlags[i + 1] },
+        geometry: {
+          type: 'LineString',
+          coordinates: [frame.routePts[i], frame.routePts[i + 1]],
         },
-      ],
-    });
-  }, [buildings, selectedDate, ready]);
+      });
+    }
+    const routeSource = map.getSource(ROUTE_SOURCE) as mapboxgl.GeoJSONSource | undefined;
+    routeSource?.setData({ type: 'FeatureCollection', features: segments });
 
-  const routeShadeNote = useMemo(() => {
-    if (!buildings || !ready) return null;
-    const shadows = shadowsAt(buildings, selectedDate);
-    const pts = sampleRoute(...ROUTE_ENDPOINTS);
-    const shaded = pts.filter((p) => isPointShaded(p, shadows)).length;
-    return Math.round((shaded / pts.length) * 100);
-  }, [buildings, selectedDate, ready]);
+    // The continuous half of the time-of-day blend: these are our own layers,
+    // so unlike Mapbox's four-step lightPreset they can track sun altitude
+    // exactly. Paired with the `-transition` durations set at layer-add time,
+    // they ease rather than snap.
+    const ground = groundExposurePaint(deferredSun);
+    map.setPaintProperty('ground-exposure', 'background-color', ground.color);
+    map.setPaintProperty('ground-exposure', 'background-opacity', ground.opacity);
+
+    const shade = shadowPaint(deferredSun);
+    map.setPaintProperty(SHADOW_LAYER, 'fill-extrusion-color', shade.color);
+    map.setPaintProperty(SHADOW_LAYER, 'fill-extrusion-opacity', shade.opacity);
+  }, [frame, deferredSun, ready]);
+
+  const routeShadeNote = frame ? Math.round(frame.shadedFraction * 100) : null;
 
   if (!token) {
     return (
@@ -325,55 +432,140 @@ export function ShadeMap({
     );
   }
 
+  const ground = groundExposurePaint(deferredSun);
+  const shade = shadowPaint(deferredSun);
+  const surveyed = buildingsState.phase === 'ready' ? buildingsState.surveyed : null;
+  const total = buildingsState.phase === 'ready' ? buildingsState.buildings.length : null;
+
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
+    // Viewport-height, full-width. `relative` rather than `position: fixed`:
+    // this only needs to be viewport-sized in normal flow, and a fixed child
+    // would depend on App's PageTransition having already cleared its inline
+    // transform — which it has not when this mounts, so the map would land
+    // offset on every navigation here.
+    //
+    // No `w-screen`/`-translate-x-1/2` full-bleed trick: on this route App
+    // drops the `max-w-5xl` column, so plain `w-full` already spans the
+    // viewport — and unlike `100vw` it excludes the scrollbar gutter.
+    //
+    // Height is the viewport minus the compact header, via a CSS variable the
+    // header itself sets — hardcoding a pixel figure here would silently
+    // desync the moment the header's padding or type size changes, leaving
+    // either a scrollbar or a dead strip under the map.
+    //
+    // `svh` rather than `vh` so iOS Safari's collapsing URL bar can't push
+    // the bottom panel out of reach.
+    <section className="relative w-full overflow-hidden [height:calc(100svh-var(--site-header-h,0px))]">
+      <div ref={containerRef} className="absolute inset-0" />
+
+      {/* Each panel is positioned individually. A single `inset-0` wrapper
+          would be tidier but would sit over the whole canvas and swallow
+          every drag and zoom. */}
+      <MapPanel className="absolute left-4 top-4 max-w-xs">
         <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
           Campus shade map
         </h2>
-        <p className="text-xs text-shade-400">
-          {sun.altitude > 0 ? `Sun ${(sun.altitude * (180 / Math.PI)).toFixed(0)}° above horizon` : 'Sun below horizon'}
+        <p className="mt-1 text-xs text-shade-200">
+          {sun.altitude > 0
+            ? `Sun ${(sun.altitude * (180 / Math.PI)).toFixed(0)}° above horizon`
+            : 'Sun below horizon'}
         </p>
-      </div>
+        <p className="mt-3 text-[11px] leading-relaxed text-shade-200">
+          Shadows are projected from building footprints and the sun's real position — geometry,
+          not an interpolation of the station reading across campus.
+          {surveyed !== null && total !== null && (
+            <> Only {surveyed} of {total} buildings carry a surveyed height; the rest use a default.</>
+          )}
+        </p>
+      </MapPanel>
 
-      <div
-        ref={containerRef}
-        className="mt-4 h-[420px] w-full overflow-hidden rounded ring-1 ring-shade-700"
-      />
+      {buildingsState.phase === 'loading' && (
+        <MapPanel className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <p className="text-sm text-shade-200">Loading campus geometry…</p>
+        </MapPanel>
+      )}
 
-      <div className="mt-4 flex items-center gap-4">
-        <span className="w-14 shrink-0 font-display text-lg tabular-nums text-bleach">
-          {localHHMM(minutes)}
-        </span>
-        <input
-          type="range"
-          min={360}
-          max={1080}
-          step={5}
-          value={minutes}
-          onChange={(e) => setMinutes(Number(e.target.value))}
-          className="w-full accent-kenya-green-400"
-          aria-label="Time of day"
-        />
-      </div>
+      {buildingsState.phase === 'error' && (
+        <MapPanel className="absolute left-1/2 top-1/2 max-w-sm -translate-x-1/2 -translate-y-1/2 border-amber-500/30 bg-amber-500/10">
+          <p className="text-sm text-amber-300">
+            Building footprints could not be loaded, so no shadows are shown. The basemap and sun
+            position are still accurate.
+          </p>
+        </MapPanel>
+      )}
 
-      <div className="mt-6 grid grid-cols-2 gap-4">
-        <div className="lift-on-hover flex flex-col items-center rounded-lg py-2">
-          <Gauge value={wbgtNow ?? 0} min={0} max={35} unit="°C" color="#b8433a" size={92} />
-          <p className="mt-3 text-xs text-shade-400">Ground WBGT at this time</p>
+      {mapError && (
+        <MapPanel className="absolute left-1/2 top-20 max-w-sm -translate-x-1/2 border-amber-500/30 bg-amber-500/10">
+          <p className="text-sm text-amber-300">{mapError}</p>
+        </MapPanel>
+      )}
+
+      {/* Desktop readouts sit bottom-right so they clear the NavigationControl
+          at top-right. On phones the two 92px dials would leave almost no map,
+          so they collapse into plain numbers in the slider panel instead. */}
+      <MapPanel className="absolute bottom-6 right-4 hidden sm:block">
+        <div className="flex gap-5">
+          <div className="flex flex-col items-center">
+            <Gauge value={wbgtNow ?? 0} min={0} max={35} unit="°C" color="#b8433a" size={84} />
+            <p className="mt-2 text-[11px] text-shade-200">Ground WBGT</p>
+          </div>
+          <div className="flex flex-col items-center">
+            <Gauge value={routeShadeNote ?? 0} min={0} max={100} unit="%" color="#8697b8" size={84} />
+            <p className="mt-2 max-w-[7rem] text-center text-[11px] text-shade-200">
+              Shade along a 300 m transect
+            </p>
+          </div>
         </div>
-        <div className="lift-on-hover flex flex-col items-center rounded-lg py-2">
-          <Gauge value={routeShadeNote ?? 0} min={0} max={100} unit="%" color="#8697b8" size={92} />
-          <p className="mt-3 text-xs text-shade-400">Sample walking route, in shade</p>
-        </div>
-      </div>
 
-      <p className="mt-4 max-w-2xl text-xs leading-relaxed text-shade-400">
-        Shadows are projected from building footprints and the sun's real position at the selected
-        time — geometry, not an interpolation of the station reading across the campus. Most
-        buildings use a synthetic height where OpenStreetMap has no height tag; only 18 of 133
-        buildings in this footprint carry a surveyed height.
-      </p>
+        {/* Swatches read from the same functions that paint the layers, so
+            the legend cannot describe a colour the map is not using. The
+            ground swatch shows that ramp's colour at full strength rather
+            than the layer's own opacity — the wash is deliberately a ~0.05
+            tint over the whole basemap, and a 5%-opaque chip is just an
+            empty square. Hue is the identifying part; the map shows the
+            strength. */}
+        <ul className="mt-4 space-y-1.5 border-t border-shade-700/60 pt-3">
+          <LegendRow color={ground.color}>Sunlit ground</LegendRow>
+          <LegendRow color={shade.color}>Building shadow</LegendRow>
+          <LegendRow color={routeColorFor(1)}>Transect in shade</LegendRow>
+          <LegendRow color={routeColorFor(0)}>Transect exposed</LegendRow>
+          <LegendRow color="#b8433a">Conduit station</LegendRow>
+        </ul>
+        <p className="mt-3 max-w-[13rem] text-[10px] leading-relaxed text-shade-200">
+          The transect is a straight line across campus, not a mapped footpath.
+        </p>
+      </MapPanel>
+
+      {/* stopPropagation so a drag that starts on the slider and overshoots
+          onto the canvas doesn't hand off to Mapbox's pan handler mid-gesture. */}
+      <MapPanel
+        className="absolute inset-x-4 bottom-4 sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-[32rem] sm:-translate-x-1/2"
+        onPointerDownCapture={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-4">
+          <span className="w-14 shrink-0 font-display text-lg tabular-nums text-bleach">
+            {localHHMM(minutes)}
+          </span>
+          <input
+            type="range"
+            min={360}
+            max={1080}
+            step={5}
+            value={minutes}
+            onChange={(e) => setMinutes(Number(e.target.value))}
+            className="w-full accent-kenya-green-400"
+            aria-label="Time of day"
+          />
+        </div>
+        <div className="mt-2 flex gap-4 text-[11px] tabular-nums text-shade-200 sm:hidden">
+          <span>
+            WBGT <span className="text-bleach">{(wbgtNow ?? 0).toFixed(1)}°C</span>
+          </span>
+          <span>
+            Transect shade <span className="text-bleach">{routeShadeNote ?? 0}%</span>
+          </span>
+        </div>
+      </MapPanel>
     </section>
   );
 }

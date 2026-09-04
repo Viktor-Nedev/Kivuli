@@ -50,9 +50,18 @@ export function HeroMedia() {
 /** No animation, no pinning: a normal full-bleed section, sized to its content. */
 function StaticHero() {
   return (
-    <div className="relative min-h-screen w-screen overflow-hidden bg-shade-900">
+    // `left-1/2 -translate-x-1/2` is load-bearing, not decoration. This sits
+    // inside `<main class="mx-auto max-w-5xl">`, so a bare `w-screen` starts
+    // at the column's left edge and runs a viewport's width to the right of
+    // it — the section renders visibly offset, with a gap down the left.
+    // ScrubbedHero never hit this because its stage is `position: fixed`,
+    // which resolves against the viewport instead of the column.
+    <div className="relative left-1/2 min-h-screen w-screen -translate-x-1/2 overflow-hidden bg-shade-900">
+      {/* A frame from the hero clip, not `hero-community.jpg` — that photo is
+          already the site header directly above this section, and using it
+          here too rendered the same picture twice in a row. */}
       <img
-        src="/hero-community.jpg"
+        src="/hero-farmer-poster.jpg"
         alt=""
         aria-hidden="true"
         className="absolute inset-0 h-full w-full object-cover"
@@ -137,26 +146,36 @@ function ScrubbedHero() {
       tl.fromTo(
         problem,
         { opacity: 0, y: 24 },
-        { opacity: 1, y: 0, duration: 0.12, ease: 'none' },
+        { opacity: 1, y: 0, duration: 0.14, ease: 'none' },
         0.05,
       );
-      tl.to(problem, { opacity: 0, y: -24, duration: 0.1, ease: 'none' }, 0.32);
+      tl.to(problem, { opacity: 0, y: -24, duration: 0.12, ease: 'none' }, 0.4);
 
       tl.fromTo(
         answer,
         { opacity: 0, y: 24 },
-        { opacity: 1, y: 0, duration: 0.15, ease: 'none' },
-        0.4,
+        { opacity: 1, y: 0, duration: 0.18, ease: 'none' },
+        0.52,
       );
+      // Beats spread across the whole 0-1 range rather than finishing at
+      // 0.55: previously the last 45% of the scroll advanced nothing but
+      // video. Ending exactly at 1.0 also means the answer fades out under
+      // its own tween instead of being hard-cut the moment the stage unpins.
+      tl.to(answer, { opacity: 0, y: -24, duration: 0.12, ease: 'none' }, 0.88);
 
       ScrollTrigger.create({
         trigger: marker,
         start: 'top top',
-        // Three viewport-heights of scroll to play through the clip and both
-        // text beats — long enough to scrub deliberately, not so long the
-        // section overstays its welcome.
-        end: '+=300%',
-        scrub: 0.5,
+        // Half the previous range. The clip is only ~8s, so stretching it
+        // over 300% of viewport height left long stretches where a big scroll
+        // barely moved the picture.
+        //
+        // `scrub: 1.2` (was 0.5) is the bigger win: a mouse wheel arrives as
+        // ~100px jumps, and the longer catch-up lag turns those discrete
+        // targets into a stream of small forward deltas, which is the seek
+        // pattern browsers handle best.
+        end: '+=150%',
+        scrub: 1.2,
         onUpdate: (self) => tl.progress(self.progress),
         onToggle: (self) => setPinned(self.isActive),
         onEnter: () => setPinnedAtBottom(false),
@@ -172,7 +191,10 @@ function ScrubbedHero() {
   return (
     // Reserves the scroll height in normal document flow — this element has
     // no visuals of its own, only the height the scrubbed section needs.
-    <div ref={markerRef} className="relative h-[400vh]">
+    // Kept deliberately taller than the trigger's `end` (200vh vs 150vh): the
+    // surplus is what `pinnedAtBottom` parks against, and with no surplus the
+    // fixed-to-absolute swap lands on a single pixel and jumps a frame.
+    <div ref={markerRef} className="relative h-[200vh]">
       <div
         className={`h-screen w-screen overflow-hidden bg-shade-900 ${
           pinned
@@ -187,7 +209,7 @@ function ScrubbedHero() {
           muted
           playsInline
           preload="auto"
-          poster="/hero-community.jpg"
+          poster="/hero-farmer-poster.jpg"
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover"
           onLoadedMetadata={() => setVideoReady(true)}

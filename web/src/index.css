@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -81,6 +81,26 @@
 
 .animate-title-in-delayed {
   animation: title-in 900ms cubic-bezier(0.16, 1, 0.3, 1) 250ms both;
+}
+
+/* Wordmark mask reveal: the letters start fully below their own baseline and
+   ride up out of an `overflow-hidden` wrapper, so they are progressively
+   uncovered rather than simply fading in.
+   Needs BOTH halves to work: this class on an inner block element, and
+   `overflow-hidden` on its parent. Reduced motion needs no JS branch here —
+   the global rule below zeroes the duration while `both` still lands the
+   `to` state, so the wordmark ends visible either way. */
+@keyframes wordmark-rise {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-wordmark-rise {
+  animation: wordmark-rise 1100ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Cards/rows that should feel touchable: a small lift plus a brighter ring,

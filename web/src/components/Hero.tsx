@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import gsap from 'gsap';
-import type { Instruction } from '../lib/types';
+import type { Instruction, TimelinePoint } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { prefersReducedMotion } from '../lib/prefersReducedMotion';
+import { hhmm } from '../lib/format';
+import { dayAxisFor, segmentsFor, type BandKey } from '../lib/timelineSegments';
 
 // go/stop map to the flag's green/red, muted for legibility; wait is a
 // genuine third state (not on the flag) and keeps its own amber identity
@@ -40,13 +42,39 @@ export function Hero({
   instruction,
   metric,
   metricUnit,
+  icon,
+  timelinePoints,
+  timelineKey,
 }: {
   label: string;
   instruction: Instruction;
   metric?: string;
   metricUnit?: string;
+  /** Tinted by the caller with this card's status colour. */
+  icon?: ReactNode;
+  /** Supply both to draw the mini day-band; omit either and it is skipped. */
+  timelinePoints?: TimelinePoint[];
+  timelineKey?: BandKey;
 }) {
   const metricRef = useRef<HTMLSpanElement>(null);
+
+  // Reuses the same geometry as the full-width Timeline page rather than a
+  // second implementation, so a band that reads "suitable" here cannot
+  // disagree with the same band there.
+  const band = useMemo(() => {
+    if (!timelinePoints?.length || !timelineKey) return null;
+    const { axis, span } = dayAxisFor(timelinePoints);
+    const segments = segmentsFor(timelinePoints, timelineKey, axis, span);
+    const openRanges = segments
+      .filter((s) => s.pass)
+      .map((s) => `${hhmm(s.startTs)}–${hhmm(s.endTs)}`);
+    return {
+      segments,
+      label: openRanges.length
+        ? `Suitable ${openRanges.join(', ')}`
+        : 'Not suitable at any point today',
+    };
+  }, [timelinePoints, timelineKey]);
 
   useEffect(() => {
     const el = metricRef.current;
@@ -81,7 +109,7 @@ export function Hero({
   }, [metric]);
 
   return (
-    <section className="lift-on-hover relative overflow-hidden rounded-xl border border-shade-700 bg-shade-800/40 py-8 pl-6 pr-5 sm:py-10 sm:pl-8 sm:pr-8">
+    <section className="lift-on-hover relative flex h-full flex-col overflow-hidden rounded-xl border border-shade-700 bg-shade-800/40 py-6 pl-5 pr-4 sm:py-8 sm:pl-7 sm:pr-6">
       {/* Persistent status rail — carries the color as a band down the left
           edge, not just a small dot, so the card's overall state reads
           before any text is read. */}
@@ -89,6 +117,7 @@ export function Hero({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
+          {icon}
           <span className="relative flex h-3 w-3" aria-hidden>
             {instruction.status === 'go' && (
               <span
@@ -109,30 +138,69 @@ export function Hero({
         </div>
       </div>
 
+      {/* One step down from the old full-width scale: at half width `text-6xl`
+          wrapped a three-word headline onto three lines. */}
       <p
-        className={`mt-5 font-display text-4xl leading-[1.05] sm:text-6xl ${ACCENT[instruction.status]}`}
+        className={`mt-5 font-display text-3xl leading-[1.05] sm:text-4xl lg:text-5xl ${ACCENT[instruction.status]}`}
       >
         {instruction.headline}
       </p>
 
-      <p lang="sw" className="mt-2 font-display text-xl text-shade-200 sm:text-2xl">
+      <p lang="sw" className="mt-2 font-display text-lg text-shade-200 sm:text-xl">
         {instruction.headlineSw}
       </p>
 
-      <div className="mt-6 flex flex-wrap items-end gap-x-10 gap-y-4 border-t border-shade-700/60 pt-5">
-        {metric && (
+      {/* `mt-auto` pins the footer to the bottom of the card, so two cards of
+          different headline length still line their readings up with each
+          other. A fixed stack rather than the old `flex-wrap` row, which at
+          half width wrapped unpredictably. */}
+      <div className="mt-auto space-y-4 border-t border-shade-700/60 pt-5">
+        <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+          {metric && (
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-shade-400">Reading</p>
+              <span className="font-display text-4xl tabular-nums text-bleach sm:text-5xl">
+                <span ref={metricRef}>0</span>
+                {metricUnit && <span className="ml-1 text-base text-shade-200">{metricUnit}</span>}
+              </span>
+            </div>
+          )}
+          {instruction.detail && (
+            <div className="max-w-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-shade-400">Why</p>
+              <p className="mt-1 text-sm leading-relaxed text-shade-200">{instruction.detail}</p>
+            </div>
+          )}
+        </div>
+
+        {band && (
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-shade-400">Reading</p>
-            <span className="font-display text-5xl tabular-nums text-bleach sm:text-6xl">
-              <span ref={metricRef}>0</span>
-              {metricUnit && <span className="ml-1 text-lg text-shade-200">{metricUnit}</span>}
-            </span>
-          </div>
-        )}
-        {instruction.detail && (
-          <div className="max-w-xl">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-shade-400">Why</p>
-            <p className="mt-1 text-sm leading-relaxed text-shade-200">{instruction.detail}</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-shade-400">Across the day</p>
+            {/* Deliberately not interactive: the full-width Timeline page
+                already offers per-segment inspection, and six focusable
+                segments per card would add a dozen tab stops here for
+                information that is a glance, not a control. One label on the
+                container carries the whole band to a screen reader. */}
+            <div
+              className="relative mt-2 h-2 overflow-hidden rounded-full bg-shade-800 ring-1 ring-shade-700"
+              role="img"
+              aria-label={band.label}
+            >
+              {band.segments.map((seg, i) => (
+                <span
+                  key={i}
+                  className={`absolute top-0 h-full ${
+                    seg.pass ? 'bg-kenya-green-500' : 'bg-shade-600'
+                  }`}
+                  style={{ left: `${seg.startPct}%`, width: `${seg.widthPct}%` }}
+                />
+              ))}
+            </div>
+            <div className="mt-1 flex justify-between text-[10px] tabular-nums text-shade-400">
+              <span>06:00</span>
+              <span>12:00</span>
+              <span>18:00</span>
+            </div>
           </div>
         )}
       </div>

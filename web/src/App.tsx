@@ -173,10 +173,32 @@ function PageTransition({ children }: { children: React.ReactNode }) {
  * of fighting an inherited max-width via negative margins.
  */
 function Shell({ children, subtitle }: { children: React.ReactNode; subtitle?: string }) {
+  // The shade map is a viewport-height map; behind the full 62vh photo header
+  // it opened mostly below the fold. This one route gets the slim header so
+  // the map is actually on screen when the page loads.
+  const { pathname } = useLocation();
+  const compactHeader = pathname.startsWith('/shade-map');
+
   return (
-    <div className="min-h-screen">
-      <SiteHeader subtitle={subtitle} />
-      <main className="mx-auto max-w-5xl px-5 pb-20 sm:px-8">{children}</main>
+    // `overflow-x-clip` because the full-bleed children (the scrubbed hero,
+    // the shade map) size themselves with `w-screen`, and `100vw` counts the
+    // classic scrollbar gutter that the content box does not have — roughly
+    // 15px of horizontal overflow on desktop Windows/Linux. Clip rather than
+    // `overflow-x-hidden`: hidden makes this a scroll container, which
+    // silently breaks `position: sticky` for any descendant and gives the
+    // browser a second scrollport to fight over.
+    <div className="min-h-screen overflow-x-clip">
+      <SiteHeader subtitle={subtitle} compact={compactHeader} />
+      {/* The shade map is full-bleed and supplies its own chrome, so it opts
+          out of the reading-width column and the bottom padding — both would
+          just add dead scroll under a viewport-height section. */}
+      <main
+        className={
+          compactHeader ? '' : 'mx-auto max-w-5xl px-5 pb-20 sm:px-8'
+        }
+      >
+        {children}
+      </main>
       <SiteFooter />
     </div>
   );

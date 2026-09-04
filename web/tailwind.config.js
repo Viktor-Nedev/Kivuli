@@ -55,6 +55,12 @@ export default {
       fontFamily: {
         display: ['"Barlow Condensed"', 'system-ui', 'sans-serif'],
         body: ['Inter', 'system-ui', 'sans-serif'],
+        // The KIVULI wordmark only. Deliberately a *wide* grotesque against
+        // the condensed `display` face — a condensed alternative (Anton)
+        // would read as the same family at a heavier weight rather than as a
+        // distinct logotype. "Arial Black" leads the fallbacks so the
+        // font-swap doesn't visibly thin the wordmark before Archivo loads.
+        wordmark: ['"Archivo Black"', '"Arial Black"', 'system-ui', 'sans-serif'],
       },
     },
   },

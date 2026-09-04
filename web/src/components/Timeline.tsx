@@ -1,66 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { TimelinePoint } from '../lib/types';
-import { DAY_MINUTES, hhmm, makeDayAxis } from '../lib/format';
-
-type BandKey = 'spray' | 'drying' | 'heat';
+import { hhmm } from '../lib/format';
+import { dayAxisFor, segmentsFor, type BandKey, type Segment } from '../lib/timelineSegments';
 
 const BANDS: { key: BandKey; label: string; hint: string }[] = [
   { key: 'spray', label: 'Spray', hint: 'Delta-T 2–8 °C and wind 0.8–4.2 m/s' },
   { key: 'drying', label: 'Dry grain', hint: 'Humidity under 60% with direct sun' },
   { key: 'heat', label: 'Outdoor work', hint: 'ISO 7243 work/rest band from measured WBGT' },
 ];
-
-interface Segment {
-  startPct: number;
-  widthPct: number;
-  pass: boolean;
-  reason: string;
-  startTs: string;
-  endTs: string;
-}
-
-/** Collapses consecutive equal-state points into drawable segments. */
-function segmentsFor(
-  points: TimelinePoint[],
-  key: BandKey,
-  axis: (iso: string) => number,
-  span: number,
-): Segment[] {
-  const stateOf = (p: TimelinePoint) =>
-    key === 'spray' ? p.spray.pass : key === 'drying' ? p.drying.pass : p.heatBand === 'continuous';
-  const reasonOf = (p: TimelinePoint) =>
-    key === 'spray' ? p.spray.reason : key === 'drying' ? p.drying.reason : '';
-
-  const out: Segment[] = [];
-  let run: { pass: boolean; from: string; to: string; reason: string } | null = null;
-
-  const push = () => {
-    if (!run) return;
-    const start = axis(run.from);
-    // Give a single-sample run a visible width rather than a zero-width sliver.
-    const end = Math.max(axis(run.to), start + 8);
-    out.push({
-      startPct: (start / span) * 100,
-      widthPct: ((end - start) / span) * 100,
-      pass: run.pass,
-      reason: run.reason,
-      startTs: run.from,
-      endTs: run.to,
-    });
-    run = null;
-  };
-
-  for (const p of points) {
-    const pass = stateOf(p);
-    if (run && run.pass === pass) run.to = p.ts;
-    else {
-      push();
-      run = { pass, from: p.ts, to: p.ts, reason: reasonOf(p) };
-    }
-  }
-  push();
-  return out;
-}
 
 /**
  * The working day as a horizontal axis.
@@ -78,25 +25,7 @@ export function Timeline({ points }: { points: TimelinePoint[] }) {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const { axis, span, hours } = useMemo(() => {
-    const raw = makeDayAxis(points[0]?.ts ?? new Date().toISOString());
-    const first = points.length ? raw(points[0].ts) : 0;
-    const last = points.length ? raw(points[points.length - 1].ts) : DAY_MINUTES;
-
-    // Anchor to whole hours either side so labels land on round times.
-    const from = Math.floor(first / 60) * 60;
-    const to = Math.ceil(last / 60) * 60;
-    const width = Math.max(to - from, 60);
-
-    const ticks: number[] = [];
-    for (let m = from; m <= to; m += 180) ticks.push(m);
-
-    return {
-      axis: (iso: string) => raw(iso) - from,
-      span: width,
-      hours: ticks.map((m) => ({ minutes: m - from, label: m })),
-    };
-  }, [points]);
+  const { axis, span, hours } = useMemo(() => dayAxisFor(points), [points]);
 
   const bands = useMemo(
     () => BANDS.map((b) => ({ ...b, segments: segmentsFor(points, b.key, axis, span) })),

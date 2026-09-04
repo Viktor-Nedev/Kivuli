@@ -4,7 +4,15 @@ dist/
 .env.local
 *.log
 .cache/
-data/cache/
+# Cache contents, not the directory itself: git cannot re-include a file
+# inside an ignored directory, so the negation below only works if the rule
+# matches files rather than the folder.
+data/cache/*
+# ...except one rainfall archive. The Season page needs eleven years of ERA5,
+# and a hackathon venue network cannot be relied on, so committing a single
+# snapshot lets the demo run offline exactly as the bundled station CSV does.
+# Everything else in the cache stays ignored and is refetched on demand.
+!data/cache/daily_2015-01-01_*.json
 .DS_Store
 .scratch/
 .claude/

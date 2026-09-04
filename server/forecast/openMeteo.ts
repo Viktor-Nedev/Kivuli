@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 /**
@@ -8,8 +8,11 @@ import path from 'node:path';
  *  1. Forecast — supplies the rain lookahead that gates spray and drying.
  *     The station can only report rain that has already fallen, so a future
  *     decision must come from the model.
- *  2. ERA5 archive — supplies the reference series the calibration is fitted
- *     against.
+ *  2. ERA5 hourly archive — supplies the reference series the calibration is
+ *     fitted against.
+ *  3. ERA5 daily archive — supplies the multi-year rainfall history behind the
+ *     climate page. The station's own record is one day long, so anything that
+ *     compares this season against previous ones has to come from here.
  */
 
 /** JKUAT main campus, Juja. Open-Meteo resolves this to elevation 1527 m. */
@@ -28,6 +31,18 @@ export interface HourlyForecast {
   shortwave_radiation: number[];
   surface_pressure: number[];
 }
+
+export interface DailyArchive {
+  /** `YYYY-MM-DD`, in the requested timezone. */
+  time: string[];
+  precipitation_sum: number[];
+  /** FAO-56 reference evapotranspiration, mm/day. Paired with rainfall it
+   *  gives a water balance: this site runs a deficit in nine months of the
+   *  year, which is the whole argument for storing the two wet peaks. */
+  et0_fao_evapotranspiration: number[];
+}
+
+const DAILY_VARS = ['precipitation_sum', 'et0_fao_evapotranspiration'].join(',');
 
 const HOURLY_VARS = [
   'temperature_2m',
@@ -67,6 +82,24 @@ async function cached<T>(cacheDir: string, key: string, ttlMs: number, load: () 
   }
 }
 
+/**
+ * Drops superseded daily-archive snapshots, keeping only the one being used.
+ *
+ * Best-effort: a failure here must never break a request, since a stale extra
+ * file is harmless and the data itself is already in hand.
+ */
+async function pruneDailyCache(cacheDir: string, keep: string): Promise<void> {
+  try {
+    for (const name of await readdir(cacheDir)) {
+      if (name.startsWith('daily_') && name.endsWith('.json') && name !== keep) {
+        await unlink(path.join(cacheDir, name)).catch(() => {});
+      }
+    }
+  } catch {
+    // No cache directory yet, or it is not readable. Nothing to prune.
+  }
+}
+
 async function getJson(url: string): Promise<any> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Open-Meteo ${res.status} for ${url}`);
@@ -96,6 +129,33 @@ export class OpenMeteoClient {
       getJson(url),
     );
     return body.hourly as HourlyForecast;
+  }
+
+  /**
+   * ERA5 daily totals for a past date range.
+   *
+   * Requested in **Africa/Nairobi, not UTC** — unlike `archive()` above, which
+   * matches the station's UTC timestamps on purpose. A daily total only means
+   * something if it is bounded by the local calendar day the farmer actually
+   * experienced; summing on UTC boundaries would smear each day's rain across
+   * two dates and make season-onset detection quietly wrong.
+   *
+   * 24 h TTL: ERA5 publishes about once a day, and every figure derived from
+   * this is a multi-year window, so a one-day-old copy changes nothing.
+   */
+  async dailyArchive(startDate: string, endDate: string): Promise<DailyArchive> {
+    // The key carries the end date, so a new ~90 KB file lands each day.
+    // Without this the cache would grow unbounded on a long-running instance.
+    await pruneDailyCache(this.cacheDir, `daily_${startDate}_${endDate}.json`);
+
+    const url =
+      `${ARCHIVE_URL}?latitude=${SITE.latitude}&longitude=${SITE.longitude}` +
+      `&start_date=${startDate}&end_date=${endDate}&daily=${DAILY_VARS}` +
+      `&timezone=${encodeURIComponent(SITE.timezone)}`;
+    const body = await cached(this.cacheDir, `daily_${startDate}_${endDate}`, 24 * 3600_000, () =>
+      getJson(url),
+    );
+    return body.daily as DailyArchive;
   }
 }
 

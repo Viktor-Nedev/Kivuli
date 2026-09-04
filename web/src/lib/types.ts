@@ -1,4 +1,4 @@
-export type Provenance = 'measured' | 'bias_corrected' | 'raw_forecast';
+export type Provenance = 'measured' | 'bias_corrected' | 'raw_forecast' | 'reanalysis';
 
 export interface Tagged {
   value: number;
@@ -78,4 +78,70 @@ export interface TodayResponse {
   timeline: TimelinePoint[];
   calibration: Calibration | null;
   forecastDegraded: boolean;
+}
+
+/* ---------------------------------------------------------------------------
+ * Climate page. Served by `/api/climate`, fetched by ClimatePage itself rather
+ * than by the layout: it reads eleven years of daily records, and the decision
+ * cards must not wait on that.
+ * ------------------------------------------------------------------------- */
+
+export type RainCategory = 'very-dry' | 'dry' | 'normal' | 'wet' | 'very-wet';
+
+export interface WindowStat {
+  days: 30 | 90 | 180;
+  totalMm: number;
+  medianMm: number;
+  percentile: number;
+  /** Reference years behind the percentile. Shown, not hidden: with n this
+   *  small the extremes are not finely resolved. */
+  referenceYears: number;
+  category: RainCategory;
+}
+
+export interface MonthClimate {
+  month: number;
+  rainMm: number;
+  et0Mm: number;
+  /** rain - evapotranspiration. Negative months lose more water than they gain. */
+  balanceMm: number;
+  years: number;
+}
+
+export interface YearTotal {
+  year: number;
+  mm: number;
+  complete: boolean;
+  days: number;
+}
+
+export interface OnsetDistribution {
+  season: 'MAM' | 'OND';
+  years: { year: number; onset: string | null }[];
+  medianMonthDay: string | null;
+  earliestMonthDay: string | null;
+  latestMonthDay: string | null;
+  spreadDays: number;
+  observedYears: number;
+}
+
+export interface ClimateResponse {
+  site: { latitude: number; longitude: number; timezone: string };
+  degraded: boolean;
+  detail?: string;
+  generatedAt: string;
+  throughDate: string;
+  referenceYears: { from: number; to: number; n: number };
+  windows: WindowStat[];
+  climatology: MonthClimate[];
+  annual: YearTotal[];
+  onset: { mam: OnsetDistribution; ond: OnsetDistribution };
+  harvest: {
+    medianAnnualMm: number;
+    runoffCoeff: number;
+    referenceRoofM2: number;
+    litresPerYear: number;
+    litresPerM2PerYear: number;
+  };
+  advisory: { en: string; sw: string };
 }

@@ -64,7 +64,7 @@ for Vite's `VITE_` prefix convention. Without a token, the shade map section sho
 instead of failing.
 
 ```bash
-npm test        # 35 tests across ingest, indices, decisions, calibration, shadow geometry
+npm test        # 59 tests across ingest, indices, decisions, calibration, climate, shadow geometry
 npm run typecheck
 npm run build
 ```
@@ -102,6 +102,23 @@ the OSM tag where present and a synthetic default otherwise, into a static file 
 directly. Only 18 of those 133 carry a surveyed height; the rest use the same default Mapbox
 itself applies.
 
+
+**How this season compares.** The station's record is one day long, so the Season page reads
+eleven years of ERA5 daily rainfall for this exact point instead. Three windows are ranked against
+*the same calendar window* in every previous year, which is what stops the ordinary dry season
+reading as a drought: right now the 90-day total sits in the 9th percentile while the 180-day
+total sits at the 55th. The recent months genuinely are dry, but the long rains arrived normally —
+a single-window drought indicator would announce an emergency that its own longer window
+disproves, so the page states that conclusion in words rather than leaving it to be inferred.
+
+The same history gives two more things a household can act on: when the rains have historically
+started (an 84-day spread for the long rains, shown per year, and explicitly not a forecast), and
+what a roof could collect. Only three months of the year — April, May and November — gain more
+water than evaporation takes away at this site, so rain here is less scarce than badly timed, and
+storage is the lever. A 60 m² roof yields about 42,000 litres in a typical year. The summary is
+also offered as copyable English and Kiswahili text, since most people this matters to will
+receive it forwarded rather than by opening a dashboard.
+
 ---
 
 ## Data and its limits
@@ -127,8 +144,31 @@ Known limits, stated rather than hidden:
 - The drying light threshold (300 SI1145 visible counts) is a sensor-specific daylight cutoff
   calibrated against this sample, not a physical irradiance value.
 
-Every number in the interface carries a provenance tag — `measured`, `bias-corrected`, or
-`raw forecast` — so it is always clear what came from the station and what came from a model.
+On the **Season** page, which reads eleven years of ERA5 rainfall rather than the station:
+
+- **Eleven years is not a climate normal.** The WMO standard is thirty. With n=11 the extreme
+  percentiles are coarse, and the smallest event this record can honestly name is roughly a
+  one-in-eleven year. The sample size is printed on every card rather than left implicit.
+- **ERA5 is a reanalysis, not a rain gauge.** It is a model reconstruction on a ~9 km grid, so it
+  will not capture a convective storm that hit one field and missed the next. The station's own
+  tipping bucket is the only *measured* rainfall here, and it covers one day.
+- **This is monitoring, not forecasting.** Every figure describes rain that has already fallen.
+  Nothing on the page predicts the season ahead.
+- **Season onset is a historical distribution, not this year's prediction.** The long rains have
+  started anywhere across an 84-day spread in the record. That spread is the point, and it is
+  shown per year: a farmer planting on the median date would be wrong in most individual years.
+- **Harvest yield assumes a 0.8 runoff coefficient** — the usual figure for corrugated iron, an
+  engineering convention rather than something measured here. It is an upper bound on what a roof
+  *catches*, and ignores first-flush diversion, gutter losses and overflow once a tank is full.
+- **No machine learning, deliberately.** With one day of station data and a stationary rainfall
+  series, a learned model would add confidence without adding information. Empirical percentiles
+  over eleven real years are the correct estimator, and saying so is more honest than a model that
+  cannot beat climatology.
+
+Every number in the interface carries a provenance tag — `measured`, `bias-corrected`,
+`raw forecast`, or `reanalysis` — so it is always clear what came from the station and what came
+from a model. `reanalysis` is styled distinctly from `measured` precisely because ERA5 is neither
+this station's instrument nor a forecast of the future.
 
 ---
 

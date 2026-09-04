@@ -36,7 +36,13 @@ export interface Reading {
 }
 
 /** Where a displayed number came from. Rendered in the UI beside the value. */
-export type Provenance = 'measured' | 'bias_corrected' | 'raw_forecast';
+/**
+ * Where a number came from. `reanalysis` covers ERA5: not measured by this
+ * station and not a forecast of the future either, but a model's best
+ * reconstruction of weather that has already happened. It gets its own label
+ * because collapsing it into either of the others would misstate what it is.
+ */
+export type Provenance = 'measured' | 'bias_corrected' | 'raw_forecast' | 'reanalysis';
 
 export interface Tagged<T> {
   value: T;

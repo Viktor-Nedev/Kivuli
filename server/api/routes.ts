@@ -8,6 +8,7 @@ import { buildDecisions } from '../decisions/instructions.js';
 import { assessSpray, deltaT, SPRAY } from '../indices/spray.js';
 import { assessDrying } from '../indices/drying.js';
 import { assessHeat, assessThi } from '../indices/heat.js';
+import { loadClimate } from '../climate/history.js';
 
 /**
  * Timeline point for the UI: one row per observation with each index resolved,
@@ -158,6 +159,33 @@ export function createRouter(root: string): Router {
     } catch (err) {
       res.status(502).json({
         error: 'Forecast service unavailable.',
+        detail: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
+
+  /**
+   * Multi-year rainfall climatology.
+   *
+   * Deliberately its own endpoint rather than more fields on `/api/today`.
+   * It reads eleven years of daily records where the decision cards need one
+   * day, so folding them together would make every visitor wait on the
+   * archive before learning whether they can spray this afternoon — and would
+   * let an archive outage take the whole dashboard down.
+   *
+   * A failure degrades rather than 502s, matching how `forecastDegraded`
+   * already works: the page can say "history unavailable" and still be a
+   * page, which beats an error screen for something this peripheral to the
+   * core decision.
+   */
+  router.get('/api/climate', async (_req, res) => {
+    try {
+      const summary = await loadClimate(meteo);
+      res.json({ site: SITE, degraded: false, ...summary });
+    } catch (err) {
+      res.json({
+        site: SITE,
+        degraded: true,
         detail: err instanceof Error ? err.message : String(err),
       });
     }

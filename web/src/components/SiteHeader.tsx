@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: '/timeline', label: 'Working day' },
   { to: '/station', label: 'Station' },
   { to: '/shade-map', label: 'Shade map' },
+  { to: '/climate', label: 'Season' },
   { to: '/calibration', label: 'Calibration' },
 ] as const;
 
@@ -87,7 +88,7 @@ export function SiteHeader({
           </p>
         )}
 
-        <SiteNav className="animate-title-in-delayed mt-8 justify-center" />
+        <SiteNav className="animate-title-in-delayed mt-8 w-full justify-center gap-x-4 sm:gap-x-6" />
       </div>
 
       <KenyaDivider variant="bold" className="relative" />
@@ -105,7 +106,7 @@ function SiteNav({ className = '' }: { className?: string }) {
           to={item.to}
           end={'end' in item ? item.end : false}
           className={({ isActive }) =>
-            `relative pb-1 font-display text-sm uppercase tracking-[0.2em] transition-colors after:absolute after:-bottom-[1px] after:left-0 after:h-[2px] after:rounded-full after:bg-kenya-green-400 after:transition-all after:duration-300 ${
+            `relative pb-1 font-display text-xs uppercase tracking-[0.12em] transition-colors sm:text-sm sm:tracking-[0.2em] after:absolute after:-bottom-[1px] after:left-0 after:h-[2px] after:rounded-full after:bg-kenya-green-400 after:transition-all after:duration-300 ${
               isActive
                 ? 'text-kenya-green-400 after:w-full'
                 : 'text-shade-200 after:w-0 hover:text-bleach hover:after:w-full hover:after:bg-shade-400'

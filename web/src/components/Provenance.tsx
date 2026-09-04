@@ -4,12 +4,18 @@ const LABEL: Record<Provenance, string> = {
   measured: 'measured',
   bias_corrected: 'bias-corrected',
   raw_forecast: 'raw forecast',
+  reanalysis: 'reanalysis',
 };
 
 const STYLE: Record<Provenance, string> = {
   measured: 'bg-kenya-green-500/15 text-kenya-green-300 ring-kenya-green-500/30',
   bias_corrected: 'bg-shade-400/20 text-shade-200 ring-shade-400/40',
   raw_forecast: 'bg-shade-700 text-shade-200 ring-shade-600',
+  // Amber, so ERA5 reads as visibly distinct from the green `measured` tag at
+  // a glance. Reanalysis is a model reconstruction on a ~9 km grid, not this
+  // station's own instrument, and the two should never be mistaken for each
+  // other in a screenshot.
+  reanalysis: 'bg-amber-500/15 text-amber-300 ring-amber-500/30',
 };
 
 /**

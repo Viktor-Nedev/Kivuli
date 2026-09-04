@@ -10,6 +10,7 @@ import { TimelinePage } from './pages/TimelinePage';
 import { StationPage } from './pages/StationPage';
 import { ShadeMapPage } from './pages/ShadeMapPage';
 import { CalibrationPage } from './pages/CalibrationPage';
+import { ClimatePage } from './pages/ClimatePage';
 import { SiteHeader } from './components/SiteHeader';
 import { SiteFooter } from './components/SiteFooter';
 
@@ -27,7 +28,8 @@ export default function App() {
           <Route path="timeline" element={<TimelinePage />} />
           <Route path="station" element={<StationPage />} />
           <Route path="shade-map" element={<ShadeMapPage />} />
-          <Route path="calibration" element={<CalibrationPage />} />
+          <Route path="climate" element={<ClimatePage />} />
+        <Route path="calibration" element={<CalibrationPage />} />
         </Route>
       </Routes>
     </HashRouter>

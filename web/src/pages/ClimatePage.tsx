@@ -5,6 +5,8 @@ import { RainfallStanding } from '../components/RainfallStanding';
 import { SeasonOnset } from '../components/SeasonOnset';
 import { WaterHarvest } from '../components/WaterHarvest';
 import { ShareAdvisory } from '../components/ShareAdvisory';
+import { SitePicker, SiteSplitNote } from '../components/SitePicker';
+import { DEFAULT_SITE_ID, SITE_OPTIONS, type SiteOption } from '../lib/site';
 
 /**
  * Eleven years of rainfall history for this site.
@@ -23,10 +25,23 @@ type State =
 
 export function ClimatePage() {
   const [state, setState] = useState<State>({ phase: 'loading' });
+  const [site, setSite] = useState<SiteOption>(
+    () => SITE_OPTIONS.find((o) => o.id === DEFAULT_SITE_ID) ?? SITE_OPTIONS[0],
+  );
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/climate')
+    setState({ phase: 'loading' });
+
+    // The station site is the default and needs no parameters, so its request
+    // stays byte-identical to the one the committed offline snapshot was
+    // fetched with.
+    const query =
+      site.id === DEFAULT_SITE_ID
+        ? ''
+        : `?lat=${site.latitude}&lon=${site.longitude}&place=${encodeURIComponent(site.label)}`;
+
+    fetch(`/api/climate${query}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json() as Promise<ClimateResponse>;
@@ -45,18 +60,42 @@ export function ClimatePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [site]);
+
+  // The picker stays mounted through every phase. Unmounting it while a fetch
+  // is in flight would remove the control the reader just used and leave them
+  // stranded on a spinner with no way back.
+  const header = (
+    <section className="pt-10 sm:pt-12">
+      <h1 className="font-display text-3xl text-bleach sm:text-4xl">How this season compares</h1>
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
+        Eleven years of ERA5 reanalysis — a gridded reconstruction of weather that has already
+        happened — for one point in Kenya. It describes rain that has fallen. Nothing on this page
+        forecasts the season ahead.
+      </p>
+      <div className="mt-6">
+        <SitePicker selected={site} onSelect={setSite} busy={state.phase === 'loading'} />
+      </div>
+    </section>
+  );
 
   if (state.phase === 'loading') {
     return (
-      <section className="py-16">
-        <p className="text-sm text-shade-200">Reading eleven years of rainfall records…</p>
-      </section>
+      <>
+        {header}
+        <section className="py-16">
+          <p className="text-sm text-shade-200">
+            Reading eleven years of rainfall records for {site.label}…
+          </p>
+        </section>
+      </>
     );
   }
 
   if (state.phase === 'error') {
     return (
+      <>
+      {header}
       <section className="py-16">
         <h2 className="font-display text-2xl text-kenya-red-400">
           Rainfall history unavailable
@@ -68,6 +107,7 @@ export function ClimatePage() {
         </p>
         <p className="mt-2 font-mono text-xs text-shade-400">{state.message}</p>
       </section>
+      </>
     );
   }
 
@@ -78,6 +118,8 @@ export function ClimatePage() {
   // showing nothing, so this is a full stop rather than a banner.
   if (data.degraded) {
     return (
+      <>
+      {header}
       <section className="py-16">
         <h2 className="font-display text-2xl text-amber-300">Rainfall history unavailable</h2>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-shade-200">
@@ -87,24 +129,15 @@ export function ClimatePage() {
         </p>
         {data.detail && <p className="mt-2 font-mono text-xs text-shade-400">{data.detail}</p>}
       </section>
+      </>
     );
   }
 
   return (
     <>
-      <Reveal>
-        <section className="pt-10 sm:pt-12">
-          <h1 className="font-display text-3xl text-bleach sm:text-4xl">
-            How this season compares
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
-            The station&apos;s own record is one day long, so everything here comes from ERA5
-            reanalysis — a gridded reconstruction of weather that has already happened — for this
-            exact location, {data.referenceYears.from} to {data.referenceYears.to}. It describes
-            rain that has fallen. Nothing on this page forecasts the season ahead.
-          </p>
-        </section>
-      </Reveal>
+      {header}
+
+      {site.id !== DEFAULT_SITE_ID && <SiteSplitNote place={data.place} />}
 
       <Reveal>
         <RainfallStanding

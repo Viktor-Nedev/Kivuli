@@ -108,6 +108,38 @@ function ScrubbedHero() {
   const [pinned, setPinned] = useState(false);
   const [pinnedAtBottom, setPinnedAtBottom] = useState(false);
 
+  // `preload="none"` means the browser fetches nothing on its own, so
+  // `loadedmetadata` would never fire and `videoReady` would never flip -
+  // leaving the scrub timeline uninitialised and the hero frozen on its
+  // poster. Kick off the load only once the section is near the viewport:
+  // someone who never scrolls past the fold still pays nothing, and someone
+  // who scrolls has the metadata by the time the pin engages.
+  useEffect(() => {
+    const marker = markerRef.current;
+    const video = videoRef.current;
+    if (!marker || !video) return;
+
+    // No IntersectionObserver (or a very old browser): just load, rather than
+    // risk a hero that never animates.
+    if (typeof IntersectionObserver === 'undefined') {
+      video.load();
+      return;
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          video.load();
+          io.disconnect();
+        }
+      },
+      // Start fetching a screen early so the metadata lands before the pin.
+      { rootMargin: '100% 0px' },
+    );
+    io.observe(marker);
+    return () => io.disconnect();
+  }, []);
+
   useEffect(() => {
     const marker = markerRef.current;
     const video = videoRef.current;
@@ -208,7 +240,12 @@ function ScrubbedHero() {
           ref={videoRef}
           muted
           playsInline
-          preload="auto"
+          // `none`, not `auto`: the clip is 9.1 MB and most visitors never
+          // scroll far enough to scrub it. Eager preloading spent a rural
+          // user's data on a decoration they never saw. The poster below is
+          // 136 KB and carries the first frame until the scrub actually
+          // starts, at which point the browser fetches on demand.
+          preload="none"
           poster="/hero-farmer-poster.jpg"
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover"

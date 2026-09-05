@@ -1,4 +1,4 @@
-import { OpenMeteoClient } from '../forecast/openMeteo.js';
+import { OpenMeteoClient, SITE, type Site } from '../forecast/openMeteo.js';
 import {
   annualTotals,
   harvestPotential,
@@ -33,6 +33,10 @@ const HISTORY_START = '2015-01-01';
 export const REFERENCE_ROOF_M2 = 60;
 
 export interface ClimateSummary {
+  /** The location these figures describe. Returned so the client renders the
+   *  banner from the response rather than re-deriving which site it asked for. */
+  site: Site;
+  place: string;
   generatedAt: string;
   /** The last day present in the archive — everything is computed to here. */
   throughDate: string;
@@ -105,6 +109,7 @@ function buildAdvisory(
   windows: WindowStat[],
   climatology: MonthClimate[],
   throughDate: string,
+  place: string,
 ): { en: string; sw: string } {
   const short = windows.find((w) => w.days === 90);
   const long = windows.find((w) => w.days === 180);
@@ -129,13 +134,13 @@ function buildAdvisory(
   if (dryShort && dryLong) {
     return {
       en:
-        `KIVULI rainfall check (JKUAT, to ${throughDate}). ` +
+        `KIVULI rainfall check (${place}, to ${throughDate}). ` +
         `Last 90 days ${short.totalMm} mm against a usual ${short.medianMm} mm, ` +
         `and the last 180 days are also below normal. ` +
         `Both the recent months and the last rainy season came in dry — ` +
         `plan for reduced water and stagger planting. Based on ${short.referenceYears} years of records.`,
       sw:
-        `KIVULI ukaguzi wa mvua (JKUAT, hadi ${throughDate}). ` +
+        `KIVULI ukaguzi wa mvua (${place}, hadi ${throughDate}). ` +
         `Siku 90 zilizopita mm ${short.totalMm} badala ya kawaida mm ${short.medianMm}, ` +
         `na siku 180 pia ziko chini ya kawaida. ` +
         `Msimu wa mvua uliopita haukutosha — panga kwa maji kidogo na gawanya upandaji. ` +
@@ -148,13 +153,13 @@ function buildAdvisory(
   if (dryShort && !dryLong) {
     return {
       en:
-        `KIVULI rainfall check (JKUAT, to ${throughDate}). ` +
+        `KIVULI rainfall check (${place}, to ${throughDate}). ` +
         `The last 90 days brought ${short.totalMm} mm, below the usual ${short.medianMm} mm — ` +
         `but ${monthName} is normally a dry month here, and the last 180 days sit at ` +
         `${long.totalMm} mm, which is normal. ` +
         `This is the dry season, not a failed one. Based on ${short.referenceYears} years of records.`,
       sw:
-        `KIVULI ukaguzi wa mvua (JKUAT, hadi ${throughDate}). ` +
+        `KIVULI ukaguzi wa mvua (${place}, hadi ${throughDate}). ` +
         `Siku 90 zilizopita zilileta mm ${short.totalMm}, chini ya kawaida mm ${short.medianMm} — ` +
         `lakini ${monthNameSw} huwa mwezi mkavu hapa, na siku 180 zina mm ${long.totalMm}, ` +
         `ambayo ni kawaida. Huu ni msimu wa kiangazi, si msimu ulioshindwa. ` +
@@ -165,12 +170,12 @@ function buildAdvisory(
   if (short.percentile > 75 || long.percentile > 75) {
     return {
       en:
-        `KIVULI rainfall check (JKUAT, to ${throughDate}). ` +
+        `KIVULI rainfall check (${place}, to ${throughDate}). ` +
         `The last 90 days brought ${short.totalMm} mm against a usual ${short.medianMm} mm — ` +
         `wetter than most years. Check drainage and watch for waterlogging. ` +
         `Based on ${short.referenceYears} years of records.`,
       sw:
-        `KIVULI ukaguzi wa mvua (JKUAT, hadi ${throughDate}). ` +
+        `KIVULI ukaguzi wa mvua (${place}, hadi ${throughDate}). ` +
         `Siku 90 zilizopita zilileta mm ${short.totalMm} badala ya kawaida mm ${short.medianMm} — ` +
         `mvua nyingi kuliko miaka mingi. Angalia mifereji na tahadhari ya maji kujaa. ` +
         `Kutokana na rekodi ya miaka ${short.referenceYears}.`,
@@ -181,23 +186,28 @@ function buildAdvisory(
   const dryNoteSw = normallyDry ? ` ${monthNameSw} huwa mkavu hapa.` : '';
   return {
     en:
-      `KIVULI rainfall check (JKUAT, to ${throughDate}). ` +
+      `KIVULI rainfall check (${place}, to ${throughDate}). ` +
       `The last 90 days brought ${short.totalMm} mm against a usual ${short.medianMm} mm — ` +
       `close to normal.${dryNote} Based on ${short.referenceYears} years of records.`,
     sw:
-      `KIVULI ukaguzi wa mvua (JKUAT, hadi ${throughDate}). ` +
+      `KIVULI ukaguzi wa mvua (${place}, hadi ${throughDate}). ` +
       `Siku 90 zilizopita zilileta mm ${short.totalMm} badala ya kawaida mm ${short.medianMm} — ` +
       `karibu na kawaida.${dryNoteSw} Kutokana na rekodi ya miaka ${short.referenceYears}.`,
   };
 }
 
-/** Today in Africa/Nairobi as `YYYY-MM-DD`. */
+/** Today in Kenya as `YYYY-MM-DD`. The whole country is UTC+3, no DST, so
+ *  this holds for every site the Season page supports. */
 function todayInNairobi(): string {
   return new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
 }
 
-export async function loadClimate(meteo: OpenMeteoClient): Promise<ClimateSummary> {
-  const daily = await meteo.dailyArchive(HISTORY_START, todayInNairobi());
+export async function loadClimate(
+  meteo: OpenMeteoClient,
+  site: Site = SITE,
+  place = 'JKUAT',
+): Promise<ClimateSummary> {
+  const daily = await meteo.dailyArchive(HISTORY_START, todayInNairobi(), site);
 
   const series: DailyRain[] = daily.time.map((date, i) => ({
     date,
@@ -218,6 +228,8 @@ export async function loadClimate(meteo: OpenMeteoClient): Promise<ClimateSummar
   const medianAnnualMm = Math.round(median(completeYears.map((y) => y.mm)) * 10) / 10;
 
   return {
+    site,
+    place,
     generatedAt: new Date().toISOString(),
     throughDate,
     referenceYears: {
@@ -239,7 +251,7 @@ export async function loadClimate(meteo: OpenMeteoClient): Promise<ClimateSummar
       litresPerYear: harvestPotential(medianAnnualMm, REFERENCE_ROOF_M2),
       litresPerM2PerYear: harvestPotential(medianAnnualMm, 1),
     },
-    advisory: buildAdvisory(windows, climatology, throughDate),
+    advisory: buildAdvisory(windows, climatology, throughDate, place),
   };
 }
 

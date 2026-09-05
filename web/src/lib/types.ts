@@ -127,6 +127,8 @@ export interface OnsetDistribution {
 
 export interface ClimateResponse {
   site: { latitude: number; longitude: number; timezone: string };
+  /** Human-readable name of the location these figures describe. */
+  place: string;
   degraded: boolean;
   detail?: string;
   generatedAt: string;

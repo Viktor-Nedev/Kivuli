@@ -1,0 +1,7 @@
+node_modules
+# Rebuilt inside the image; copying a stale host build would shadow it.
+dist
+.git
+.claude
+analysis
+*.log

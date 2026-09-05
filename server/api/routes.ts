@@ -2,7 +2,7 @@ import { Router } from 'express';
 import path from 'node:path';
 import { createConduitSource } from '../ingest/ConduitSource.js';
 import type { Reading } from '../ingest/types.js';
-import { OpenMeteoClient, rainLookaheadSet, SITE } from '../forecast/openMeteo.js';
+import { OpenMeteoClient, rainLookaheadSet, SITE, type Site } from '../forecast/openMeteo.js';
 import { loadCoefficients, calibrate } from '../calibration/apply.js';
 import { buildDecisions } from '../decisions/instructions.js';
 import { assessSpray, deltaT, SPRAY } from '../indices/spray.js';
@@ -42,13 +42,63 @@ function timeline(readings: Reading[], rainAt: (ts: string) => boolean) {
  * 21:00Z of the previous date. Measuring elapsed minutes keeps the day
  * monotonic across the midnight wrap.
  */
-function elapsedMinutesFrom(firstIso: string): (iso: string) => number {
+export function elapsedMinutesFrom(firstIso: string): (iso: string) => number {
   const localDate = new Date(firstIso).toLocaleDateString('en-CA', {
     timeZone: 'Africa/Nairobi',
   });
   const [y, m, d] = localDate.split('-').map(Number);
   const originMs = Date.UTC(y, m - 1, d) - 3 * 3600_000;
   return (iso: string) => (new Date(iso).getTime() - originMs) / 60_000;
+}
+
+/**
+ * Kenya's bounding box, with a little margin.
+ *
+ * ERA5 is global, so an unchecked lat/lon would happily return a rainfall
+ * climatology for Antarctica — dressed in a Swahili advisory, ranked against
+ * MAM/OND seasons that do not exist there. Refusing out-of-region input is the
+ * same posture as the rest of the app: answer what the data supports, and say
+ * plainly when a question is outside it.
+ */
+const KENYA_BOUNDS = { minLat: -5.0, maxLat: 5.5, minLon: 33.9, maxLon: 41.9 };
+
+/**
+ * Reads `?lat=&lon=` (optionally `&place=`), defaulting to the station site.
+ * Returns an error string rather than throwing so the caller can answer 400
+ * with something a person can act on.
+ */
+export function parseSite(query: {
+  lat?: unknown;
+  lon?: unknown;
+  place?: unknown;
+}): { site: Site; place: string } | { error: string } {
+  const { lat, lon } = query;
+  if (lat === undefined && lon === undefined) return { site: SITE, place: 'JKUAT' };
+  if (lat === undefined || lon === undefined) {
+    return { error: 'Both lat and lon are required to choose a location.' };
+  }
+
+  const latitude = Number(lat);
+  const longitude = Number(lon);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return { error: 'lat and lon must be numbers.' };
+  }
+  if (
+    latitude < KENYA_BOUNDS.minLat ||
+    latitude > KENYA_BOUNDS.maxLat ||
+    longitude < KENYA_BOUNDS.minLon ||
+    longitude > KENYA_BOUNDS.maxLon
+  ) {
+    return {
+      error:
+        'That location is outside Kenya. The rainfall seasons, the Swahili advisory and the ' +
+        'onset rule this page uses are specific to East Africa, so it will not answer for ' +
+        'points beyond it.',
+    };
+  }
+
+  const place = typeof query.place === 'string' && query.place.trim() ? query.place.trim() : 'this location';
+  return { site: { latitude, longitude, timezone: SITE.timezone }, place };
 }
 
 export function createRouter(root: string): Router {
@@ -178,13 +228,23 @@ export function createRouter(root: string): Router {
    * page, which beats an error screen for something this peripheral to the
    * core decision.
    */
-  router.get('/api/climate', async (_req, res) => {
+  router.get('/api/climate', async (req, res) => {
+    const parsed = parseSite(req.query as Record<string, unknown>);
+    if ('error' in parsed) {
+      res.status(400).json({ error: parsed.error });
+      return;
+    }
+
     try {
-      const summary = await loadClimate(meteo);
-      res.json({ site: SITE, degraded: false, ...summary });
+      // `...summary` carries its own `site` and `place`, so nothing is
+      // hardcoded here — a spread after a literal would silently overwrite the
+      // location actually computed.
+      const summary = await loadClimate(meteo, parsed.site, parsed.place);
+      res.json({ degraded: false, ...summary });
     } catch (err) {
       res.json({
-        site: SITE,
+        site: parsed.site,
+        place: parsed.place,
         degraded: true,
         detail: err instanceof Error ? err.message : String(err),
       });

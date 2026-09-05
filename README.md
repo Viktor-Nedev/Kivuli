@@ -64,10 +64,38 @@ for Vite's `VITE_` prefix convention. Without a token, the shade map section sho
 instead of failing.
 
 ```bash
-npm test        # 59 tests across ingest, indices, decisions, calibration, climate, shadow geometry
+npm test        # 81 tests across ingest, indices, decisions, calibration, climate,
+                # the HTTP layer, the live station adapter and shadow geometry
 npm run typecheck
 npm run build
 ```
+
+### Run it as one process
+
+`npm run dev` runs two processes behind Vite's proxy, which is convenient locally and useless
+anywhere else. For a real deployment the server also serves the built client, so the whole app is
+one process on one port:
+
+```bash
+npm run build
+npm start          # http://localhost:8787 — API and UI together
+```
+
+Or in a container:
+
+```bash
+docker build -t kivuli .
+docker run -p 8787:8787 -e MAPBOX_TOKEN=pk.your-token kivuli
+```
+
+The image is single-stage on purpose. A multi-stage build has to carry `data/` — the bundled
+station CSV *and* the committed rainfall snapshots — into the runtime layer by hand, and getting
+that wrong produces a container that boots cleanly and then fails on first request. `tsx` is a
+runtime dependency rather than a dev one for the same reason: `npm ci --omit=dev` would otherwise
+drop the thing that runs the server.
+
+With no `CONDUIT_API_KEY`/`CONDUIT_EMAIL` set, a deployment runs the bundled sample and says so at
+startup. Adding the credentials switches it to the live station with no code change and no rebuild.
 
 ---
 
@@ -121,6 +149,44 @@ receive it forwarded rather than by opening a dashboard.
 
 ---
 
+
+
+## Weight
+
+The app argues for an audience on rural bandwidth, so it should not arrive as a 12 MB dashboard.
+Two changes, both measured:
+
+| | Before | After |
+|---|---|---|
+| Entry JS | 2,197 KB | **343 KB** |
+| Hero video on first paint | 9.1 MB (`preload="auto"`) | **0** (`preload="none"`) |
+
+`mapbox-gl` was statically imported, so every visitor downloaded the whole map library to read the
+Overview page; it is now a lazy route chunk that loads only when the shade map is opened. The hero
+clip loads when the section approaches the viewport rather than on arrival — someone who never
+scrolls past the fold pays nothing for it, and the 136 KB poster carries the frame until then.
+
+## The API
+
+Four read-only JSON endpoints. No key, no auth, no rate limit — this is a hackathon prototype, and
+anything public would need all three before it saw real traffic.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /api/today?at=HH:MM` | Latest reading, the day's decisions, the full timeline, calibration coefficients. `at` pins the evaluation moment in East Africa Time. |
+| `GET /api/climate?lat=&lon=&place=` | Eleven years of rainfall standing, season onset, water balance and the bilingual advisory. Defaults to the station; any in-Kenya coordinate is accepted. |
+| `GET /api/forecast` | Two days of hourly forecast, bias-corrected, with a provenance tag on every value. |
+| `GET /api/health` | Liveness plus the name of the active station source. |
+
+```bash
+curl "localhost:8787/api/climate?lat=-0.4536&lon=39.6461&place=Garissa" | jq '.windows'
+```
+
+`/api/forecast` is the one endpoint the app's own UI does not call — the Working day page covers
+the same ground from measured readings, which are better. It is documented rather than deleted
+because it is the only surface that exposes the bias-corrected forecast with per-value provenance,
+which is the thing most worth integrating against.
+
 ## Data and its limits
 
 **Station (Conduit, JKUAT)** — temperature, humidity, wet bulb, WBGT, pressure, wind, rainfall,
@@ -164,6 +230,20 @@ On the **Season** page, which reads eleven years of ERA5 rainfall rather than th
   series, a learned model would add confidence without adding information. Empirical percentiles
   over eleven real years are the correct estimator, and saying so is more honest than a model that
   cannot beat climatology.
+- **The Season page travels; the station pages do not.** Rainfall history is reanalysis, which
+  exists for anywhere in Kenya, so that page takes a location. Spray, drying and heat come from one
+  physical sensor at JKUAT and the bias calibration was fitted against it, so they stay put. The
+  page says which of the two you are looking at rather than letting the distinction blur.
+- **Committed rainfall snapshots are frozen at build time.** Five locations ship cached so the demo
+  survives a dead venue network. Until a deployment can refetch, it reports history through the
+  date it was built — which is printed on the page rather than implied to be today.
+- **Coordinates outside Kenya are refused, not answered.** ERA5 is global and would happily return
+  a climatology for anywhere, but the seasons, the onset rule and the Swahili advisory are specific
+  to East Africa. Answering would mean dressing a meaningless number in the same provenance tag as
+  a meaningful one.
+- **UI Swahili is deliberately not attempted.** The field-facing advisory is bilingual and
+  human-checked, which is the part that gets forwarded. Machine-translating two hundred interface
+  strings and presenting them as field-ready would contradict everything above.
 
 Every number in the interface carries a provenance tag — `measured`, `bias-corrected`,
 `raw forecast`, or `reanalysis` — so it is always clear what came from the station and what came

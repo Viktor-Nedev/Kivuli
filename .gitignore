@@ -12,7 +12,9 @@ data/cache/*
 # and a hackathon venue network cannot be relied on, so committing a single
 # snapshot lets the demo run offline exactly as the bundled station CSV does.
 # Everything else in the cache stays ignored and is refetched on demand.
-!data/cache/daily_2015-01-01_*.json
+# The pattern covers every curated site (the key carries lat_lon), so the
+# location switcher works with no network too, not just the station site.
+!data/cache/daily_*_2015-01-01_*.json
 .DS_Store
 .scratch/
 .claude/

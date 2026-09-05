@@ -16,7 +16,24 @@ import path from 'node:path';
  */
 
 /** JKUAT main campus, Juja. Open-Meteo resolves this to elevation 1527 m. */
-export const SITE = { latitude: -1.0954, longitude: 37.0144, timezone: 'Africa/Nairobi' } as const;
+export interface Site {
+  latitude: number;
+  longitude: number;
+  timezone: string;
+}
+
+/** JKUAT main campus, Juja — the station's own location and the default. */
+export const SITE: Site = { latitude: -1.0954, longitude: 37.0144, timezone: 'Africa/Nairobi' };
+
+/**
+ * Cache-key fragment for a site.
+ *
+ * Rounded to 3 decimals (~110 m). ERA5's grid is ~9 km, so anything finer
+ * would produce distinct keys for coordinates that resolve to the same cell —
+ * turning every slightly-different request into a cache miss and a fresh
+ * download for identical data.
+ */
+export const siteKey = (s: Site) => `${s.latitude.toFixed(3)}_${s.longitude.toFixed(3)}`;
 
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const ARCHIVE_URL = 'https://archive-api.open-meteo.com/v1/archive';
@@ -88,10 +105,13 @@ async function cached<T>(cacheDir: string, key: string, ttlMs: number, load: () 
  * Best-effort: a failure here must never break a request, since a stale extra
  * file is harmless and the data itself is already in hand.
  */
-async function pruneDailyCache(cacheDir: string, keep: string): Promise<void> {
+async function pruneDailyCache(cacheDir: string, site: Site, keep: string): Promise<void> {
+  const prefix = `daily_${siteKey(site)}_`;
   try {
     for (const name of await readdir(cacheDir)) {
-      if (name.startsWith('daily_') && name.endsWith('.json') && name !== keep) {
+      // Only this site's superseded snapshots. Other sites' files are someone
+      // else's cache — and one of them is the committed offline fallback.
+      if (name.startsWith(prefix) && name.endsWith('.json') && name !== keep) {
         await unlink(path.join(cacheDir, name)).catch(() => {});
       }
     }
@@ -143,18 +163,28 @@ export class OpenMeteoClient {
    * 24 h TTL: ERA5 publishes about once a day, and every figure derived from
    * this is a multi-year window, so a one-day-old copy changes nothing.
    */
-  async dailyArchive(startDate: string, endDate: string): Promise<DailyArchive> {
-    // The key carries the end date, so a new ~90 KB file lands each day.
-    // Without this the cache would grow unbounded on a long-running instance.
-    await pruneDailyCache(this.cacheDir, `daily_${startDate}_${endDate}.json`);
+  async dailyArchive(
+    startDate: string,
+    endDate: string,
+    site: Site = SITE,
+  ): Promise<DailyArchive> {
+    // The key carries BOTH the site and the end date. Omitting the site would
+    // let one location silently serve another's rainfall history — a wrong
+    // percentile delivered with full confidence, which is the worst failure
+    // this project could ship.
+    const key = `daily_${siteKey(site)}_${startDate}_${endDate}`;
+
+    // A new ~90 KB file lands each day, so superseded ones are dropped. Scoped
+    // to this site only: a blanket prune would delete the committed snapshot
+    // for JKUAT the first time anyone looked at another town, and with it the
+    // offline demo.
+    await pruneDailyCache(this.cacheDir, site, `${key}.json`);
 
     const url =
-      `${ARCHIVE_URL}?latitude=${SITE.latitude}&longitude=${SITE.longitude}` +
+      `${ARCHIVE_URL}?latitude=${site.latitude}&longitude=${site.longitude}` +
       `&start_date=${startDate}&end_date=${endDate}&daily=${DAILY_VARS}` +
-      `&timezone=${encodeURIComponent(SITE.timezone)}`;
-    const body = await cached(this.cacheDir, `daily_${startDate}_${endDate}`, 24 * 3600_000, () =>
-      getJson(url),
-    );
+      `&timezone=${encodeURIComponent(site.timezone)}`;
+    const body = await cached(this.cacheDir, key, 24 * 3600_000, () => getJson(url));
     return body.daily as DailyArchive;
   }
 }

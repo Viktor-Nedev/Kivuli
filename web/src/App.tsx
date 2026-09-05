@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { HashRouter, Routes, Route, Outlet, useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import type { TodayResponse } from './lib/types';
@@ -8,8 +8,16 @@ import { prefersReducedMotion } from './lib/prefersReducedMotion';
 import { Overview } from './pages/Overview';
 import { TimelinePage } from './pages/TimelinePage';
 import { StationPage } from './pages/StationPage';
-import { ShadeMapPage } from './pages/ShadeMapPage';
 import { CalibrationPage } from './pages/CalibrationPage';
+
+// Split out of the main bundle. mapbox-gl is by far the heaviest dependency
+// here, and a static import made every visitor download the whole map library
+// to read the Overview page - on an app whose stated audience is on rural
+// bandwidth. The `.then` form keeps the codebase's named-export convention
+// rather than adding a default export just to satisfy `lazy`.
+const ShadeMapPage = lazy(() =>
+  import('./pages/ShadeMapPage').then((m) => ({ default: m.ShadeMapPage })),
+);
 import { ClimatePage } from './pages/ClimatePage';
 import { SiteHeader } from './components/SiteHeader';
 import { SiteFooter } from './components/SiteFooter';
@@ -29,7 +37,7 @@ export default function App() {
           <Route path="station" element={<StationPage />} />
           <Route path="shade-map" element={<ShadeMapPage />} />
           <Route path="climate" element={<ClimatePage />} />
-        <Route path="calibration" element={<CalibrationPage />} />
+          <Route path="calibration" element={<CalibrationPage />} />
         </Route>
       </Routes>
     </HashRouter>
@@ -162,8 +170,17 @@ function PageTransition({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
+    // Suspense sits INSIDE the ref'd div, not around it. The GSAP tween below
+    // targets this element, and a boundary above it would let React swap the
+    // node while the tween held a reference to the old one. Keeping the
+    // wrapper stable also preserves the `clearProps` fix above: the inline
+    // transform must land on, and be cleared from, the same element.
     <div key={pathname} ref={ref}>
-      {children}
+      <Suspense
+        fallback={<p className="py-16 text-sm text-shade-200">Loading the shade map…</p>}
+      >
+        {children}
+      </Suspense>
     </div>
   );
 }

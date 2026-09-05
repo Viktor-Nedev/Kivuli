@@ -198,7 +198,7 @@ function buildAdvisory(
 
 /** Today in Kenya as `YYYY-MM-DD`. The whole country is UTC+3, no DST, so
  *  this holds for every site the Season page supports. */
-function todayInNairobi(): string {
+export function todayInNairobi(): string {
   return new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
 }
 

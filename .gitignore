@@ -15,6 +15,11 @@ data/cache/*
 # The pattern covers every curated site (the key carries lat_lon), so the
 # location switcher works with no network too, not just the station site.
 !data/cache/daily_*_2015-01-01_*.json
+# ...and one forecast snapshot. The next-three-days outlook is the headline
+# feature of the forward view, and without a warm cache it is the single thing
+# that dies on a bad venue network. Stale by demo day, but the stale-fallback
+# path is exactly what it is there to exercise.
+!data/cache/forecast_3d.json
 .DS_Store
 .scratch/
 .claude/

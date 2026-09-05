@@ -8,7 +8,10 @@ import { buildDecisions } from '../decisions/instructions.js';
 import { assessSpray, deltaT, SPRAY } from '../indices/spray.js';
 import { assessDrying } from '../indices/drying.js';
 import { assessHeat, assessThi } from '../indices/heat.js';
-import { loadClimate } from '../climate/history.js';
+import { loadClimate, todayInNairobi } from '../climate/history.js';
+import { buildOutlook } from '../forecast/outlook.js';
+import { buildRainOutlook } from '../climate/rainOutlook.js';
+import type { DailyRain } from '../climate/rainfall.js';
 
 /**
  * Timeline point for the UI: one row per observation with each index resolved,
@@ -241,6 +244,70 @@ export function createRouter(root: string): Router {
       // location actually computed.
       const summary = await loadClimate(meteo, parsed.site, parsed.place);
       res.json({ degraded: false, ...summary });
+    } catch (err) {
+      res.json({
+        site: parsed.site,
+        place: parsed.place,
+        degraded: true,
+        detail: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
+
+  /**
+   * The next three days as decisions rather than numbers.
+   *
+   * Separate from `/api/today` for the same reason `/api/climate` is: the
+   * Overview must not wait on a three-day forecast before it can tell someone
+   * whether to spray this afternoon.
+   *
+   * Uses `forecast(3)` rather than the two days `/api/today` fetches, so this
+   * route has its own cache key and cannot invalidate the warm one the
+   * decision cards depend on.
+   */
+  router.get('/api/outlook', async (req, res) => {
+    const parsed = parseSite(req.query as Record<string, unknown>);
+    if ('error' in parsed) {
+      res.status(400).json({ error: parsed.error });
+      return;
+    }
+
+    try {
+      const [f, coeffs] = await Promise.all([meteo.forecast(3), loadCoefficients(root)]);
+      const outlook = buildOutlook(f, coeffs);
+
+      // Rain standing needs the multi-year record. Fetched separately and
+      // allowed to fail on its own: an archive outage should cost the rainfall
+      // comparison, not the spray and drying windows.
+      let rainOutlook = null;
+      try {
+        const daily = await meteo.dailyArchive('2015-01-01', todayInNairobi(), parsed.site);
+        const series: DailyRain[] = daily.time.map((date, i) => ({
+          date,
+          mm: daily.precipitation_sum[i] ?? 0,
+        }));
+
+        // Sum the hourly horizon into local calendar days.
+        const byDay = new Map<string, number>();
+        for (let i = 0; i < f.time.length; i++) {
+          const day = f.time[i].slice(0, 10);
+          byDay.set(day, (byDay.get(day) ?? 0) + (f.precipitation?.[i] ?? 0));
+        }
+        const forecastDaily = [...byDay.entries()].map(([date, mm]) => ({ date, mm }));
+
+        rainOutlook = buildRainOutlook(forecastDaily, series);
+      } catch {
+        // Left null; the client says the comparison is unavailable.
+      }
+
+      res.json({
+        site: parsed.site,
+        place: parsed.place,
+        degraded: false,
+        generatedAt: new Date().toISOString(),
+        ...outlook,
+        rainOutlook,
+      });
     } catch (err) {
       res.json({
         site: parsed.site,

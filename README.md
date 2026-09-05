@@ -64,7 +64,7 @@ for Vite's `VITE_` prefix convention. Without a token, the shade map section sho
 instead of failing.
 
 ```bash
-npm test        # 81 tests across ingest, indices, decisions, calibration, climate,
+npm test        # 104 tests across ingest, indices, decisions, calibration, climate,
                 # the HTTP layer, the live station adapter and shadow geometry
 npm run typecheck
 npm run build
@@ -151,6 +151,37 @@ receive it forwarded rather than by opening a dashboard.
 
 
 
+
+**The next three days.** The same gates, run forward over a bias-corrected
+forecast. Two things make this honest rather than decorative.
+
+The first is a daylight gate. Over a live 72-hour window here, 29 hours pass
+the spray Delta-T and wind bands — and only 9 of them are in daylight. Night
+air is cool and humid, so it sails through limits written for working hours;
+without the gate the app recommends spraying at 02:00. Excluded hours are drawn
+and counted rather than hidden, because "9 usable hours" and "29 hours" are
+very different claims about opportunity.
+
+The second is that **forward rainfall is measured against this site's own
+record, and reported as frequency rather than rarity.** An early draft was
+going to call a 30 mm forecast day "a 1-in-11-year day"; the committed record
+shows 30 mm arriving about 2.6 times a year, and a true 1-in-11-year day here
+is nearer 85 mm. The error came from reading a percentile of *rain days* as a
+percentile of *all days*. So the panel says "this site records 20 mm about
+every 2 months and 40 mm about every 10 months" and never names a rarity — a
+test greps the generated text for `1-in-N-year` and fails if it appears.
+
+That panel is deliberately a standing statement rather than an alert that only
+appears when triggered. At this site the honest answer is usually "nothing is
+coming", and a warning nobody ever sees fire is indistinguishable from a broken
+one. The null state is the designed state: a real number, the thresholds, and
+how often they are genuinely crossed. The same markup turns amber and red on
+real data, with no separate path to rot.
+
+Forward heat is reported the same way: peak projected WBGT against the 28 °C
+ISO 7243 first-action threshold, stating plainly that no restriction applies
+rather than building an alert path that cannot fire at this altitude.
+
 ## Weight
 
 The app argues for an audience on rural bandwidth, so it should not arrive as a 12 MB dashboard.
@@ -175,6 +206,7 @@ anything public would need all three before it saw real traffic.
 |---|---|
 | `GET /api/today?at=HH:MM` | Latest reading, the day's decisions, the full timeline, calibration coefficients. `at` pins the evaluation moment in East Africa Time. |
 | `GET /api/climate?lat=&lon=&place=` | Eleven years of rainfall standing, season onset, water balance and the bilingual advisory. Defaults to the station; any in-Kenya coordinate is accepted. |
+| `GET /api/outlook?lat=&lon=` | The next three days as decisions: daylight-gated spray and drying windows, projected heat, and forecast rainfall ranked against this site's own record. |
 | `GET /api/forecast` | Two days of hourly forecast, bias-corrected, with a provenance tag on every value. |
 | `GET /api/health` | Liveness plus the name of the active station source. |
 
@@ -241,6 +273,25 @@ On the **Season** page, which reads eleven years of ERA5 rainfall rather than th
   a climatology for anywhere, but the seasons, the onset rule and the Swahili advisory are specific
   to East Africa. Answering would mean dressing a meaningless number in the same provenance tag as
   a meaningful one.
+- **The forward Delta-T is approximated, today's is measured.** The station
+  measures wet bulb directly; a forecast has none, so the outlook derives it
+  with the Stull (2011) formula. That is accurate to roughly ±0.3 °C but is
+  fitted at sea-level pressure, and this site sits at 1527 m. The two numbers
+  look identical on screen and are not, so the forward one is tagged
+  `bias-corrected` or `raw forecast` and never `measured`.
+- **The forward drying gate is a different instrument from today's.** The
+  station path uses 300 SI1145 visible counts, a sensor-specific cutoff; the
+  forward path uses 200 W/m², a physical irradiance the forecast supplies. They
+  answer the same question and are not interchangeable.
+- **Bias correction is clamped at physical limits.** The fitted wind offset is
+  +1.73 m/s and this site forecasts sub-1 m/s mornings, so the raw arithmetic
+  produced negative wind speeds. Corrected values are floored at zero, and
+  humidity is bounded to 0–100%.
+- **No flood risk, deliberately.** The brief asks for it, and it is the one
+  thing here that would have to be invented: there is no terrain model, no
+  drainage network, no soil moisture and no river gauge. Inferring flood risk
+  from 9 km reanalysis precipitation alone would be guessing with a
+  serious-sounding label.
 - **UI Swahili is deliberately not attempted.** The field-facing advisory is bilingual and
   human-checked, which is the part that gets forwarded. Machine-translating two hundred interface
   strings and presenting them as field-ready would contradict everything above.

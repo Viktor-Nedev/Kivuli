@@ -147,3 +147,70 @@ export interface ClimateResponse {
   };
   advisory: { en: string; sw: string };
 }
+
+/* ---------------------------------------------------------------------------
+ * Forward outlook. Served by `/api/outlook`, fetched by the pages that show it
+ * rather than by the layout: the decision cards must not wait on a three-day
+ * forecast, the same reasoning as `/api/climate`.
+ * ------------------------------------------------------------------------- */
+
+export interface OutlookHour {
+  time: string;
+  daylight: boolean;
+  tempC: number;
+  humidityPct: number;
+  windSpeedMs: number;
+  radiationWm2: number;
+  precipMm: number;
+  deltaTC: number;
+  projectedWbgtC: number;
+  spray: { pass: boolean; reason: string };
+  drying: { pass: boolean; reason: string };
+  /** Never `measured` — these are model values, not instrument readings. */
+  provenance: Provenance;
+}
+
+export interface OutlookWindow {
+  band: 'spray' | 'drying';
+  start: string;
+  end: string;
+  hours: number;
+}
+
+export interface RainThreshold {
+  mm: number;
+  exceedances: number;
+  /** Mean months between exceedances. Measured frequency, not a return period. */
+  everyMonths: number;
+}
+
+export interface RainOutlook {
+  level: 'none' | 'notable' | 'heavy';
+  peakDayMm: number;
+  peakDate: string | null;
+  totalMm: number;
+  peakPercentile: number;
+  thresholds: RainThreshold[];
+  referenceYears: number;
+  horizonDays: number;
+  headline: string;
+  headlineSw: string;
+  detail: string;
+  detailSw: string;
+}
+
+export interface OutlookResponse {
+  site: { latitude: number; longitude: number; timezone: string };
+  place: string;
+  degraded: boolean;
+  detail?: string;
+  generatedAt: string;
+  hours: OutlookHour[];
+  windows: OutlookWindow[];
+  /** Hours that passed the physics but fall outside working hours. */
+  nightHoursExcluded: number;
+  horizonHours: number;
+  heat: { peakWbgtC: number; thresholdC: number; anyRestriction: boolean };
+  uncalibrated: boolean;
+  rainOutlook: RainOutlook | null;
+}

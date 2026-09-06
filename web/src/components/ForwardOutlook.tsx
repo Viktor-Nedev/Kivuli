@@ -1,5 +1,6 @@
-import type { OutlookHour, OutlookResponse } from '../lib/types';
+import type { OutlookHour, OutlookResponse, UvAssessment } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
+import { UvCard } from './UvCard';
 
 /**
  * The next three days as working windows.
@@ -81,7 +82,13 @@ function HourCell({ hour, band }: { hour: OutlookHour; band: 'spray' | 'drying' 
   );
 }
 
-export function ForwardOutlook({ outlook }: { outlook: OutlookResponse }) {
+export function ForwardOutlook({
+  outlook,
+  uvPeak,
+}: {
+  outlook: OutlookResponse;
+  uvPeak?: UvAssessment | null;
+}) {
   const days = byDay(outlook.hours);
   const sprayWindows = outlook.windows.filter((w) => w.band === 'spray');
   const dryingWindows = outlook.windows.filter((w) => w.band === 'drying');
@@ -181,6 +188,11 @@ export function ForwardOutlook({ outlook }: { outlook: OutlookResponse }) {
           ? 'a work/rest restriction applies at the peak.'
           : 'no work/rest restriction applies — reported plainly rather than manufactured.'}
       </p>
+
+      {/* The heat threshold cannot fire at this altitude, but the sun still
+          burns. Pairing them keeps the honest WBGT null from reading as an
+          empty feature. */}
+      {uvPeak && <UvCard peak={uvPeak} />}
     </section>
   );
 }

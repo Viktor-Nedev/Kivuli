@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { OutlookResponse } from './types';
+import type { OutlookResponse, WaterResponse } from './types';
 
 /**
  * Fetches `/api/outlook` from the page that needs it.
@@ -31,6 +31,42 @@ export function useOutlook(): OutlookState {
         if (!cancelled) {
           setState({ phase: 'error', message: err instanceof Error ? err.message : String(err) });
         }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return state;
+}
+
+/**
+ * Fetches `/api/water` for the UV card on the Working day page.
+ *
+ * Separate from `useOutlook` so a UV failure cannot blank the forward windows,
+ * and vice versa — the same granular-degradation rule the rest of the app
+ * follows.
+ */
+export type WaterState =
+  | { phase: 'loading' }
+  | { phase: 'error' }
+  | { phase: 'ready'; data: WaterResponse };
+
+export function useWater(): WaterState {
+  const [state, setState] = useState<WaterState>({ phase: 'loading' });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/water')
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<WaterResponse>;
+      })
+      .then((data) => {
+        if (!cancelled) setState({ phase: 'ready', data });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ phase: 'error' });
       });
     return () => {
       cancelled = true;

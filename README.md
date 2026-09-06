@@ -64,8 +64,9 @@ for Vite's `VITE_` prefix convention. Without a token, the shade map section sho
 instead of failing.
 
 ```bash
-npm test        # 104 tests across ingest, indices, decisions, calibration, climate,
+npm test        # 122 tests across ingest, indices, decisions, calibration, climate,
                 # the HTTP layer, the live station adapter and shadow geometry
+npm run test:web   # component tests (vitest + jsdom)
 npm run typecheck
 npm run build
 ```
@@ -182,6 +183,37 @@ Forward heat is reported the same way: peak projected WBGT against the 28 °C
 ISO 7243 first-action threshold, stating plainly that no restriction applies
 rather than building an alert path that cannot fire at this altitude.
 
+
+**Water owed.** The Season page now carries a seven-day crop water balance:
+reference evapotranspiration out, forecast rain in, and the running difference.
+Pure FAO-56 arithmetic over a standardised quantity — there is no model here to
+be wrong about, which is the only reason a number this consequential can be
+offered at all.
+
+It is deliberately **not** a soil moisture reading. The station has no probe,
+and the code carries a standing rule that no soil field may exist without a
+sensor behind it. Open-Meteo does publish a modelled soil-moisture field for
+this point and it is not shown: a land-surface model on a ~11 km grid with an
+assumed soil column, rendered as m³/m³ beside a provenance tag, would look
+exactly like an instrument reading.
+
+The interesting part is what the balance *cannot* say. The accrued deficit is
+soil-independent, so it leads. Converting it into a date is not: readily
+available water runs from **16 mm on sand to 50 mm on clay** at this rooting
+depth, a 3.1× spread wider than a whole week's deficit here. So every texture's
+crossing day is shown at once, and choosing a soil highlights one row without
+hiding the others. A single default date would have put the largest uncertainty
+in the calculation behind its most confident-looking sentence.
+
+**Sun exposure.** The station's UV channel reads 0 on every row of the sample —
+a dead sensor, and the reason no UV was reported before. The hazard is not
+dead: at 1527 m almost on the equator the modelled index peaks near 9, "very
+high" on the WHO scale, essentially year-round. That figure now appears on the
+Working day page beside the projected WBGT, tagged `raw forecast` and never
+mixed with anything measured. It is the heat-adjacent risk that actually fires
+here, which is what keeps the honest "no work/rest restriction" from reading as
+an empty feature.
+
 ## Weight
 
 The app argues for an audience on rural bandwidth, so it should not arrive as a 12 MB dashboard.
@@ -207,6 +239,7 @@ anything public would need all three before it saw real traffic.
 | `GET /api/today?at=HH:MM` | Latest reading, the day's decisions, the full timeline, calibration coefficients. `at` pins the evaluation moment in East Africa Time. |
 | `GET /api/climate?lat=&lon=&place=` | Eleven years of rainfall standing, season onset, water balance and the bilingual advisory. Defaults to the station; any in-Kenya coordinate is accepted. |
 | `GET /api/outlook?lat=&lon=` | The next three days as decisions: daylight-gated spray and drying windows, projected heat, and forecast rainfall ranked against this site's own record. |
+| `GET /api/water?lat=&lon=&crop=` | Seven-day crop water balance (FAO-56) with the crossing day for every soil texture, plus peak UV. |
 | `GET /api/forecast` | Two days of hourly forecast, bias-corrected, with a provenance tag on every value. |
 | `GET /api/health` | Liveness plus the name of the active station source. |
 
@@ -234,7 +267,27 @@ Known limits, stated rather than hidden:
 
 - The station **does not** measure soil moisture, vegetation indices, water level or water
   quality. Nothing in this app is derived from them.
-- `si1145_uv` reads 0 for every row in the sample, so no UV feature is offered.
+- **The water balance is not a soil moisture measurement.** It accounts for water *arriving*
+  (rain) and *leaving* (crop evapotranspiration) and reports the running difference. It never
+  claims to know how much water is in the ground. Open-Meteo's modelled soil-moisture field for
+  this point is deliberately unused, because showing a gridded model output beside a provenance
+  tag would make a guess look like a probe reading.
+- **The irrigation timing is a range, not a date, and the range is wide.** Readily available water
+  spans 16 mm (sand) to 50 mm (clay) at a 0.6 m rooting depth — a 3.1× spread. The deficit itself
+  is soil-independent and is what the page leads with; every soil's crossing day is shown rather
+  than one default being chosen for the reader.
+- **The crop coefficient is a single mid-stage figure.** It ignores the split between soil
+  evaporation and transpiration, and any stress feedback. Soil capacities are FAO-56 table values
+  for a texture class, not measurements of anyone's field.
+- **The far end of a seven-day forecast is soft.** The first two days carry most of the confidence.
+- **`surface_pressure` is fetched and deliberately unused.** It could in principle sharpen the
+  forward wet-bulb approximation, but Stull is an empirical sea-level fit with no principled
+  pressure term — bolting a correction onto a regression would produce a number we could not
+  defend.
+- `si1145_uv` reads 0 for every row in the sample, so **no UV is reported from the station**. The
+  UV figures on the Working day page come from the forecast and are tagged `raw forecast`. The
+  sensor is dead; the hazard is not, and reporting a modelled 9 is more useful than reporting a
+  broken 0. The two are never mixed.
 - No rain fell during the sample day, so the rain gate is exercised from forecast data only.
 - The bundled sample is ~24 usable hours. The calibration is a validated constant offset, not a
   regression — a longer record via the live API would support a richer model, and the code

@@ -11,6 +11,8 @@ import { assessHeat, assessThi } from '../indices/heat.js';
 import { loadClimate, todayInNairobi } from '../climate/history.js';
 import { buildOutlook } from '../forecast/outlook.js';
 import { buildRainOutlook } from '../climate/rainOutlook.js';
+import { buildWaterBalance, CROP_STAGES, DEFAULT_CROP_ID } from '../climate/waterBalance.js';
+import { assessUv, peakUv } from '../indices/uv.js';
 import type { DailyRain } from '../climate/rainfall.js';
 
 /**
@@ -307,6 +309,60 @@ export function createRouter(root: string): Router {
         generatedAt: new Date().toISOString(),
         ...outlook,
         rainOutlook,
+      });
+    } catch (err) {
+      res.json({
+        site: parsed.site,
+        place: parsed.place,
+        degraded: true,
+        detail: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
+
+  /**
+   * Forward crop water balance, and the UV exposure that rides along with it.
+   *
+   * Its own endpoint rather than more fields on `/api/outlook`: the balance is
+   * daily and seven days long, the outlook is hourly and three. Merging would
+   * truncate the deficit to the three-day figure and lose most of the signal.
+   *
+   * Takes a site, because the balance is pure model arithmetic with no station
+   * calibration in it and can honestly travel — unlike the spray and drying
+   * gates, which are pinned to the instrument.
+   */
+  router.get('/api/water', async (req, res) => {
+    const parsed = parseSite(req.query as Record<string, unknown>);
+    if ('error' in parsed) {
+      res.status(400).json({ error: parsed.error });
+      return;
+    }
+
+    // An unknown crop falls back rather than erroring: a stale bookmark should
+    // still answer, and the response names the crop it actually used.
+    const requested = typeof req.query.crop === 'string' ? req.query.crop : DEFAULT_CROP_ID;
+    const crop = CROP_STAGES.find((c) => c.id === requested) ?? CROP_STAGES[0];
+
+    try {
+      const daily = await meteo.dailyForecast(7, parsed.site);
+
+      const forecastDaily = daily.time.map((date, i) => ({
+        date,
+        et0Mm: daily.et0_fao_evapotranspiration?.[i] ?? 0,
+        rainMm: daily.precipitation_sum?.[i] ?? 0,
+      }));
+
+      const balance = buildWaterBalance(forecastDaily, crop);
+      const uvDays = daily.time.map((date, i) => assessUv(date, daily.uv_index_max?.[i] ?? 0));
+
+      res.json({
+        site: parsed.site,
+        place: parsed.place,
+        degraded: false,
+        generatedAt: new Date().toISOString(),
+        crops: CROP_STAGES,
+        balance,
+        uv: { days: uvDays, peak: peakUv(uvDays) },
       });
     } catch (err) {
       res.json({

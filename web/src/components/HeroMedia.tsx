@@ -105,6 +105,9 @@ function ScrubbedHero() {
   const answerRef = useRef<HTMLDivElement>(null);
   const scrollHintRef = useRef<HTMLDivElement>(null);
   const [videoReady, setVideoReady] = useState(false);
+  // Set when the clip cannot be scrubbed — it errored, or its metadata never
+  // arrived. The copy then simply stays visible rather than waiting forever.
+  const [videoFailed, setVideoFailed] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [pinnedAtBottom, setPinnedAtBottom] = useState(false);
 
@@ -137,7 +140,17 @@ function ScrubbedHero() {
       { rootMargin: '100% 0px' },
     );
     io.observe(marker);
-    return () => io.disconnect();
+
+    // If metadata has not arrived in a few seconds — venue wi-fi, a 9 MB clip,
+    // a blocked request — stop waiting. Without this the pitch stayed at
+    // opacity 0 indefinitely and the reader scrolled 200vh of black past the
+    // only text that explains the project.
+    const timeout = window.setTimeout(() => setVideoFailed(true), 2500);
+
+    return () => {
+      io.disconnect();
+      window.clearTimeout(timeout);
+    };
   }, []);
 
   useEffect(() => {
@@ -149,6 +162,10 @@ function ScrubbedHero() {
     if (!marker || !video || !problem || !answer || !hint || !videoReady) return;
 
     const ctx = gsap.context(() => {
+      // The copy renders visible so it survives a failed or slow video; the
+      // scrub only takes over the opacity once it is genuinely about to run.
+      gsap.set([problem, answer], { opacity: 0 });
+
       // Every tween below gets an explicit duration so the timeline's total
       // length is exactly 1 — on a scrubbed timeline, "duration" consumes a
       // fraction of the whole scroll range, so leaving it at GSAP's default
@@ -220,6 +237,13 @@ function ScrubbedHero() {
     return () => ctx.revert();
   }, [videoReady]);
 
+  // Placed after every hook, never before: an early return above a useState or
+  // useEffect would change the hook order between renders. The clip will not
+  // scrub, so fall back to the layout that stacks both copy blocks in normal
+  // flow — in the scrubbed stage they are absolutely positioned and would
+  // overlap now that they render visible by default.
+  if (videoFailed && !videoReady) return <StaticHero />;
+
   return (
     // Reserves the scroll height in normal document flow — this element has
     // no visuals of its own, only the height the scrubbed section needs.
@@ -250,6 +274,7 @@ function ScrubbedHero() {
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover"
           onLoadedMetadata={() => setVideoReady(true)}
+          onError={() => setVideoFailed(true)}
         >
           <source src="/hero-farmer.mp4" type="video/mp4" />
         </video>
@@ -261,10 +286,10 @@ function ScrubbedHero() {
         <div className="absolute inset-0 bg-shade-900/20" />
 
         <div className="relative flex h-full flex-col items-center justify-center px-5 text-center sm:px-8">
-          <div ref={problemRef} className="absolute max-w-2xl opacity-0">
+          <div ref={problemRef} className="absolute max-w-2xl">
             {PROBLEM_COPY}
           </div>
-          <div ref={answerRef} className="absolute max-w-2xl opacity-0">
+          <div ref={answerRef} className="absolute max-w-2xl">
             {ANSWER_COPY}
           </div>
         </div>

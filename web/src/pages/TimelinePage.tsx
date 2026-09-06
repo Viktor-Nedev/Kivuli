@@ -3,13 +3,14 @@ import { Timeline } from '../components/Timeline';
 import { ForwardOutlook } from '../components/ForwardOutlook';
 import { Reveal } from '../components/Reveal';
 import type { AppContext } from '../lib/outletContext';
-import { useOutlook } from '../lib/useOutlook';
+import { useOutlook, useWater } from '../lib/useOutlook';
 
 export function TimelinePage() {
   const { data } = useOutletContext<AppContext>();
   // Fetched here rather than in the layout: the day's measured bands render
   // immediately, and the forecast strip fills in when it arrives.
   const outlook = useOutlook();
+  const water = useWater();
 
   return (
     <>
@@ -25,7 +26,10 @@ export function TimelinePage() {
 
       {outlook.phase === 'ready' && !outlook.data.degraded && (
         <Reveal>
-          <ForwardOutlook outlook={outlook.data} />
+          <ForwardOutlook
+            outlook={outlook.data}
+            uvPeak={water.phase === 'ready' ? water.data.uv.peak : null}
+          />
         </Reveal>
       )}
 

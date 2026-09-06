@@ -59,7 +59,35 @@ export interface DailyArchive {
   et0_fao_evapotranspiration: number[];
 }
 
+export interface DailyForecast {
+  /** `YYYY-MM-DD`, in the requested timezone. */
+  time: string[];
+  /** FAO-56 reference evapotranspiration, mm/day. The demand side of the
+   *  forward water balance. */
+  et0_fao_evapotranspiration: number[];
+  precipitation_sum: number[];
+  /** Peak UV index for the day. The station's own SI1145 UV channel reads 0
+   *  for every row in the sample, so this is the only UV figure available —
+   *  and it is a model output, tagged accordingly, never mixed with the
+   *  dead sensor. */
+  uv_index_max: number[];
+  precipitation_probability_max: number[];
+}
+
 const DAILY_VARS = ['precipitation_sum', 'et0_fao_evapotranspiration'].join(',');
+
+/**
+ * Daily *forecast* variables. Deliberately a separate list from DAILY_VARS,
+ * which is the ERA5 **archive** schema: sharing one list would couple the
+ * multi-year archive cache key to any forecast-side schema change, and the
+ * archive snapshots are committed to the repo for the offline demo.
+ */
+const DAILY_FORECAST_VARS = [
+  'et0_fao_evapotranspiration',
+  'precipitation_sum',
+  'uv_index_max',
+  'precipitation_probability_max',
+].join(',');
 
 const HOURLY_VARS = [
   'temperature_2m',
@@ -149,6 +177,32 @@ export class OpenMeteoClient {
       getJson(url),
     );
     return body.hourly as HourlyForecast;
+  }
+
+  /**
+   * Daily forecast for the coming week.
+   *
+   * Takes a `site`, unlike `forecast()` which is pinned to the station. The
+   * water balance is pure model arithmetic — reference evapotranspiration
+   * against forecast rain — with no station calibration anywhere in it, so
+   * unlike the spray and drying gates it can honestly travel to another
+   * point. Same split the Season page already draws.
+   *
+   * Its own cache key, distinct from `forecast_Nd`, so it can never
+   * invalidate the warm entry `/api/today` and `/api/outlook` depend on.
+   */
+  async dailyForecast(days = 7, site: Site = SITE): Promise<DailyForecast> {
+    const url =
+      `${FORECAST_URL}?latitude=${site.latitude}&longitude=${site.longitude}` +
+      `&daily=${DAILY_FORECAST_VARS}&forecast_days=${days}` +
+      `&timezone=${encodeURIComponent(site.timezone)}`;
+    const body = await cached(
+      this.cacheDir,
+      `dailyfc_${siteKey(site)}_${days}d`,
+      30 * 60_000,
+      () => getJson(url),
+    );
+    return body.daily as DailyForecast;
   }
 
   /**

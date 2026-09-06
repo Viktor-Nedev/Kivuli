@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { ClimateResponse } from '../lib/types';
+import type { ClimateResponse, WaterResponse } from '../lib/types';
 import { Reveal } from '../components/Reveal';
 import { RainfallStanding } from '../components/RainfallStanding';
 import { SeasonOnset } from '../components/SeasonOnset';
 import { WaterHarvest } from '../components/WaterHarvest';
 import { ShareAdvisory } from '../components/ShareAdvisory';
 import { SitePicker, SiteSplitNote } from '../components/SitePicker';
+import { WaterBalancePanel } from '../components/WaterBalancePanel';
 import { DEFAULT_SITE_ID, SITE_OPTIONS, type SiteOption } from '../lib/site';
 
 /**
@@ -25,6 +26,11 @@ type State =
 
 export function ClimatePage() {
   const [state, setState] = useState<State>({ phase: 'loading' });
+  // The water balance is fetched beside the rainfall history but kept in its
+  // own state: it is a separate endpoint with a separate failure mode, and a
+  // balance outage must not blank the page that works.
+  const [water, setWater] = useState<WaterResponse | null>(null);
+  const [crop, setCrop] = useState('maize_mid');
   const [site, setSite] = useState<SiteOption>(
     () => SITE_OPTIONS.find((o) => o.id === DEFAULT_SITE_ID) ?? SITE_OPTIONS[0],
   );
@@ -41,26 +47,43 @@ export function ClimatePage() {
         ? ''
         : `?lat=${site.latitude}&lon=${site.longitude}&place=${encodeURIComponent(site.label)}`;
 
-    fetch(`/api/climate${query}`)
-      .then((r) => {
+    const waterQuery = query ? `${query}&crop=${crop}` : `?crop=${crop}`;
+
+    // allSettled, not all: the rainfall page must survive a water-balance
+    // failure and vice versa.
+    void Promise.allSettled([
+      fetch(`/api/climate${query}`).then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json() as Promise<ClimateResponse>;
-      })
-      .then((data) => {
-        if (cancelled) return;
-        setState({ phase: 'ready', data });
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
+      }),
+      fetch(`/api/water${waterQuery}`).then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<WaterResponse>;
+      }),
+    ]).then(([climate, waterResult]) => {
+      if (cancelled) return;
+
+      if (climate.status === 'fulfilled') {
+        setState({ phase: 'ready', data: climate.value });
+      } else {
+        const err = climate.reason;
         setState({
           phase: 'error',
           message: err instanceof Error ? err.message : String(err),
         });
-      });
+      }
+
+      setWater(
+        waterResult.status === 'fulfilled' && !waterResult.value.degraded
+          ? waterResult.value
+          : null,
+      );
+    });
+
     return () => {
       cancelled = true;
     };
-  }, [site]);
+  }, [site, crop]);
 
   // The picker stays mounted through every phase. Unmounting it while a fetch
   // is in flight would remove the control the reader just used and leave them
@@ -155,6 +178,16 @@ export function ClimatePage() {
       <Reveal>
         <WaterHarvest harvest={data.harvest} climatology={data.climatology} />
       </Reveal>
+
+      {water && (
+        <Reveal>
+          <WaterBalancePanel
+            balance={water.balance}
+            crops={water.crops}
+            onCropChange={setCrop}
+          />
+        </Reveal>
+      )}
 
       <Reveal>
         <ShareAdvisory advisory={data.advisory} />

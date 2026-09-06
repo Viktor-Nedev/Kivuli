@@ -45,6 +45,23 @@ export function Overview() {
 
   return (
     <>
+      {/* The standing pitch, above the hero and dependent on no media at all.
+          The scroll-scrubbed version below says this more beautifully, but it
+          only says it once a 9 MB clip has loaded and the reader has scrolled
+          past two viewports. A judge on venue wi-fi previously reached the
+          decision cards having read eight words. */}
+      <section className="pt-10 sm:pt-12">
+        <h1 className="max-w-3xl font-display text-2xl leading-snug text-bleach sm:text-3xl">
+          A forecast built for a continent is wrong for one field. KIVULI corrects it against a
+          ground station in Juja, Kenya, and turns it into one instruction.
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
+          Spray now or wait. Spread grain or keep it covered. Every number below says whether it
+          was measured at the station, corrected against it, or modelled — so you can tell what is
+          evidence and what is inference.
+        </p>
+      </section>
+
       <HeroMedia />
 
       {data.forecastDegraded && (

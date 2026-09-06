@@ -20,6 +20,8 @@ data/cache/*
 # that dies on a bad venue network. Stale by demo day, but the stale-fallback
 # path is exactly what it is there to exercise.
 !data/cache/forecast_3d.json
+# ...and the daily forecast the water balance runs on, for the same reason.
+!data/cache/dailyfc_*.json
 .DS_Store
 .scratch/
 .claude/

@@ -214,3 +214,77 @@ export interface OutlookResponse {
   uncalibrated: boolean;
   rainOutlook: RainOutlook | null;
 }
+
+/* ---------------------------------------------------------------------------
+ * Forward water balance and UV. Served by `/api/water`.
+ * ------------------------------------------------------------------------- */
+
+export interface BalanceDay {
+  date: string;
+  et0Mm: number;
+  cropEtMm: number;
+  rainMm: number;
+  /** Running depletion, mm. Soil-independent — the honest headline. */
+  deficitMm: number;
+}
+
+export type SoilTexture = 'sand' | 'loamy_sand' | 'sandy_loam' | 'loam' | 'clay_loam' | 'clay';
+
+export interface SoilProfile {
+  texture: SoilTexture;
+  label: string;
+  labelSw: string;
+  tawMm: number;
+  rawMm: number;
+  crossesOnDay: number | null;
+  crossesDate: string | null;
+}
+
+export interface CropStage {
+  id: string;
+  label: string;
+  labelSw: string;
+  kc: number;
+  rootDepthM: number;
+  depletionFraction: number;
+}
+
+export interface WaterBalance {
+  crop: CropStage;
+  days: BalanceDay[];
+  totalCropEtMm: number;
+  totalRainMm: number;
+  closingDeficitMm: number;
+  soils: SoilProfile[];
+  daysToActionRange: { earliest: number | null; latest: number | null };
+  horizonDays: number;
+  headline: string;
+  headlineSw: string;
+  detail: string;
+  detailSw: string;
+  /** Always `raw_forecast` — never an instrument reading. */
+  provenance: Provenance;
+}
+
+export type UvBand = 'low' | 'moderate' | 'high' | 'very_high' | 'extreme';
+
+export interface UvAssessment {
+  date: string;
+  uvIndexMax: number;
+  band: UvBand;
+  /** Fitzpatrick III reference only, stated wherever it is shown. */
+  burnMinutes: number | null;
+  instruction: string;
+  instructionSw: string;
+}
+
+export interface WaterResponse {
+  site: { latitude: number; longitude: number; timezone: string };
+  place: string;
+  degraded: boolean;
+  detail?: string;
+  generatedAt: string;
+  crops: CropStage[];
+  balance: WaterBalance;
+  uv: { days: UvAssessment[]; peak: UvAssessment | null };
+}

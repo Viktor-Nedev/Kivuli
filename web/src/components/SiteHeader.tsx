@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/station', label: 'Station' },
   { to: '/shade-map', label: 'Shade map' },
   { to: '/climate', label: 'Season' },
+  { to: '/validation', label: 'Model check' },
   { to: '/calibration', label: 'Calibration' },
 ] as const;
 
@@ -149,7 +150,7 @@ function CompactHeader() {
 
   return (
     <header ref={ref} className="relative bg-shade-900">
-      {/* Stacks below `sm`: the five tracked-out links plus the wordmark are
+      {/* Stacks below `sm`: the the tracked-out links plus the wordmark are
           wider than a 390px phone, so side-by-side clipped the last item.
           One row from `sm` up, where they fit. */}
       <div className="flex flex-col gap-y-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-x-8 sm:px-8">

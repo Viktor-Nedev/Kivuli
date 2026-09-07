@@ -49,7 +49,8 @@ export function Hero({
   label: string;
   instruction: Instruction;
   metric?: string;
-  metricUnit?: string;
+  /** Node, not string, so a unit can carry a defined Term. */
+  metricUnit?: ReactNode;
   /** Tinted by the caller with this card's status colour. */
   icon?: ReactNode;
   /** Supply both to draw the mini day-band; omit either and it is skipped. */

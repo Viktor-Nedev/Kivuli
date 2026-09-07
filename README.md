@@ -64,7 +64,7 @@ for Vite's `VITE_` prefix convention. Without a token, the shade map section sho
 instead of failing.
 
 ```bash
-npm test        # 122 tests across ingest, indices, decisions, calibration, climate,
+npm test        # 133 tests across ingest, indices, decisions, calibration, climate,
                 # the HTTP layer, the live station adapter and shadow geometry
 npm run test:web   # component tests (vitest + jsdom)
 npm run typecheck
@@ -214,6 +214,30 @@ mixed with anything measured. It is the heat-adjacent risk that actually fires
 here, which is what keeps the honest "no work/rest restriction" from reading as
 an empty feature.
 
+
+**How wrong is the model.** The Conduit's stated purpose is that its
+measurements *"contribute to the calibration and validation of satellite
+observations and digital models"*. `/api/validation` is that sentence made
+executable: the station's own hourly means scoring the gridded reanalysis
+every forecast on this site is built from.
+
+It is the only screen where a `measured` tag is the reference rather than the
+caveat — the station is the yardstick and the model is the thing being marked.
+
+The finding is worth more than the summary statistic. A flat "MAE 1.12 °C"
+hides the shape; the diurnal curve shows the model is nearly exact at midday
+(0.55 °C) and **2.62 °C low at 08:00**, the morning warming transition a ~9 km
+grid cell cannot resolve. That is the hour spraying decisions get made. Wind is
+worse: the model overestimates by 4.85 m/s at its worst hour at this sheltered
+site, and wind gates every spray window.
+
+These numbers reproduce `data/coefficients.json` exactly — the Python fit runs
+offline, this runs live, and a test asserts they agree. Two independent paths
+to the same answer is evidence; one path is an assertion.
+
+One station, one day, 24 paired hours. That is a demonstration of method, not a
+climatology, and the page says so.
+
 ## Weight
 
 The app argues for an audience on rural bandwidth, so it should not arrive as a 12 MB dashboard.
@@ -240,7 +264,7 @@ anything public would need all three before it saw real traffic.
 | `GET /api/climate?lat=&lon=&place=` | Eleven years of rainfall standing, season onset, water balance and the bilingual advisory. Defaults to the station; any in-Kenya coordinate is accepted. |
 | `GET /api/outlook?lat=&lon=` | The next three days as decisions: daylight-gated spray and drying windows, projected heat, and forecast rainfall ranked against this site's own record. |
 | `GET /api/water?lat=&lon=&crop=` | Seven-day crop water balance (FAO-56) with the crossing day for every soil texture, plus peak UV. |
-| `GET /api/forecast` | Two days of hourly forecast, bias-corrected, with a provenance tag on every value. |
+| `GET /api/validation` | The station scoring the model: hourly station means against ERA5 for the same hours, per variable, with the diurnal error shape. Takes no lat/lon — there is one station. |
 | `GET /api/health` | Liveness plus the name of the active station source. |
 
 ```bash
@@ -311,6 +335,9 @@ On the **Season** page, which reads eleven years of ERA5 rainfall rather than th
 - **Harvest yield assumes a 0.8 runoff coefficient** — the usual figure for corrugated iron, an
   engineering convention rather than something measured here. It is an upper bound on what a roof
   *catches*, and ignores first-flush diversion, gutter losses and overflow once a tank is full.
+- **River discharge is shown only where a river exists.** Open-Meteo's flood model returns
+  0.00 m³/s at JKUAT because the campus is not on a modelled reach. Rendering a permanent zero
+  would look like a reading; the page says there is no reach instead.
 - **No machine learning, deliberately.** With one day of station data and a stationary rainfall
   series, a learned model would add confidence without adding information. Empirical percentiles
   over eleven real years are the correct estimator, and saying so is more honest than a model that

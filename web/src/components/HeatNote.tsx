@@ -1,4 +1,5 @@
 import { Gauge } from './Gauge';
+import { Term } from './Term';
 
 /**
  * Heat and livestock indices.
@@ -24,7 +25,7 @@ export function HeatNote({
         <div className="lift-on-hover flex items-center gap-5 rounded-lg py-2">
           <Gauge value={heat.wbgtC} min={0} max={35} unit="°C" color="#b8433a" size={92} />
           <div>
-            <p className="text-xs text-shade-400">WBGT, measured</p>
+            <p className="text-xs text-shade-400"><Term term="wbgt">WBGT</Term>, measured</p>
             <p className="mt-1 text-sm text-shade-200">{heat.instruction}</p>
           </div>
         </div>

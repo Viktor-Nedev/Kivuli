@@ -224,6 +224,8 @@ export interface BalanceDay {
   et0Mm: number;
   cropEtMm: number;
   rainMm: number;
+  /** Chance of rain that day, %. Context beside the depth, not a multiplier. */
+  rainProbabilityPct: number | null;
   /** Running depletion, mm. Soil-independent — the honest headline. */
   deficitMm: number;
 }
@@ -287,4 +289,44 @@ export interface WaterResponse {
   crops: CropStage[];
   balance: WaterBalance;
   uv: { days: UvAssessment[]; peak: UvAssessment | null };
+}
+
+/* ---------------------------------------------------------------------------
+ * Station-versus-model validation. Served by `/api/validation`.
+ * The one place `measured` is the reference rather than the caveat.
+ * ------------------------------------------------------------------------- */
+
+export type ValidatedVariable = 'tempC' | 'humidityPct' | 'windSpeedMs' | 'pressureHpa';
+
+export interface HourComparison {
+  hour: string;
+  localHour: number;
+  /** Station hourly mean — `measured`. */
+  stationValue: number;
+  /** Model value for the same hour — `reanalysis`. */
+  modelValue: number;
+  /** model − station. Negative means the model reads low. */
+  error: number;
+  n: number;
+}
+
+export interface VariableValidation {
+  variable: ValidatedVariable;
+  label: string;
+  unit: string;
+  hours: HourComparison[];
+  bias: number;
+  mae: number;
+  rmse: number;
+  worst: { hour: string; localHour: number; error: number } | null;
+  diurnal: { localHour: number; meanError: number; n: number }[];
+  n: number;
+}
+
+export interface ValidationResponse {
+  station: { name: string; day: string; hours: number };
+  degraded: boolean;
+  detail?: string;
+  generatedAt: string;
+  variables: VariableValidation[];
 }

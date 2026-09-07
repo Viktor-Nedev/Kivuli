@@ -200,3 +200,38 @@ test('the API still routes when static file serving is mounted after it', async 
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('/api/validation reads the station and scores the model against it', async () => {
+  // The second endpoint that touches station data — the substance of the
+  // Conduit requirement, not just the front page.
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/api/validation`);
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as {
+      degraded: boolean;
+      station?: { hours: number };
+      variables?: { variable: string; n: number; worst: unknown }[];
+    };
+
+    if (body.degraded) return; // archive unreachable; the degrade path is its own test
+    assert.ok((body.station?.hours ?? 0) > 0, 'the station must actually be read');
+    assert.ok(body.variables?.length, 'at least one variable is compared');
+    for (const v of body.variables) {
+      assert.ok(v.n >= 0);
+    }
+  });
+});
+
+test('/api/validation degrades rather than 502s when the archive is unreachable', async () => {
+  const restore = severNetwork();
+  try {
+    await withServer(async (base) => {
+      const res = await fetch(`${base}/api/validation`);
+      assert.equal(res.status, 200, 'a missing archive must not error the page');
+      const body = (await res.json()) as { degraded: boolean };
+      assert.equal(typeof body.degraded, 'boolean');
+    });
+  } finally {
+    restore();
+  }
+});

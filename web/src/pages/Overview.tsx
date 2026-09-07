@@ -1,11 +1,13 @@
 import { useOutletContext } from 'react-router-dom';
 import { Hero } from '../components/Hero';
 import { HeroMedia } from '../components/HeroMedia';
+import { Term } from '../components/Term';
 import { Reveal } from '../components/Reveal';
 import { RainOutlookPanel } from '../components/RainOutlookPanel';
 import { useOutlook } from '../lib/useOutlook';
 import { SprayIcon, DryingIcon } from '../components/icons/TaskIcons';
 import type { AppContext } from '../lib/outletContext';
+import { StationUnavailable } from '../components/StationUnavailable';
 import type { Instruction } from '../lib/types';
 
 /** Tints each card's icon with that card's own status colour. */
@@ -21,9 +23,14 @@ const ICON_TINT: Record<Instruction['status'], string> = {
  * their own pages.
  */
 export function Overview() {
-  const { data } = useOutletContext<AppContext>();
+  const { data, error } = useOutletContext<AppContext>();
   // Own fetch, so the decision cards never wait on a three-day forecast.
   const outlook = useOutlook();
+
+  // After the hooks, never before — an early return above useOutlook would
+  // change hook order between renders.
+  if (!data) return <StationUnavailable error={error} />;
+
   const d = data.decisions;
 
   // Drying's own criterion is humidity ("under 60% with direct sun"), and the
@@ -82,7 +89,7 @@ export function Overview() {
             label="Spraying"
             instruction={d.spray}
             metric={d.spray.assessment.deltaT.toFixed(1)}
-            metricUnit="°C Delta-T"
+            metricUnit={<>°C <Term term="deltaT">Delta-T</Term></>}
             icon={<SprayIcon className={ICON_TINT[d.spray.status]} />}
             timelinePoints={data.timeline}
             timelineKey="spray"
@@ -94,7 +101,7 @@ export function Overview() {
             label="Grain drying"
             instruction={d.drying}
             metric={dryingHumidity}
-            metricUnit="% RH"
+            metricUnit={<>% <Term term="rh">RH</Term></>}
             icon={<DryingIcon className={ICON_TINT[d.drying.status]} />}
             timelinePoints={data.timeline}
             timelineKey="drying"

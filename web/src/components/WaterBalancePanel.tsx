@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CropStage, SoilProfile, WaterBalance } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
+import { Term } from './Term';
 
 /**
  * How much water the crop is owed, and when that starts to matter.
@@ -133,7 +134,7 @@ export function WaterBalancePanel({
           ))}
         </select>
         <span className="text-xs text-shade-400">
-          Kc {balance.crop.kc}, roots {balance.crop.rootDepthM} m (FAO-56)
+          <Term term="kc">Kc</Term> {balance.crop.kc}, roots {balance.crop.rootDepthM} m (FAO-56)
         </span>
       </div>
 
@@ -161,6 +162,7 @@ export function WaterBalancePanel({
                   <th className="py-1 pr-2 font-normal">Day</th>
                   <th className="py-1 pr-2 text-right font-normal">Crop use</th>
                   <th className="py-1 pr-2 text-right font-normal">Rain</th>
+                  <th className="py-1 pr-2 text-right font-normal">Chance</th>
                   <th className="py-1 text-right font-normal">Owed</th>
                 </tr>
               </thead>
@@ -172,6 +174,12 @@ export function WaterBalancePanel({
                       {d.cropEtMm.toFixed(1)}
                     </td>
                     <td className="py-1.5 pr-2 text-right text-shade-200">{d.rainMm.toFixed(1)}</td>
+                    {/* The odds beside the depth. 2 mm at 20% and 2 mm at 85%
+                        are different instructions, and the depth alone hides
+                        which one you are being given. */}
+                    <td className="py-1.5 pr-2 text-right text-shade-400">
+                      {d.rainProbabilityPct === null ? '—' : `${d.rainProbabilityPct}%`}
+                    </td>
                     <td className="py-1.5 text-right font-display text-bleach">
                       {d.deficitMm.toFixed(1)}
                     </td>

@@ -47,38 +47,52 @@ export function ClimatePage() {
         ? ''
         : `?lat=${site.latitude}&lon=${site.longitude}&place=${encodeURIComponent(site.label)}`;
 
-    const waterQuery = query ? `${query}&crop=${crop}` : `?crop=${crop}`;
-
-    // allSettled, not all: the rainfall page must survive a water-balance
-    // failure and vice versa.
-    void Promise.allSettled([
-      fetch(`/api/climate${query}`).then((r) => {
+    fetch(`/api/climate${query}`)
+      .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json() as Promise<ClimateResponse>;
-      }),
-      fetch(`/api/water${waterQuery}`).then((r) => {
+      })
+      .then((data) => {
+        if (!cancelled) setState({ phase: 'ready', data });
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setState({
+            phase: 'error',
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // Deliberately NOT keyed on `crop`. The crop only affects the water
+    // balance; keying this effect on it too made every crop-dropdown change
+    // re-download eleven years of rainfall, which is a real cost on the rural
+    // bandwidth this project keeps saying it cares about.
+  }, [site]);
+
+  // The water balance is its own effect and its own failure. A balance outage
+  // must not blank the rainfall page it sits under, and vice versa.
+  useEffect(() => {
+    let cancelled = false;
+    const query =
+      site.id === DEFAULT_SITE_ID
+        ? `?crop=${crop}`
+        : `?lat=${site.latitude}&lon=${site.longitude}&place=${encodeURIComponent(site.label)}&crop=${crop}`;
+
+    fetch(`/api/water${query}`)
+      .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json() as Promise<WaterResponse>;
-      }),
-    ]).then(([climate, waterResult]) => {
-      if (cancelled) return;
-
-      if (climate.status === 'fulfilled') {
-        setState({ phase: 'ready', data: climate.value });
-      } else {
-        const err = climate.reason;
-        setState({
-          phase: 'error',
-          message: err instanceof Error ? err.message : String(err),
-        });
-      }
-
-      setWater(
-        waterResult.status === 'fulfilled' && !waterResult.value.degraded
-          ? waterResult.value
-          : null,
-      );
-    });
+      })
+      .then((data) => {
+        if (!cancelled) setWater(data.degraded ? null : data);
+      })
+      .catch(() => {
+        if (!cancelled) setWater(null);
+      });
 
     return () => {
       cancelled = true;

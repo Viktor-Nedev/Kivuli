@@ -1,6 +1,7 @@
 import { useOutletContext } from 'react-router-dom';
 import { ShadeMap } from '../components/ShadeMap';
 import type { AppContext } from '../lib/outletContext';
+import { StationUnavailable } from '../components/StationUnavailable';
 
 /**
  * Deliberately not wrapped in `<Reveal>` like the other pages. Reveal animates
@@ -10,7 +11,11 @@ import type { AppContext } from '../lib/outletContext';
  * own popups and controls — would then be positioned against.
  */
 export function ShadeMapPage() {
-  const { data, mapboxToken } = useOutletContext<AppContext>();
+  const { data, error, mapboxToken } = useOutletContext<AppContext>();
+  // The station is one instrument at one point and can be unreachable. This
+  // page reports what it measured, so it says so rather than rendering blanks.
+  if (!data) return <StationUnavailable error={error} />;
+
   return (
     <ShadeMap
       token={mapboxToken}

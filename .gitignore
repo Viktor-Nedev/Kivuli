@@ -22,6 +22,10 @@ data/cache/*
 !data/cache/forecast_3d.json
 # ...and the daily forecast the water balance runs on, for the same reason.
 !data/cache/dailyfc_*.json
+# ...and the hourly archive the model-check page compares the station against.
+# Without it that page is empty on a dead venue network, which is the one
+# screen that demonstrates the station doing real work.
+!data/cache/archive_*.json
 .DS_Store
 .scratch/
 .claude/

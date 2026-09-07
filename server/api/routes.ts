@@ -3,7 +3,7 @@ import path from 'node:path';
 import { createConduitSource } from '../ingest/ConduitSource.js';
 import type { Reading } from '../ingest/types.js';
 import { OpenMeteoClient, rainLookaheadSet, SITE, type Site } from '../forecast/openMeteo.js';
-import { loadCoefficients, calibrate } from '../calibration/apply.js';
+import { loadCoefficients } from '../calibration/apply.js';
 import { buildDecisions } from '../decisions/instructions.js';
 import { assessSpray, deltaT, SPRAY } from '../indices/spray.js';
 import { assessDrying } from '../indices/drying.js';
@@ -13,6 +13,7 @@ import { buildOutlook } from '../forecast/outlook.js';
 import { buildRainOutlook } from '../climate/rainOutlook.js';
 import { buildWaterBalance, CROP_STAGES, DEFAULT_CROP_ID } from '../climate/waterBalance.js';
 import { assessUv, peakUv } from '../indices/uv.js';
+import { validateAll } from '../validation/groundTruth.js';
 import type { DailyRain } from '../climate/rainfall.js';
 
 /**
@@ -188,51 +189,6 @@ export function createRouter(root: string): Router {
     }
   });
 
-  /**
-   * Bias-corrected forecast for the hours ahead, with provenance on every
-   * value so the UI can show what was corrected and by how much.
-   */
-  router.get('/api/forecast', async (_req, res) => {
-    try {
-      const [f, coeffs] = await Promise.all([meteo.forecast(2), loadCoefficients(root)]);
-      const rainSet = rainLookaheadSet(f, SPRAY.rainLookaheadHours);
-
-      const hours = f.time.map((t, i) => {
-        // Local timestamps; convert to UTC hour to match the fitted offsets.
-        const utcHour = new Date(`${t}:00+03:00`).getUTCHours();
-        return {
-          time: t,
-          temperature: calibrate(coeffs, 'tempC', f.temperature_2m[i], utcHour),
-          humidity: calibrate(coeffs, 'humidityPct', f.relative_humidity_2m[i], utcHour),
-          windSpeed: calibrate(coeffs, 'windSpeedMs', f.wind_speed_10m[i], utcHour),
-          precipitation: { value: f.precipitation[i], provenance: 'raw_forecast' as const },
-          rainWithin6h: rainSet.has(t.slice(0, 13)),
-        };
-      });
-
-      res.json({ site: SITE, hours, calibration: coeffs });
-    } catch (err) {
-      res.status(502).json({
-        error: 'Forecast service unavailable.',
-        detail: err instanceof Error ? err.message : String(err),
-      });
-    }
-  });
-
-  /**
-   * Multi-year rainfall climatology.
-   *
-   * Deliberately its own endpoint rather than more fields on `/api/today`.
-   * It reads eleven years of daily records where the decision cards need one
-   * day, so folding them together would make every visitor wait on the
-   * archive before learning whether they can spray this afternoon — and would
-   * let an archive outage take the whole dashboard down.
-   *
-   * A failure degrades rather than 502s, matching how `forecastDegraded`
-   * already works: the page can say "history unavailable" and still be a
-   * page, which beats an error screen for something this peripheral to the
-   * core decision.
-   */
   router.get('/api/climate', async (req, res) => {
     const parsed = parseSite(req.query as Record<string, unknown>);
     if ('error' in parsed) {
@@ -350,6 +306,7 @@ export function createRouter(root: string): Router {
         date,
         et0Mm: daily.et0_fao_evapotranspiration?.[i] ?? 0,
         rainMm: daily.precipitation_sum?.[i] ?? 0,
+        rainProbabilityPct: daily.precipitation_probability_max?.[i] ?? null,
       }));
 
       const balance = buildWaterBalance(forecastDaily, crop);
@@ -368,6 +325,56 @@ export function createRouter(root: string): Router {
       res.json({
         site: parsed.site,
         place: parsed.place,
+        degraded: true,
+        detail: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
+
+  /**
+   * The station as ground truth: how wrong is the model here?
+   *
+   * The Conduit's stated purpose is that its measurements "contribute to the
+   * calibration and validation of satellite observations and digital models".
+   * This endpoint is that sentence made executable — the station's own hourly
+   * readings scoring the gridded reanalysis for the same hours.
+   *
+   * It is the second endpoint that reads station data, and the only screen in
+   * the app where a `measured` tag is the reference rather than the caveat.
+   *
+   * Deliberately takes **no lat/lon**. There is one station; a validation
+   * figure for anywhere else would be a comparison against an instrument that
+   * is not there. Refusing the parameter is the same posture as parseSite's
+   * Kenya bounding box.
+   */
+  router.get('/api/validation', async (_req, res) => {
+    try {
+      const latest = await source.getLatest();
+      if (!latest) {
+        res.status(503).json({
+          error: 'No station observations available.',
+          hint: 'The validation page compares the station against the model, so it needs the station.',
+        });
+        return;
+      }
+
+      const day = latest.ts.slice(0, 10);
+      const readings = await source.getHistory(
+        new Date(`${day}T00:00:00Z`),
+        new Date(`${day}T23:59:59Z`),
+      );
+      const archive = await meteo.archive(day, day);
+
+      res.json({
+        station: { name: source.name, day, hours: readings.length },
+        degraded: false,
+        generatedAt: new Date().toISOString(),
+        variables: validateAll(readings, archive),
+      });
+    } catch (err) {
+      // Degrade rather than 502, matching /api/climate: the station half is
+      // still worth showing even when the archive is unreachable.
+      res.json({
         degraded: true,
         detail: err instanceof Error ? err.message : String(err),
       });

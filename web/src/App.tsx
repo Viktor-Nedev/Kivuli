@@ -19,6 +19,7 @@ const ShadeMapPage = lazy(() =>
   import('./pages/ShadeMapPage').then((m) => ({ default: m.ShadeMapPage })),
 );
 import { ClimatePage } from './pages/ClimatePage';
+import { ValidationPage } from './pages/ValidationPage';
 import { SiteHeader } from './components/SiteHeader';
 import { SiteFooter } from './components/SiteFooter';
 
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="station" element={<StationPage />} />
           <Route path="shade-map" element={<ShadeMapPage />} />
           <Route path="climate" element={<ClimatePage />} />
+          <Route path="validation" element={<ValidationPage />} />
           <Route path="calibration" element={<CalibrationPage />} />
         </Route>
       </Routes>
@@ -110,19 +112,25 @@ function AppLayout() {
         </div>
       )}
 
-      {state.phase === 'error' && (
-        <div key="error" className="py-16">
-          <p className="font-display text-2xl text-kenya-red-400">{state.message}</p>
-          {state.detail && (
-            <p className="mt-2 font-mono text-sm text-shade-200">{state.detail}</p>
-          )}
-          {state.hint && <p className="mt-2 text-sm text-shade-400">{state.hint}</p>}
-        </div>
-      )}
-
-      {state.phase === 'ready' && (
+      {/* Every route renders once the fetch settles, whether or not the
+          station answered. Gating the Outlet on `ready` used to blank the
+          Season page, the shade map and the validation page — none of which
+          read station data — because one unrelated endpoint had failed. Pages
+          that do need a reading check for null and render StationUnavailable. */}
+      {state.phase !== 'loading' && (
         <PageTransition>
-          <Outlet context={{ data: state.data, mapboxToken } satisfies AppContext} />
+          <Outlet
+            context={
+              {
+                data: state.phase === 'ready' ? state.data : null,
+                error:
+                  state.phase === 'error'
+                    ? { message: state.message, hint: state.hint, detail: state.detail }
+                    : undefined,
+                mapboxToken,
+              } satisfies AppContext
+            }
+          />
         </PageTransition>
       )}
     </Shell>

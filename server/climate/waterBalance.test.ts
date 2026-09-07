@@ -155,3 +155,26 @@ test('the reported totals match the day rows', () => {
   assert.ok(Math.abs(balance.totalCropEtMm - sumEt) < 0.2);
   assert.ok(Math.abs(balance.totalRainMm - sumRain) < 0.2);
 });
+
+test('rain probability rides through as context and never scales the rain', () => {
+  // The odds are shown beside the depth, not folded into it. Scaling 10 mm by
+  // a 20% chance would invent a 2 mm figure that is neither the forecast nor
+  // the probability, and the deficit would silently inherit it.
+  const withOdds = buildWaterBalance(
+    [{ date: '2026-09-05', et0Mm: 5, rainMm: 10, rainProbabilityPct: 20 }],
+    crop(),
+  );
+  const withoutOdds = buildWaterBalance(
+    [{ date: '2026-09-05', et0Mm: 5, rainMm: 10 }],
+    crop(),
+  );
+
+  assert.equal(withOdds.days[0].rainProbabilityPct, 20);
+  assert.equal(withoutOdds.days[0].rainProbabilityPct, null, 'absent odds read as null, not 0');
+  assert.equal(
+    withOdds.days[0].deficitMm,
+    withoutOdds.days[0].deficitMm,
+    'the probability must not change the balance',
+  );
+  assert.equal(withOdds.days[0].rainMm, 10, 'the rain depth is reported as forecast');
+});

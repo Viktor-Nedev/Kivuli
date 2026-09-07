@@ -43,6 +43,13 @@ export interface BalanceDay {
   /** et0 × Kc — what this crop at this stage actually transpires. */
   cropEtMm: number;
   rainMm: number;
+  /**
+   * Chance of any rain that day, %. Context beside the depth, never a
+   * multiplier on it: 2 mm at 20% and 2 mm at 85% are different instructions,
+   * but scaling the depth by the probability would invent a third number that
+   * is neither the forecast nor the odds.
+   */
+  rainProbabilityPct: number | null;
   /** Running depletion, mm. Soil-independent, and the honest headline. */
   deficitMm: number;
 }
@@ -210,7 +217,7 @@ export function availableWater(
  * banking against next week's demand. Its own test pins this.
  */
 export function runningDeficit(
-  days: { date: string; et0Mm: number; rainMm: number }[],
+  days: { date: string; et0Mm: number; rainMm: number; rainProbabilityPct?: number | null }[],
   kc: number,
 ): BalanceDay[] {
   let deficit = 0;
@@ -222,6 +229,7 @@ export function runningDeficit(
       et0Mm: r1(d.et0Mm),
       cropEtMm: r1(cropEtMm),
       rainMm: r1(d.rainMm),
+      rainProbabilityPct: d.rainProbabilityPct ?? null,
       deficitMm: r1(deficit),
     };
   });
@@ -233,7 +241,7 @@ function describeDay(days: BalanceDay[], index: number | null): string {
 }
 
 export function buildWaterBalance(
-  forecastDaily: { date: string; et0Mm: number; rainMm: number }[],
+  forecastDaily: { date: string; et0Mm: number; rainMm: number; rainProbabilityPct?: number | null }[],
   crop: CropStage,
 ): WaterBalance {
   const days = runningDeficit(forecastDaily, crop.kc);

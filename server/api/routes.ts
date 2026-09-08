@@ -14,6 +14,8 @@ import { buildRainOutlook } from '../climate/rainOutlook.js';
 import { buildWaterBalance, CROP_STAGES, DEFAULT_CROP_ID } from '../climate/waterBalance.js';
 import { assessUv, peakUv } from '../indices/uv.js';
 import { validateAll } from '../validation/groundTruth.js';
+import { buildRiverOutlook } from '../climate/rivers.js';
+import { matchIntent, capabilities } from '../query/intents.js';
 import type { DailyRain } from '../climate/rainfall.js';
 
 /**
@@ -201,7 +203,18 @@ export function createRouter(root: string): Router {
       // hardcoded here — a spread after a literal would silently overwrite the
       // location actually computed.
       const summary = await loadClimate(meteo, parsed.site, parsed.place);
-      res.json({ degraded: false, ...summary });
+
+      // River discharge is its own failure: the flood model may be down, or
+      // simply have no reach here. Neither should cost the rainfall history.
+      let river = null;
+      try {
+        const daily = await meteo.dischargeForecast(7, parsed.site);
+        river = buildRiverOutlook(daily, parsed.place);
+      } catch {
+        // Left null; the panel says the river outlook is unavailable.
+      }
+
+      res.json({ degraded: false, ...summary, river });
     } catch (err) {
       res.json({
         site: parsed.site,
@@ -381,6 +394,51 @@ export function createRouter(root: string): Router {
     }
   });
 
+  /**
+   * Ask KIVULI — routing a question to an answer that already exists.
+   *
+   * Explicitly not a language model. Every reply is a figure this app already
+   * computes and already tags with its provenance; this only works out which
+   * one was meant, and names the endpoint it came from so the answer stays
+   * traceable. An unmatched question returns the capability list rather than a
+   * guess.
+   */
+  router.get('/api/ask', async (req, res) => {
+    const q = typeof req.query.q === 'string' ? req.query.q : '';
+    const match = matchIntent(q);
+
+    if (!match) {
+      res.json({
+        understood: false,
+        question: q,
+        answer: 'I could not tell what that was asking. Here is what I can answer.',
+        answerSw: 'Sikuelewa swali hilo. Haya ndiyo ninayoweza kujibu.',
+        capabilities: capabilities(),
+      });
+      return;
+    }
+
+    try {
+      const answer = await answerIntent(match.intent.id);
+      res.json({
+        understood: true,
+        question: q,
+        intent: match.intent.id,
+        matched: match.matched,
+        source: match.intent.source,
+        ...answer,
+      });
+    } catch (err) {
+      res.json({
+        understood: true,
+        intent: match.intent.id,
+        source: match.intent.source,
+        degraded: true,
+        detail: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
+
   router.get('/api/health', (_req, res) => {
     res.json({ ok: true, source: source.name });
   });
@@ -394,6 +452,85 @@ export function createRouter(root: string): Router {
   router.get('/api/config', (_req, res) => {
     res.json({ mapboxToken: process.env.MAPBOX_TOKEN ?? null });
   });
+
+  /**
+   * Resolves one intent by calling the same builders the pages use, so an
+   * answer here and the answer on the page can never disagree.
+   */
+  async function answerIntent(id: string): Promise<{ answer: string; answerSw: string }> {
+    if (id === 'irrigate') {
+      const daily = await meteo.dailyForecast(7);
+      const balance = buildWaterBalance(
+        daily.time.map((date, i) => ({
+          date,
+          et0Mm: daily.et0_fao_evapotranspiration?.[i] ?? 0,
+          rainMm: daily.precipitation_sum?.[i] ?? 0,
+        })),
+        CROP_STAGES[0],
+      );
+      return { answer: `${balance.headline}. ${balance.detail}`, answerSw: balance.headlineSw };
+    }
+
+    if (id === 'uv') {
+      const daily = await meteo.dailyForecast(7);
+      const peak = peakUv(daily.time.map((d, i) => assessUv(d, daily.uv_index_max?.[i] ?? 0)));
+      return peak
+        ? {
+            answer: `Peak UV index ${peak.uvIndexMax} — ${peak.instruction}.`,
+            answerSw: peak.instructionSw,
+          }
+        : { answer: 'No UV forecast available.', answerSw: 'Hakuna utabiri wa UV.' };
+    }
+
+    if (id === 'drought') {
+      const summary = await loadClimate(meteo);
+      // The advisory already phrases the multi-window comparison honestly, so
+      // the answer here is the same sentence the Season page shows.
+      return { answer: summary.advisory.en, answerSw: summary.advisory.sw };
+    }
+
+    // spray, drying, rain and heat all come from the forward outlook.
+    const [f, coeffs] = await Promise.all([meteo.forecast(3), loadCoefficients(root)]);
+    const outlook = buildOutlook(f, coeffs);
+
+    if (id === 'heat') {
+      const h = outlook.heat;
+      return {
+        answer: h.anyRestriction
+          ? `Peak projected WBGT ${h.peakWbgtC} °C crosses the ${h.thresholdC} °C threshold — take work/rest breaks.`
+          : `Peak projected WBGT ${h.peakWbgtC} °C stays under the ${h.thresholdC} °C threshold, so no work/rest restriction applies.`,
+        answerSw: h.anyRestriction
+          ? `Joto linafika ${h.peakWbgtC} °C — pumzika mara kwa mara.`
+          : `Joto halifiki kiwango cha hatari (${h.thresholdC} °C).`,
+      };
+    }
+
+    if (id === 'rain') {
+      const wet = outlook.hours.filter((x) => x.precipMm > 0.1);
+      return wet.length
+        ? {
+            answer: `Rain is forecast in ${wet.length} of the next ${outlook.horizonHours} hours, first around ${wet[0].time.slice(11, 16)} on ${wet[0].time.slice(0, 10)}.`,
+            answerSw: `Mvua inatarajiwa katika saa ${wet.length} kati ya ${outlook.horizonHours} zijazo.`,
+          }
+        : {
+            answer: `No rain is forecast in the next ${outlook.horizonHours} hours.`,
+            answerSw: `Hakuna mvua inayotarajiwa katika saa ${outlook.horizonHours} zijazo.`,
+          };
+    }
+
+    const band = id === 'spray' ? 'spray' : 'drying';
+    const windows = outlook.windows.filter((w) => w.band === band);
+    const label = band === 'spray' ? 'spray' : 'drying';
+    return windows.length
+      ? {
+          answer: `Yes — ${windows.length} ${label} window${windows.length > 1 ? 's' : ''} in the next three days, the first ${windows[0].start.slice(11, 16)}–${windows[0].end.slice(11, 16)} on ${windows[0].start.slice(0, 10)}.`,
+          answerSw: `Ndiyo — vipindi ${windows.length} katika siku tatu zijazo.`,
+        }
+      : {
+          answer: `No ${label} window in the next three days. ${outlook.nightHoursExcluded} night hours passed the numbers but fall outside working hours.`,
+          answerSw: `Hakuna kipindi cha ${label === 'spray' ? 'kunyunyiza' : 'kuanika'} katika siku tatu zijazo.`,
+        };
+  }
 
   return router;
 }

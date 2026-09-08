@@ -7,6 +7,7 @@ import { WaterHarvest } from '../components/WaterHarvest';
 import { ShareAdvisory } from '../components/ShareAdvisory';
 import { SitePicker, SiteSplitNote } from '../components/SitePicker';
 import { WaterBalancePanel } from '../components/WaterBalancePanel';
+import { RiverPanel } from '../components/RiverPanel';
 import { DEFAULT_SITE_ID, SITE_OPTIONS, type SiteOption } from '../lib/site';
 
 /**
@@ -192,6 +193,12 @@ export function ClimatePage() {
       <Reveal>
         <WaterHarvest harvest={data.harvest} climatology={data.climatology} />
       </Reveal>
+
+      {data.river && (
+        <Reveal>
+          <RiverPanel river={data.river} />
+        </Reveal>
+      )}
 
       {water && (
         <Reveal>

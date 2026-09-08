@@ -64,7 +64,7 @@ for Vite's `VITE_` prefix convention. Without a token, the shade map section sho
 instead of failing.
 
 ```bash
-npm test        # 133 tests across ingest, indices, decisions, calibration, climate,
+npm test        # 147 tests across ingest, indices, decisions, calibration, climate,
                 # the HTTP layer, the live station adapter and shadow geometry
 npm run test:web   # component tests (vitest + jsdom)
 npm run typecheck
@@ -238,6 +238,31 @@ to the same answer is evidence; one path is an assertion.
 One station, one day, 24 paired hours. That is a demonstration of method, not a
 climatology, and the page says so.
 
+
+**Ask KIVULI.** A question box on the landing page — and deliberately not a
+language model. Every answer is a figure one of the pages already computes,
+quoted with the endpoint it came from, so any reply can be traced to a number
+that carries its own provenance tag. An unrecognised question returns the list
+of what can be answered rather than a plausible guess: *"I don't know, here is
+what I do know"* is the only honest failure mode for a project that spends the
+rest of its surface distinguishing evidence from inference.
+
+It matches Swahili too. Swahili agglutinates, so "mwagilia" (irrigate) appears
+as "nikamwagilia" or "tumwagilie" — those stems match inside a longer word
+while English keywords match whole words only, because "sunflower" is not a
+question about the sun.
+
+**The river.** Open-Meteo's flood model covers Kenya, and Nyando near Kisumu
+returns a real 39 m³/s peak. It returns **0.00 m³/s at JKUAT**, because the
+campus is not on a modelled river reach — that zero is an absence of data, not
+a reading of a very low river. So the panel says "not on a modelled river" and
+draws no chart at all, rather than showing a gauge pinned at nothing. Where a
+reach does exist it charts the week and says whether the river is rising.
+
+Nothing here is a flood forecast for a particular field: discharge is a
+catchment-scale quantity on a coarse grid, with no local terrain, drainage or
+defence data behind it, and the panel says so.
+
 ## Weight
 
 The app argues for an audience on rural bandwidth, so it should not arrive as a 12 MB dashboard.
@@ -265,6 +290,7 @@ anything public would need all three before it saw real traffic.
 | `GET /api/outlook?lat=&lon=` | The next three days as decisions: daylight-gated spray and drying windows, projected heat, and forecast rainfall ranked against this site's own record. |
 | `GET /api/water?lat=&lon=&crop=` | Seven-day crop water balance (FAO-56) with the crossing day for every soil texture, plus peak UV. |
 | `GET /api/validation` | The station scoring the model: hourly station means against ERA5 for the same hours, per variable, with the diurnal error shape. Takes no lat/lon — there is one station. |
+| `GET /api/ask?q=` | Routes a question to a figure the app already computes, naming the endpoint that answered. Unmatched questions return the capability list, never a guess. |
 | `GET /api/health` | Liveness plus the name of the active station source. |
 
 ```bash

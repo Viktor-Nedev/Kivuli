@@ -126,6 +126,8 @@ export interface OnsetDistribution {
 }
 
 export interface ClimateResponse {
+  /** Null when the flood model could not be reached. */
+  river?: RiverOutlook | null;
   site: { latitude: number; longitude: number; timezone: string };
   /** Human-readable name of the location these figures describe. */
   place: string;
@@ -329,4 +331,48 @@ export interface ValidationResponse {
   detail?: string;
   generatedAt: string;
   variables: VariableValidation[];
+}
+
+/* ---------------------------------------------------------------------------
+ * River discharge, on /api/climate. Only meaningful where a modelled reach
+ * exists — see `hasReach`.
+ * ------------------------------------------------------------------------- */
+
+export interface DischargeDay {
+  date: string;
+  cumecs: number;
+}
+
+export interface RiverOutlook {
+  /** False when the flood model has no reach here — then there is no reading. */
+  hasReach: boolean;
+  days: DischargeDay[];
+  peakCumecs: number;
+  peakDate: string | null;
+  riseFactor: number | null;
+  headline: string;
+  headlineSw: string;
+  detail: string;
+}
+
+/* Ask KIVULI. Routes a question to a figure the app already computes. */
+
+export interface AskCapability {
+  id: string;
+  example: string;
+  source: string;
+}
+
+export interface AskResponse {
+  understood: boolean;
+  question?: string;
+  intent?: string;
+  matched?: string[];
+  /** The endpoint that answered — every reply stays traceable. */
+  source?: string;
+  answer?: string;
+  answerSw?: string;
+  degraded?: boolean;
+  detail?: string;
+  capabilities?: AskCapability[];
 }

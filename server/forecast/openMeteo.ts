@@ -37,6 +37,7 @@ export const siteKey = (s: Site) => `${s.latitude.toFixed(3)}_${s.longitude.toFi
 
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const ARCHIVE_URL = 'https://archive-api.open-meteo.com/v1/archive';
+const FLOOD_URL = 'https://flood-api.open-meteo.com/v1/flood';
 
 export interface HourlyForecast {
   /** `YYYY-MM-DDTHH:MM`, in the requested timezone. */
@@ -82,6 +83,12 @@ const DAILY_VARS = ['precipitation_sum', 'et0_fao_evapotranspiration'].join(',')
  * multi-year archive cache key to any forecast-side schema change, and the
  * archive snapshots are committed to the repo for the offline demo.
  */
+export interface DailyDischarge {
+  time: string[];
+  /** Modelled river discharge, m³/s. All-zero means no modelled reach here. */
+  river_discharge: (number | null)[];
+}
+
 const DAILY_FORECAST_VARS = [
   'et0_fao_evapotranspiration',
   'precipitation_sum',
@@ -177,6 +184,29 @@ export class OpenMeteoClient {
       getJson(url),
     );
     return body.hourly as HourlyForecast;
+  }
+
+  /**
+   * River discharge for a point, from the GloFAS-backed flood model.
+   *
+   * Most of this app's sites are not on a modelled river reach, and the model
+   * answers those with a flat 0.00 m³/s rather than an error. That is not a
+   * low-flow reading — it means "no reach here" — so callers must distinguish
+   * the two rather than rendering a permanent zero that looks like a
+   * measurement. `dischargeForecast` returns the series; `hasReach` is the
+   * caller's test.
+   */
+  async dischargeForecast(days = 7, site: Site = SITE): Promise<DailyDischarge> {
+    const url =
+      `${FLOOD_URL}?latitude=${site.latitude}&longitude=${site.longitude}` +
+      `&daily=river_discharge&forecast_days=${days}`;
+    const body = await cached(
+      this.cacheDir,
+      `flood_${siteKey(site)}_${days}d`,
+      30 * 60_000,
+      () => getJson(url),
+    );
+    return body.daily as DailyDischarge;
   }
 
   /**

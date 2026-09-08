@@ -2,6 +2,7 @@ import { useOutletContext } from 'react-router-dom';
 import { Hero } from '../components/Hero';
 import { HeroMedia } from '../components/HeroMedia';
 import { Term } from '../components/Term';
+import { AskBox } from '../components/AskBox';
 import { Reveal } from '../components/Reveal';
 import { RainOutlookPanel } from '../components/RainOutlookPanel';
 import { useOutlook } from '../lib/useOutlook';
@@ -114,6 +115,10 @@ export function Overview() {
           <RainOutlookPanel outlook={outlook.data.rainOutlook} />
         </Reveal>
       )}
+
+      <Reveal>
+        <AskBox />
+      </Reveal>
     </>
   );
 }

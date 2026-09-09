@@ -1,5 +1,6 @@
 import type { OnsetDistribution } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
+import { useChartReveal } from '../lib/useChartReveal';
 
 /**
  * When the rains have historically started.
@@ -56,6 +57,9 @@ function doy(md: string): number {
 
 function OnsetCard({ dist }: { dist: OnsetDistribution }) {
   const { earliestMonthDay, latestMonthDay, medianMonthDay } = dist;
+  // The band grows outward from the median marker, because the median is the
+  // anchor and the spread is the actual argument of this card.
+  const reveal = useChartReveal({ duration: 900 });
 
   // Lay the observed range out on its own track. The track spans the full
   // earliest-to-latest range with a little padding, so the width of the band
@@ -86,11 +90,15 @@ function OnsetCard({ dist }: { dist: OnsetDistribution }) {
       {hasRange && (
         <>
           <div className="mt-5">
-            <div className="relative h-8">
+            <div ref={reveal.ref} className="relative h-8">
               {/* Observed range */}
               <span
                 className="absolute top-3 h-2 rounded-full bg-kenya-green-500/40 ring-1 ring-kenya-green-500/50"
-                style={{ left: `${pos(from)}%`, width: `${pos(to) - pos(from)}%` }}
+                style={{
+                  left: `${pos(mid) - (pos(mid) - pos(from)) * reveal.progress}%`,
+                  width: `${(pos(to) - pos(from)) * reveal.progress}%`,
+                  transition: `${reveal.transition(0, 'left')}, ${reveal.transition(0, 'width')}`,
+                }}
               />
               {/* Median marker */}
               <span

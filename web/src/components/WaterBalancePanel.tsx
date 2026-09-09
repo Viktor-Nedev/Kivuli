@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CropStage, SoilProfile, WaterBalance } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { Term } from './Term';
+import { useChartReveal } from '../lib/useChartReveal';
 
 /**
  * How much water the crop is owed, and when that starts to matter.
@@ -41,9 +42,10 @@ function SoilRow({
   onSelect: () => void;
 }) {
   const crossed = soil.crossesOnDay !== null;
+  const reveal = useChartReveal({ duration: 800 });
   // Bar length is the soil's capacity; the marker is where the deficit sits.
-  const capacityPct = (soil.rawMm / maxRaw) * 100;
-  const deficitPct = Math.min((closingDeficitMm / maxRaw) * 100, 100);
+  const capacityPct = (soil.rawMm / maxRaw) * 100 * reveal.progress;
+  const deficitPct = Math.min((closingDeficitMm / maxRaw) * 100, 100) * reveal.progress;
 
   return (
     <button
@@ -63,16 +65,23 @@ function SoilRow({
         </span>
       </div>
 
-      <div className="relative mt-2 h-3 overflow-hidden rounded-full bg-shade-900 ring-1 ring-shade-700">
+      <div
+        ref={reveal.ref}
+        className="relative mt-2 h-3 overflow-hidden rounded-full bg-shade-900 ring-1 ring-shade-700"
+      >
         {/* The soil's readily-available water. */}
         <span
           className="absolute inset-y-0 left-0 bg-shade-600"
-          style={{ width: `${capacityPct}%` }}
+          style={{ width: `${capacityPct}%`, transition: reveal.transition(0, 'width') }}
         />
         {/* Where the deficit has actually reached. */}
         <span
           className={`absolute inset-y-0 left-0 ${crossed ? BAND_COLOUR.crossed : BAND_COLOUR.safe}`}
-          style={{ width: `${deficitPct}%`, opacity: 0.85 }}
+          style={{
+            width: `${deficitPct}%`,
+            opacity: 0.85,
+            transition: reveal.transition(1, 'width'),
+          }}
         />
       </div>
 

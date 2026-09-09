@@ -1,5 +1,6 @@
 import type { MonthClimate, RainCategory, WindowStat } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
+import { useChartReveal, useCountUp } from '../lib/useChartReveal';
 
 /**
  * Where this season's rainfall sits against the same window in previous years.
@@ -73,8 +74,10 @@ const MONTHS = [
 
 function WindowCard({ stat }: { stat: WindowStat }) {
   const pct = Math.max(0, Math.min(100, stat.percentile));
+  const reveal = useChartReveal({ duration: 900 });
+  const totalShown = useCountUp(stat.totalMm);
   return (
-    <div className="rounded-xl border border-shade-700 bg-shade-800/40 p-5">
+    <div ref={reveal.ref} className="rounded-xl border border-shade-700 bg-shade-800/40 p-5">
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
           {WINDOW_LABEL[stat.days] ?? `${stat.days} days`}
@@ -83,7 +86,7 @@ function WindowCard({ stat }: { stat: WindowStat }) {
       </div>
 
       <p className="mt-4 font-display text-4xl tabular-nums text-bleach">
-        {stat.totalMm.toFixed(0)}
+        {totalShown.toFixed(0)}
         <span className="ml-1 text-base text-shade-200">mm</span>
       </p>
       <p className="mt-1 text-sm text-shade-200">
@@ -96,7 +99,7 @@ function WindowCard({ stat }: { stat: WindowStat }) {
         <div className="relative h-2 overflow-hidden rounded-full bg-shade-900 ring-1 ring-shade-700">
           <span
             className={`absolute inset-y-0 left-0 ${CATEGORY_BAR[stat.category]}`}
-            style={{ width: `${pct}%` }}
+            style={{ width: `${pct * reveal.progress}%`, transition: reveal.transition(0, 'width') }}
           />
         </div>
         <div className="mt-1 flex justify-between text-[10px] text-shade-400">

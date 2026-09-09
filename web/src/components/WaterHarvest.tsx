@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ClimateResponse, MonthClimate } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
+import { useChartReveal, useCountUp } from '../lib/useChartReveal';
 
 /**
  * What a roof could collect here, and why storage is the point.
@@ -52,25 +53,30 @@ const JERRYCAN_L = 20;
 
 function BalanceChart({ climatology }: { climatology: MonthClimate[] }) {
   const max = Math.max(...climatology.map((m) => Math.max(m.rainMm, m.et0Mm)), 1);
+  // Staggered by month, so rain and evaporation rise together and the
+  // surplus/deficit crossover forms as you watch rather than arriving done.
+  const reveal = useChartReveal({ stagger: 40 });
+  const count = climatology.length;
 
   return (
-    <div>
+    <div ref={reveal.ref}>
       <div className="flex items-end gap-1 sm:gap-2" style={{ height: 140 }}>
-        {climatology.map((m) => {
+        {climatology.map((m, i) => {
           const surplus = m.balanceMm > 0;
+          const grow = reveal.transition(i, 'height', count);
           return (
             <div key={m.month} className="flex flex-1 flex-col justify-end gap-0.5">
               <div className="relative flex items-end gap-0.5" style={{ height: 116 }}>
                 {/* Rain */}
                 <div
                   className={`w-1/2 rounded-t-sm ${surplus ? 'bg-kenya-green-500' : 'bg-shade-600'}`}
-                  style={{ height: `${(m.rainMm / max) * 100}%` }}
+                  style={{ height: `${(m.rainMm / max) * 100 * reveal.progress}%`, transition: grow }}
                   title={`${MONTH_FULL[m.month - 1]}: ${m.rainMm.toFixed(0)} mm rain`}
                 />
                 {/* Evapotranspiration */}
                 <div
                   className="w-1/2 rounded-t-sm bg-amber-500/50"
-                  style={{ height: `${(m.et0Mm / max) * 100}%` }}
+                  style={{ height: `${(m.et0Mm / max) * 100 * reveal.progress}%`, transition: grow }}
                   title={`${MONTH_FULL[m.month - 1]}: ${m.et0Mm.toFixed(0)} mm evaporation demand`}
                 />
               </div>
@@ -106,6 +112,9 @@ export function WaterHarvest({ harvest, climatology }: Pick<ClimateResponse, 'ha
   const [roofM2, setRoofM2] = useState(harvest.referenceRoofM2);
 
   const litres = Math.round(harvest.medianAnnualMm * roofM2 * harvest.runoffCoeff);
+  // Counts up once on first read, then tracks the slider live — the figure has
+  // to follow the roof-area input, not stay frozen at whatever it counted to.
+  const litresShown = Math.round(useCountUp(litres));
   const perDay = Math.round(litres / 365);
   const jerrycans = Math.round(litres / JERRYCAN_L);
 
@@ -162,7 +171,7 @@ export function WaterHarvest({ harvest, climatology }: Pick<ClimateResponse, 'ha
             Could collect in a typical year
           </p>
           <p className="font-display text-5xl tabular-nums text-kenya-green-400">
-            {litres.toLocaleString()}
+            {litresShown.toLocaleString()}
             <span className="ml-2 text-xl text-shade-200">litres</span>
           </p>
 

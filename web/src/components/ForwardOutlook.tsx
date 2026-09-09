@@ -1,5 +1,6 @@
 import type { OutlookHour, OutlookResponse } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
+import { useChartReveal } from '../lib/useChartReveal';
 
 /**
  * The next three days as working windows.
@@ -52,7 +53,15 @@ function dayLabel(date: string): string {
   });
 }
 
-function HourCell({ hour, band }: { hour: OutlookHour; band: 'spray' | 'drying' }) {
+function HourCell({
+  hour,
+  band,
+  style,
+}: {
+  hour: OutlookHour;
+  band: 'spray' | 'drying';
+  style?: React.CSSProperties;
+}) {
   const verdict = band === 'spray' ? hour.spray : hour.drying;
   const clock = hour.time.slice(11, 16);
 
@@ -73,16 +82,23 @@ function HourCell({ hour, band }: { hour: OutlookHour; band: 'spray' | 'drying' 
 
   return (
     <span
-      className={`h-6 flex-1 rounded-[2px] ${fill}`}
+      className={`h-6 flex-1 origin-bottom rounded-[2px] ${fill}`}
       role="img"
       aria-label={label}
       title={label}
+      style={style}
     />
   );
 }
 
 export function ForwardOutlook({ outlook }: { outlook: OutlookResponse }) {
   const days = byDay(outlook.hours);
+  // Staggered by hour-of-day column rather than by cell, so the strip wipes
+  // left to right like a day passing. 144 cells staggered individually would
+  // tail for seconds and read as decoration; 24 columns reads as time.
+  // scaleY + opacity rather than height: compositor-only, so it stays smooth
+  // on a cheap phone.
+  const reveal = useChartReveal({ stagger: 18, duration: 550 });
   const sprayWindows = outlook.windows.filter((w) => w.band === 'spray');
   const dryingWindows = outlook.windows.filter((w) => w.band === 'drying');
 
@@ -108,7 +124,7 @@ export function ForwardOutlook({ outlook }: { outlook: OutlookResponse }) {
         measured directly.
       </p>
 
-      <div className="mt-6 space-y-8">
+      <div ref={reveal.ref} className="mt-6 space-y-8">
         {BANDS.map((band) => {
           const windows = band.key === 'spray' ? sprayWindows : dryingWindows;
           return (
@@ -127,8 +143,17 @@ export function ForwardOutlook({ outlook }: { outlook: OutlookResponse }) {
                       {dayLabel(d.date)}
                     </span>
                     <div className="flex flex-1 gap-[2px]">
-                      {d.hours.map((h) => (
-                        <HourCell key={h.time} hour={h} band={band.key} />
+                      {d.hours.map((h, i) => (
+                        <HourCell
+                          key={h.time}
+                          hour={h}
+                          band={band.key}
+                          style={{
+                            opacity: reveal.progress,
+                            transform: `scaleY(${reveal.progress || 0.25})`,
+                            transition: `${reveal.transition(i, 'opacity', 24)}, ${reveal.transition(i, 'transform', 24)}`,
+                          }}
+                        />
                       ))}
                     </div>
                   </div>

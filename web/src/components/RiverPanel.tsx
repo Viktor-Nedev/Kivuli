@@ -1,5 +1,6 @@
 import type { RiverOutlook } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
+import { useChartReveal } from '../lib/useChartReveal';
 
 /**
  * River discharge, where a river exists.
@@ -16,6 +17,7 @@ import { ProvenanceTag } from './Provenance';
  */
 export function RiverPanel({ river }: { river: RiverOutlook }) {
   const peak = Math.max(...river.days.map((d) => d.cumecs), 0.001);
+  const reveal = useChartReveal({ stagger: 45 });
 
   return (
     <section className="border-t border-shade-700 py-10 sm:py-12">
@@ -48,12 +50,15 @@ export function RiverPanel({ river }: { river: RiverOutlook }) {
       {/* No reach means no data, so there is deliberately nothing to chart. */}
       {river.hasReach && (
         <div className="mt-6">
-          <div className="flex h-24 items-end gap-1">
-            {river.days.map((d) => (
+          <div ref={reveal.ref} className="flex h-24 items-end gap-1">
+            {river.days.map((d, i) => (
               <div
                 key={d.date}
                 className="flex-1 rounded-t-sm bg-shade-400"
-                style={{ height: `${Math.max((d.cumecs / peak) * 100, 2)}%` }}
+                style={{
+                  height: `${Math.max((d.cumecs / peak) * 100, 2) * reveal.progress}%`,
+                  transition: reveal.transition(i, 'height', river.days.length),
+                }}
                 title={`${d.date}: ${d.cumecs} m³/s`}
               />
             ))}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useChartReveal, useCountUp } from '../lib/useChartReveal';
 import type { Calibration } from '../lib/types';
 
 const LABELS: Record<string, { name: string; unit: string }> = {
@@ -123,12 +123,14 @@ export function CalibrationTable({ calibration }: { calibration: Calibration | n
  * where a fill-vs-marker reads clearly at any gap size.
  */
 function MaeBar({ name, before, after }: { name: string; before: number; after: number }) {
-  const [animate, setAnimate] = useState(false);
-
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => setAnimate(true));
-    return () => cancelAnimationFrame(raf);
-  }, []);
+  // Reveals on scroll rather than on mount: this table sits well below the
+  // fold, so a mount-time animation had always finished by the time anyone
+  // read it.
+  const reveal = useChartReveal({ duration: 900, delay: 200 });
+  // The one number on this page that carries the argument: the error left
+  // after calibration. It counts up from zero alongside the bar, arriving as
+  // the fill lands, so the pair reads as a single statement.
+  const afterShown = useCountUp(after);
 
   // "before" is always the full-width baseline; "after" is expressed as a
   // fraction of it, so the fill directly shows the fraction of the original
@@ -143,19 +145,19 @@ function MaeBar({ name, before, after }: { name: string; before: number; after: 
         <span>
           MAE {before.toFixed(2)} <span className="text-shade-600">→</span>{' '}
           <span className={improved ? 'font-medium text-kenya-green-400' : 'font-medium text-shade-200'}>
-            {after.toFixed(2)}
+            {afterShown.toFixed(2)}
           </span>
         </span>
       </div>
-      <div className="relative h-5 overflow-hidden rounded-full bg-shade-800">
+      <div ref={reveal.ref} className="relative h-5 overflow-hidden rounded-full bg-shade-800">
         {/* Ghost marker for "before" — the full bar is already 100% of it, so
             this reads as "here is where we started" rather than a length. */}
         <div className="absolute inset-y-0 right-0 w-px bg-shade-400" />
         <div
           className="absolute inset-y-0 left-0 rounded-full bg-kenya-green-400"
           style={{
-            width: animate ? `${afterPct}%` : 0,
-            transition: 'width 900ms cubic-bezier(0.16, 1, 0.3, 1) 200ms',
+            width: `${afterPct * reveal.progress}%`,
+            transition: reveal.transition(0, 'width'),
           }}
         />
       </div>

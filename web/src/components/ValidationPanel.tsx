@@ -1,6 +1,7 @@
 import type { VariableValidation } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { Glossary } from './Term';
+import { useChartReveal } from '../lib/useChartReveal';
 
 /**
  * The station scoring the model.
@@ -18,15 +19,21 @@ import { Glossary } from './Term';
 
 function ErrorBars({ variable }: { variable: VariableValidation }) {
   const peak = Math.max(...variable.diurnal.map((d) => Math.abs(d.meanError)), 0.001);
+  // Bars grow out from the zero line as the chart is read, left to right, so
+  // the shape of the error across the day assembles itself rather than
+  // arriving fully formed.
+  const reveal = useChartReveal({ duration: 650 });
+  const count = variable.diurnal.length;
 
   return (
-    <div>
+    <div ref={reveal.ref}>
       {/* Signed bars above and below a zero line, so "the model runs low all
           day" is visible as a shape rather than inferred from a minus sign. */}
       <div className="flex h-32 items-center gap-[2px]">
-        {variable.diurnal.map((d) => {
-          const frac = Math.abs(d.meanError) / peak;
+        {variable.diurnal.map((d, i) => {
+          const frac = (Math.abs(d.meanError) / peak) * reveal.progress;
           const negative = d.meanError < 0;
+          const grow = reveal.transition(i, 'height', count);
           return (
             <div
               key={d.localHour}
@@ -39,7 +46,7 @@ function ErrorBars({ variable }: { variable: VariableValidation }) {
                 {!negative && (
                   <span
                     className="w-full rounded-t-sm bg-amber-500"
-                    style={{ height: `${frac * 100}%` }}
+                    style={{ height: `${frac * 100}%`, transition: grow }}
                   />
                 )}
               </div>
@@ -48,7 +55,7 @@ function ErrorBars({ variable }: { variable: VariableValidation }) {
                 {negative && (
                   <span
                     className="w-full rounded-b-sm bg-kenya-red-500"
-                    style={{ height: `${frac * 100}%` }}
+                    style={{ height: `${frac * 100}%`, transition: grow }}
                   />
                 )}
               </div>

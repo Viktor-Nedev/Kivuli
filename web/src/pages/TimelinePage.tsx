@@ -20,6 +20,16 @@ export function TimelinePage() {
 
   return (
     <>
+      <section className="pt-10 sm:pt-12">
+        <h1 className="font-display text-3xl text-bleach sm:text-4xl">The working day</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
+          Today hour by hour, and the three days after it. The bands above are{' '}
+          <strong className="text-bleach">measured</strong> — station readings run through the same
+          gates the advice uses. The forward grid below them is a corrected forecast, and is
+          labelled as one. Nothing here mixes the two.
+        </p>
+      </section>
+
       <Reveal>
         <Timeline points={data.timeline} />
       </Reveal>

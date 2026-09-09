@@ -15,6 +15,16 @@ export function StationPage() {
 
   return (
     <>
+      <section className="pt-10 sm:pt-12">
+        <h1 className="font-display text-3xl text-bleach sm:text-4xl">The instrument</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
+          Everything on this page is a reading from {data.source}, not a model output. It is one
+          sensor at one point: it measures air, not soil, and it speaks for its own mast rather than
+          the district. What it does not measure is listed here too, because the gaps are the
+          reason the rest of the app is careful about what it claims.
+        </p>
+      </section>
+
       <Reveal>
         <StationPanel reading={data.latest} sourceName={data.source} />
       </Reveal>

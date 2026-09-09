@@ -38,7 +38,7 @@ export function Timeline({ points }: { points: TimelinePoint[] }) {
         <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
           The working day
         </h2>
-        <p className="text-xs text-shade-400">Times are East Africa Time</p>
+        <p className="text-xs text-shade-200">Times are East Africa Time</p>
       </div>
 
       <div className="mt-6 space-y-5">

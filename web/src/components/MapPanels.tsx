@@ -54,7 +54,7 @@ export function LegendRow({
         className="h-3 w-3 shrink-0 rounded-sm ring-1 ring-shade-600"
         style={{ backgroundColor: color, opacity }}
       />
-      <span className="text-[11px] leading-tight text-shade-200">{children}</span>
+      <span className="text-xs leading-tight text-shade-200">{children}</span>
     </li>
   );
 }

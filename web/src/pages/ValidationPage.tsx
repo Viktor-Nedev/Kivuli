@@ -59,7 +59,7 @@ export function ValidationPage() {
           hours. One of them could not be read, so rather than show half a comparison it shows
           none.
         </p>
-        {detail && <p className="mt-2 font-mono text-xs text-shade-400">{detail}</p>}
+        {detail && <p className="mt-2 font-mono text-xs text-shade-200">{detail}</p>}
       </section>
     );
   }

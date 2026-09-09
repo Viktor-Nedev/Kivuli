@@ -23,7 +23,7 @@ export function SitePicker({
 }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-[0.2em] text-shade-400">Location</p>
+      <p className="text-xs uppercase tracking-[0.2em] text-shade-400">Location</p>
       <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Choose a location">
         {SITE_OPTIONS.map((option) => {
           const active = option.id === selected.id;
@@ -46,7 +46,7 @@ export function SitePicker({
           );
         })}
       </div>
-      <p className="mt-2 text-xs text-shade-400">{selected.note}</p>
+      <p className="mt-2 text-xs text-shade-200">{selected.note}</p>
     </div>
   );
 }

@@ -81,7 +81,7 @@ export function RiverPanel({ river }: { river: RiverOutlook }) {
             <span>{river.days[0]?.date.slice(5)}</span>
             <span>{river.days[river.days.length - 1]?.date.slice(5)}</span>
           </div>
-          <p className="mt-2 text-xs text-shade-400">
+          <p className="mt-2 text-xs text-shade-200">
             Daily mean discharge, m³/s. Peak {river.peakCumecs} on {river.peakDate}.
           </p>
         </div>

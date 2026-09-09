@@ -99,7 +99,7 @@ export function CalibrationTable({ calibration }: { calibration: Calibration | n
         </table>
       </div>
 
-      <p className="mt-4 max-w-2xl text-xs leading-relaxed text-shade-400">
+      <p className="mt-4 max-w-2xl text-xs leading-relaxed text-shade-200">
         Fitted on {calibration.training_window.station_hours} station hours (
         {calibration.training_window.from}). {calibration.training_window.note}
       </p>

@@ -71,7 +71,7 @@ export function Thermometer({
         {value.toFixed(1)}
         <span className="ml-0.5 text-xs text-shade-400">°C</span>
       </span>
-      <span className="mt-0.5 text-center text-[11px] leading-tight text-shade-400">{label}</span>
+      <span className="mt-0.5 text-center text-xs leading-tight text-shade-400">{label}</span>
     </div>
   );
 }

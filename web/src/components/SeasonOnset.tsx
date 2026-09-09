@@ -79,10 +79,10 @@ function OnsetCard({ dist }: { dist: OnsetDistribution }) {
         <h3 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
           {SEASON_NAME[dist.season]}
         </h3>
-        <span className="text-[11px] text-shade-400">{SEASON_MONTHS[dist.season]}</span>
+        <span className="text-xs text-shade-400">{SEASON_MONTHS[dist.season]}</span>
       </div>
 
-      <p className="mt-4 text-[11px] uppercase tracking-[0.2em] text-shade-400">
+      <p className="mt-4 text-xs uppercase tracking-[0.2em] text-shade-400">
         Typical start
       </p>
       <p className="font-display text-4xl text-bleach">{prettyMonthDay(medianMonthDay)}</p>
@@ -128,7 +128,7 @@ function OnsetCard({ dist }: { dist: OnsetDistribution }) {
       )}
 
       {/* The per-year list, so the spread is verifiable rather than asserted. */}
-      <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-1 border-t border-shade-700/60 pt-3 text-[11px] tabular-nums text-shade-400">
+      <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-1 border-t border-shade-700/60 pt-3 text-xs tabular-nums text-shade-400">
         {dist.years.map((y) => (
           <li key={y.year}>
             <span className="text-shade-200">{y.year}</span>{' '}
@@ -166,7 +166,7 @@ export function SeasonOnset({ mam, ond }: { mam: OnsetDistribution; ond: OnsetDi
         <OnsetCard dist={ond} />
       </div>
 
-      <p className="mt-4 max-w-2xl text-xs leading-relaxed text-shade-400">
+      <p className="mt-4 max-w-2xl text-xs leading-relaxed text-shade-200">
         A season counts as started after 20 mm of rain across three days, provided no ten-day dry
         spell follows within three weeks. The dry-spell condition is what separates the real onset
         from a single storm — planting on a false start costs the seed.

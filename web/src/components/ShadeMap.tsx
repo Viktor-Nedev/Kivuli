@@ -420,9 +420,7 @@ export function ShadeMap({
   if (!token) {
     return (
       <section className="border-t border-shade-700 py-10 sm:py-12">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          Campus shade map
-        </h2>
+        <h1 className="font-display text-3xl text-bleach sm:text-4xl">Campus shade map</h1>
         <p className="mt-3 text-sm text-shade-200">
           Set <code className="rounded bg-shade-800 px-1.5 py-0.5 text-amber-300">MAPBOX_TOKEN</code>{' '}
           in <code className="rounded bg-shade-800 px-1.5 py-0.5 text-amber-300">.env</code> to enable
@@ -456,6 +454,11 @@ export function ShadeMap({
     // `svh` rather than `vh` so iOS Safari's collapsing URL bar can't push
     // the bottom panel out of reach.
     <section className="relative w-full overflow-hidden [height:calc(100svh-var(--site-header-h,0px))]">
+      {/* Visually hidden rather than absent: the map is sized to fill the
+          viewport, so a rendered header would push it below the fold — but a
+          route with no h1 is still unnavigable by heading for a screen-reader
+          user. This is the one page where the two requirements conflict. */}
+      <h1 className="sr-only">Campus shade map</h1>
       <div ref={containerRef} className="absolute inset-0" />
 
       {/* Each panel is positioned individually. A single `inset-0` wrapper
@@ -470,7 +473,7 @@ export function ShadeMap({
             ? `Sun ${(sun.altitude * (180 / Math.PI)).toFixed(0)}° above horizon`
             : 'Sun below horizon'}
         </p>
-        <p className="mt-3 text-[11px] leading-relaxed text-shade-200">
+        <p className="mt-3 text-xs leading-relaxed text-shade-200">
           Shadows are projected from building footprints and the sun's real position — geometry,
           not an interpolation of the station reading across campus.
           {surveyed !== null && total !== null && (
@@ -507,11 +510,11 @@ export function ShadeMap({
         <div className="flex gap-5">
           <div className="flex flex-col items-center">
             <Gauge value={wbgtNow ?? 0} min={0} max={35} unit="°C" color="#b8433a" size={84} />
-            <p className="mt-2 text-[11px] text-shade-200">Ground WBGT</p>
+            <p className="mt-2 text-xs text-shade-200">Ground WBGT</p>
           </div>
           <div className="flex flex-col items-center">
             <Gauge value={routeShadeNote ?? 0} min={0} max={100} unit="%" color="#8697b8" size={84} />
-            <p className="mt-2 max-w-[7rem] text-center text-[11px] text-shade-200">
+            <p className="mt-2 max-w-[7rem] text-center text-xs text-shade-200">
               Shade along a 300 m transect
             </p>
           </div>
@@ -557,7 +560,7 @@ export function ShadeMap({
             aria-label="Time of day"
           />
         </div>
-        <div className="mt-2 flex gap-4 text-[11px] tabular-nums text-shade-200 sm:hidden">
+        <div className="mt-2 flex gap-4 text-xs tabular-nums text-shade-200 sm:hidden">
           <span>
             WBGT <span className="text-bleach">{(wbgtNow ?? 0).toFixed(1)}°C</span>
           </span>

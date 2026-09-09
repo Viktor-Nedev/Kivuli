@@ -54,20 +54,25 @@ export function SiteHeader({
       <div className="absolute inset-0 bg-shade-900/25" />
 
       <div className="relative flex flex-col items-center px-5 pb-10 text-center sm:px-8 sm:pb-14">
-        {/* Mask reveal: the outer div clips at the baseline, the inner h1
+        {/* The wordmark is branding, not this page's heading. It renders on
+            every route, so as an <h1> it gave every page two — and made the
+            document outline say "KIVULI" where it should say what the page is
+            about. A <p> with the same classes is byte-identical on screen.
+
+            Mask reveal: the outer div clips at the baseline, the inner element
             starts a full line below it and rides up. `pb-[0.12em]` gives the
-            clip enough room that the text-shadow (moved onto the h1, so it
+            clip enough room that the text-shadow (moved onto the wordmark, so it
             travels with the glyphs) isn't sliced flat along the bottom edge.
             `leading-[0.9]` matters too — Archivo Black's default leading
             leaves a gap under the caps, so with normal leading the word
             would already be partly visible before the rise begins. */}
         <div className="overflow-hidden pb-[0.12em]">
-          <h1
+          <p
             className="animate-wordmark-rise font-wordmark text-5xl leading-[0.9] tracking-tight text-bleach sm:text-7xl"
             style={{ textShadow: '0 2px 24px rgba(11,18,32,0.6)' }}
           >
             KIVULI
-          </h1>
+          </p>
         </div>
         <p
           className="animate-title-in-delayed mt-3 max-w-md text-sm text-bleach/90 sm:text-base"

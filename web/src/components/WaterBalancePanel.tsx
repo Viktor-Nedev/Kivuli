@@ -60,7 +60,7 @@ function SoilRow({
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-display text-sm text-bleach">{soil.label}</span>
-        <span className="text-[11px] tabular-nums text-shade-400">
+        <span className="text-xs tabular-nums text-shade-400">
           holds {soil.rawMm.toFixed(0)} mm before stress
         </span>
       </div>
@@ -127,7 +127,7 @@ export function WaterBalancePanel({
 
       {/* Crop selector. Changes Kc, which is a server round-trip. */}
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <label htmlFor="crop" className="text-[11px] uppercase tracking-[0.2em] text-shade-400">
+        <label htmlFor="crop" className="text-xs uppercase tracking-[0.2em] text-shade-400">
           Crop and stage
         </label>
         <select
@@ -167,7 +167,7 @@ export function WaterBalancePanel({
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-sm tabular-nums">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-shade-400">
+                <tr className="text-left text-xs uppercase tracking-[0.15em] text-shade-400">
                   <th className="py-1 pr-2 font-normal">Day</th>
                   <th className="py-1 pr-2 text-right font-normal">Crop use</th>
                   <th className="py-1 pr-2 text-right font-normal">Rain</th>
@@ -197,7 +197,7 @@ export function WaterBalancePanel({
               </tbody>
             </table>
           </div>
-          <p className="mt-2 text-xs text-shade-400">All figures in mm.</p>
+          <p className="mt-2 text-xs text-shade-200">All figures in mm.</p>
         </div>
 
         {/* The spread — the argument. */}
@@ -205,7 +205,7 @@ export function WaterBalancePanel({
           <h3 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
             When it matters, by soil
           </h3>
-          <p className="mt-1 text-xs text-shade-400">
+          <p className="mt-1 text-xs text-shade-200">
             Tap a soil to highlight it. The others stay visible on purpose.
           </p>
           <div className="mt-3 space-y-2">
@@ -223,7 +223,7 @@ export function WaterBalancePanel({
         </div>
       </div>
 
-      <p className="mt-5 max-w-3xl text-xs leading-relaxed text-shade-400">
+      <p className="mt-5 max-w-3xl text-xs leading-relaxed text-shade-200">
         Soil capacities are FAO-56 table values for a texture class, not measurements of your field
         — the same kind of published convention as the runoff coefficient above. The crop
         coefficient is a single mid-stage figure, so it ignores the partitioning between soil

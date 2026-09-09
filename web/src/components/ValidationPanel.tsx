@@ -123,7 +123,7 @@ export function VariableCard({ variable }: { variable: VariableValidation }) {
         <h3 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
           {variable.label}
         </h3>
-        <p className="mt-2 text-sm text-shade-400">
+        <p className="mt-2 text-sm text-shade-200">
           No paired hours for this variable on the sample day.
         </p>
       </div>
@@ -139,7 +139,7 @@ export function VariableCard({ variable }: { variable: VariableValidation }) {
         <h3 className="font-display text-sm uppercase tracking-[0.2em] text-bleach">
           {variable.label}
         </h3>
-        <span className="text-[11px] tabular-nums text-shade-400">
+        <span className="text-xs tabular-nums text-shade-400">
           {variable.n} paired hours
         </span>
       </div>
@@ -166,7 +166,7 @@ export function VariableCard({ variable }: { variable: VariableValidation }) {
           </dd>
         </div>
       </dl>
-      <p className="mt-1 text-center text-[10px] text-shade-400">
+      <p className="mt-1 text-center text-[10px] text-shade-200">
         all in {variable.unit}, worst at {String(worst.localHour).padStart(2, '0')}:00
       </p>
 
@@ -240,7 +240,7 @@ export function ValidationPanel({
           ))}
         </div>
 
-        <p className="mt-6 max-w-3xl text-xs leading-relaxed text-shade-400">
+        <p className="mt-6 max-w-3xl text-xs leading-relaxed text-shade-200">
           One station, one day, {temp?.n ?? 0} paired hours. That is a demonstration of method, not
           a climatology — a longer record would sharpen every figure here and might change their
           shape. The same comparison, run offline over the same day, is what produced the

@@ -77,7 +77,7 @@ export function AskBox() {
         </button>
       </form>
 
-      {state.phase === 'asking' && <p className="mt-4 text-sm text-shade-400">Looking it up…</p>}
+      {state.phase === 'asking' && <p className="mt-4 text-sm text-shade-200">Looking it up…</p>}
 
       {data && (
         // aria-live so a screen reader hears the answer arrive; the panels
@@ -92,7 +92,7 @@ export function AskBox() {
                 </p>
               )}
               {data.source && (
-                <p className="mt-3 text-[11px] text-shade-400">
+                <p className="mt-3 text-xs text-shade-200">
                   Answered from <span className="font-mono">{data.source}</span> — the same figure
                   that page shows.
                 </p>

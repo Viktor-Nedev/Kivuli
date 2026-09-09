@@ -117,7 +117,7 @@ function BalanceChart({ climatology }: { climatology: MonthClimate[] }) {
         })}
       </div>
 
-      <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-shade-200">
+      <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-shade-200">
         <li className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm bg-kenya-green-500" aria-hidden />
           Rainfall, surplus month
@@ -174,7 +174,7 @@ export function WaterHarvest({ harvest, climatology }: Pick<ClimateResponse, 'ha
         <div className="rounded-xl border border-shade-700 bg-shade-800/40 p-5">
           <label
             htmlFor="roof-area"
-            className="block text-[11px] uppercase tracking-[0.2em] text-shade-400"
+            className="block text-xs uppercase tracking-[0.2em] text-shade-400"
           >
             Roof area
           </label>
@@ -194,7 +194,7 @@ export function WaterHarvest({ harvest, climatology }: Pick<ClimateResponse, 'ha
             </span>
           </div>
 
-          <p className="mt-6 text-[11px] uppercase tracking-[0.2em] text-shade-400">
+          <p className="mt-6 text-xs uppercase tracking-[0.2em] text-shade-400">
             Could collect in a typical year
           </p>
           <p className="font-display text-5xl tabular-nums text-kenya-green-400">
@@ -204,13 +204,13 @@ export function WaterHarvest({ harvest, climatology }: Pick<ClimateResponse, 'ha
 
           <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-shade-700/60 pt-4 text-sm">
             <div>
-              <dt className="text-[11px] uppercase tracking-[0.2em] text-shade-400">
+              <dt className="text-xs uppercase tracking-[0.2em] text-shade-400">
                 Averaged per day
               </dt>
               <dd className="font-display text-2xl tabular-nums text-bleach">{perDay} L</dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-[0.2em] text-shade-400">
+              <dt className="text-xs uppercase tracking-[0.2em] text-shade-400">
                 Jerrycans (20 L)
               </dt>
               <dd className="font-display text-2xl tabular-nums text-bleach">
@@ -221,7 +221,7 @@ export function WaterHarvest({ harvest, climatology }: Pick<ClimateResponse, 'ha
 
           {/* The assumption is stated on the card, not buried in a footnote:
               the coefficient is a convention, not something measured here. */}
-          <p className="mt-4 text-xs leading-relaxed text-shade-400">
+          <p className="mt-4 text-xs leading-relaxed text-shade-200">
             {harvest.medianAnnualMm.toFixed(0)} mm × {roofM2} m² ×{' '}
             {harvest.runoffCoeff} runoff coefficient. The coefficient is the usual figure for
             corrugated iron. This is what the roof <em>catches</em> — first-flush diversion, gutter
@@ -233,7 +233,7 @@ export function WaterHarvest({ harvest, climatology }: Pick<ClimateResponse, 'ha
           <h3 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
             Water balance through the year
           </h3>
-          <p className="mt-1 mb-4 text-xs text-shade-400">
+          <p className="mt-1 mb-4 text-xs text-shade-200">
             Mean rainfall against evaporation demand, {climatology[0]?.years ?? 0} years
           </p>
           <BalanceChart climatology={climatology} />

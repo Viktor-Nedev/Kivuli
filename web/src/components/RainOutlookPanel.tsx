@@ -64,21 +64,21 @@ export function RainOutlookPanel({ outlook }: { outlook: RainOutlook }) {
       {/* The scale itself, so the headline can be checked rather than trusted. */}
       <dl className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-shade-700 bg-shade-800/40 p-4">
-          <dt className="text-[11px] uppercase tracking-[0.2em] text-shade-400">
+          <dt className="text-xs uppercase tracking-[0.2em] text-shade-400">
             Wettest day ahead
           </dt>
           <dd className="mt-1 font-display text-3xl tabular-nums text-bleach">
             {outlook.peakDayMm.toFixed(1)}
             <span className="ml-1 text-base text-shade-200">mm</span>
           </dd>
-          <p className="mt-1 text-xs text-shade-400">
+          <p className="mt-1 text-xs text-shade-200">
             {outlook.peakDate ? `on ${outlook.peakDate}` : `over ${outlook.horizonDays} days`}
           </p>
         </div>
 
         {outlook.thresholds.map((t) => (
           <div key={t.mm} className="rounded-lg border border-shade-700 bg-shade-800/40 p-4">
-            <dt className="text-[11px] uppercase tracking-[0.2em] text-shade-400">
+            <dt className="text-xs uppercase tracking-[0.2em] text-shade-400">
               {t.mm} mm in a day
             </dt>
             <dd className="mt-1 font-display text-3xl tabular-nums text-bleach">
@@ -87,7 +87,7 @@ export function RainOutlookPanel({ outlook }: { outlook: RainOutlook }) {
                 {t.exceedances === 1 ? 'day' : 'days'}
               </span>
             </dd>
-            <p className="mt-1 text-xs text-shade-400">
+            <p className="mt-1 text-xs text-shade-200">
               {t.exceedances
                 ? `about every ${
                     t.everyMonths < 1.5
@@ -100,7 +100,7 @@ export function RainOutlookPanel({ outlook }: { outlook: RainOutlook }) {
         ))}
       </dl>
 
-      <p className="mt-4 max-w-3xl text-xs leading-relaxed text-shade-400">
+      <p className="mt-4 max-w-3xl text-xs leading-relaxed text-shade-200">
         Frequencies are counted from {outlook.referenceYears} years of reanalysis at this exact
         point, so they describe this site rather than a regional average. That record is too short
         to name a genuinely rare event — the wettest day in it is the wettest day it knows — so this

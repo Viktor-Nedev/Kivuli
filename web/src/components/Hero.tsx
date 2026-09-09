@@ -159,7 +159,7 @@ export function Hero({
         <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
           {metric && (
             <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-shade-400">Reading</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-shade-400">Reading</p>
               <span className="font-display text-4xl tabular-nums text-bleach sm:text-5xl">
                 <span ref={metricRef}>0</span>
                 {metricUnit && <span className="ml-1 text-base text-shade-200">{metricUnit}</span>}
@@ -168,7 +168,7 @@ export function Hero({
           )}
           {instruction.detail && (
             <div className="max-w-sm">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-shade-400">Why</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-shade-400">Why</p>
               <p className="mt-1 text-sm leading-relaxed text-shade-200">{instruction.detail}</p>
             </div>
           )}
@@ -176,7 +176,7 @@ export function Hero({
 
         {band && (
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-shade-400">Across the day</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-shade-400">Across the day</p>
             {/* Deliberately not interactive: the full-width Timeline page
                 already offers per-segment inspection, and six focusable
                 segments per card would add a dozen tab stops here for

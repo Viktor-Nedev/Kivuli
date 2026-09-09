@@ -68,7 +68,7 @@ export function UvCard({ peak }: { peak: UvAssessment }) {
       </p>
 
       {peak.burnMinutes !== null && (
-        <p className="mt-3 text-xs leading-relaxed text-shade-400">
+        <p className="mt-3 text-xs leading-relaxed text-shade-200">
           Unprotected midday exposure reddens Fitzpatrick type III skin in roughly{' '}
           {peak.burnMinutes} minutes. Skin type, altitude, cloud and reflection all shift that —
           it is a reference figure, not a personal one, and this is not medical advice.

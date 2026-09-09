@@ -16,7 +16,7 @@ export function StationUnavailable({ error }: { error?: StationError }) {
         {error?.message ?? 'No station reading available.'}
       </h2>
       {error?.detail && <p className="mt-2 font-mono text-sm text-shade-200">{error.detail}</p>}
-      {error?.hint && <p className="mt-2 text-sm text-shade-400">{error.hint}</p>}
+      {error?.hint && <p className="mt-2 text-sm text-shade-200">{error.hint}</p>}
       <p className="mt-4 max-w-xl text-sm leading-relaxed text-shade-200">
         This page reports what the Conduit station measured, so it needs that reading. The Season
         page, the shade map and the model-validation page do not — they are still available from

@@ -82,7 +82,7 @@ function WindowCard({ stat }: { stat: WindowStat }) {
         <h3 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
           {WINDOW_LABEL[stat.days] ?? `${stat.days} days`}
         </h3>
-        <span className="text-[11px] text-shade-400">{WINDOW_MEANING[stat.days]}</span>
+        <span className="text-xs text-shade-400">{WINDOW_MEANING[stat.days]}</span>
       </div>
 
       <p className="mt-4 font-display text-4xl tabular-nums text-bleach">

@@ -234,7 +234,7 @@ export function ForwardOutlook({ outlook }: { outlook: OutlookResponse }) {
       </div>
 
       {/* Legend. Night is named, not left as an unexplained gap. */}
-      <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 border-t border-shade-700/60 pt-4 text-[11px] text-shade-200">
+      <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 border-t border-shade-700/60 pt-4 text-xs text-shade-200">
         <li className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-[2px] bg-kenya-green-500" aria-hidden /> Suitable
         </li>
@@ -251,7 +251,7 @@ export function ForwardOutlook({ outlook }: { outlook: OutlookResponse }) {
       </ul>
 
       {outlook.nightHoursExcluded > 0 && (
-        <p className="mt-3 max-w-3xl text-xs leading-relaxed text-shade-400">
+        <p className="mt-3 max-w-3xl text-xs leading-relaxed text-shade-200">
           {outlook.nightHoursExcluded} night{' '}
           {outlook.nightHoursExcluded === 1 ? 'hour' : 'hours'} in this window would have passed the
           spray gates on the numbers alone. Night air is cool and humid, so it satisfies limits
@@ -259,7 +259,7 @@ export function ForwardOutlook({ outlook }: { outlook: OutlookResponse }) {
         </p>
       )}
 
-      <p className="mt-3 max-w-3xl text-xs leading-relaxed text-shade-400">
+      <p className="mt-3 max-w-3xl text-xs leading-relaxed text-shade-200">
         Peak projected heat over the window is {outlook.heat.peakWbgtC.toFixed(1)} °C WBGT against a{' '}
         {outlook.heat.thresholdC} °C first-action threshold, so{' '}
         {outlook.heat.anyRestriction

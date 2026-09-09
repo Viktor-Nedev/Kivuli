@@ -143,7 +143,7 @@ export function ClimatePage() {
           rest of the site is unaffected — today&apos;s decisions come from the station and do not
           depend on this.
         </p>
-        <p className="mt-2 font-mono text-xs text-shade-400">{state.message}</p>
+        <p className="mt-2 font-mono text-xs text-shade-200">{state.message}</p>
       </section>
       </>
     );
@@ -165,7 +165,7 @@ export function ClimatePage() {
           Rather than show an empty comparison, this page waits — today&apos;s station decisions
           are unaffected.
         </p>
-        {data.detail && <p className="mt-2 font-mono text-xs text-shade-400">{data.detail}</p>}
+        {data.detail && <p className="mt-2 font-mono text-xs text-shade-200">{data.detail}</p>}
       </section>
       </>
     );
@@ -216,7 +216,7 @@ export function ClimatePage() {
 
       <Reveal>
         <section className="border-t border-shade-700 py-8">
-          <p className="max-w-3xl text-xs leading-relaxed text-shade-400">
+          <p className="max-w-3xl text-xs leading-relaxed text-shade-200">
             Eleven years is not a climate normal — the WMO standard is thirty — so the extreme
             percentiles here are coarse, and the smallest event this record can honestly name is
             roughly a one-in-eleven year. ERA5 is a model reconstruction on a ~9 km grid, not a rain

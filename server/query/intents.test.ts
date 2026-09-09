@@ -76,7 +76,58 @@ test('the strongest match wins when several fire', () => {
 
 test('every intent names an endpoint that answers it', () => {
   for (const i of INTENTS) {
-    assert.match(i.source, /^\/api\/(outlook|water|climate|today)$/);
+    assert.match(i.source, /^\/api\/(outlook|water|climate|today|validation)$/);
     assert.ok(i.keywords.length >= 3, `${i.id} needs enough phrasings`);
   }
+});
+
+test('the Ask box can reach the station, not only the models', () => {
+  // Every intent used to route to /api/outlook, /api/water or /api/climate, so
+  // the one feature a visitor is most likely to try never touched the Conduit
+  // instrument at all.
+  const stationBacked = INTENTS.filter(
+    (i) => i.source === '/api/today' || i.source === '/api/validation',
+  );
+  assert.ok(stationBacked.length >= 2, 'at least two intents read the station');
+});
+
+test('the accuracy question beats the reading question when both could match', () => {
+  // "How accurate is the station?" names the station but asks about accuracy.
+  // Both intents fire on one keyword each, and a tie goes to the earlier entry
+  // — so `sensors` has to be listed first or the demo question answers the
+  // wrong thing.
+  assert.equal(matchIntent('how accurate is the station')?.intent.id, 'sensors');
+  assert.equal(matchIntent('do the thermometers agree')?.intent.id, 'sensors');
+  assert.equal(matchIntent('can I trust this')?.intent.id, 'sensors');
+});
+
+test('a plain reading question still resolves to the station', () => {
+  assert.equal(matchIntent('what is the station reading now')?.intent.id, 'station');
+  assert.equal(matchIntent('show me the instrument')?.intent.id, 'station');
+  // Swahili: "kituo" (station) agglutinates like the other stems.
+  assert.equal(matchIntent('kituo kinasoma nini')?.intent.id, 'station');
+});
+
+test('the original seven intents still resolve where they always did', () => {
+  // The regression that matters: two new intents with general keywords must
+  // not steal matches from the agronomic questions the app was built for.
+  const table: [string, string][] = [
+    ['can I spray tomorrow', 'spray'],
+    ['when can I dry grain', 'drying'],
+    ['do I need to irrigate', 'irrigate'],
+    ['is there a drought', 'drought'],
+    ['will it rain this week', 'rain'],
+    ['is it too hot to work', 'heat'],
+    ['how strong is the sun', 'uv'],
+  ];
+  for (const [question, expected] of table) {
+    assert.equal(matchIntent(question)?.intent.id, expected, question);
+  }
+});
+
+test('the capability list grows with the new intents', () => {
+  const caps = capabilities();
+  assert.equal(caps.length, INTENTS.length);
+  assert.ok(caps.some((c) => c.id === 'sensors'));
+  assert.ok(caps.some((c) => c.id === 'station'));
 });

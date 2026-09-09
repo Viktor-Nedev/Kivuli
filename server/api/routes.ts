@@ -51,6 +51,15 @@ function timeline(readings: Reading[], rainAt: (ts: string) => boolean) {
  * 21:00Z of the previous date. Measuring elapsed minutes keeps the day
  * monotonic across the midnight wrap.
  */
+/** An ISO instant as HH:MM in Kenya. Uses the IANA zone, not hand arithmetic. */
+function hhmmLocal(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-GB', {
+    timeZone: 'Africa/Nairobi',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function elapsedMinutesFrom(firstIso: string): (iso: string) => number {
   const localDate = new Date(firstIso).toLocaleDateString('en-CA', {
     timeZone: 'Africa/Nairobi',
@@ -469,6 +478,65 @@ export function createRouter(root: string): Router {
    * answer here and the answer on the page can never disagree.
    */
   async function answerIntent(id: string): Promise<{ answer: string; answerSw: string }> {
+    // The two station branches come first because they are the only ones that
+    // quote an instrument rather than a model. Both reuse the same functions
+    // the pages use, so the Ask box and the page cannot drift apart.
+    if (id === 'station') {
+      const latest = await source.getLatest();
+      if (!latest) {
+        return {
+          answer: 'The station is not reporting, so there is no reading to give.',
+          answerSw: 'Kituo hakitumi taarifa, hakuna kipimo cha kutoa.',
+        };
+      }
+      const dt = (latest.tempC - latest.wetBulbC).toFixed(1);
+      const clock = hhmmLocal(latest.ts);
+      return {
+        answer:
+          `At ${clock} the station measured ${latest.tempC.toFixed(1)} °C, ` +
+          `${latest.humidityPct.toFixed(0)}% humidity and ${latest.windSpeedMs.toFixed(1)} m/s ` +
+          `wind, giving a Delta-T of ${dt} °C. Measured, not forecast.`,
+        answerSw:
+          `Saa ${clock} kituo kilipima ${latest.tempC.toFixed(1)} °C, ` +
+          `unyevu ${latest.humidityPct.toFixed(0)}% na upepo ${latest.windSpeedMs.toFixed(1)} m/s.`,
+      };
+    }
+
+    if (id === 'sensors') {
+      const latest = await source.getLatest();
+      if (!latest) {
+        return {
+          answer: 'The station is not reporting, so its accuracy cannot be checked right now.',
+          answerSw: 'Kituo hakitumi taarifa, hatuwezi kupima usahihi sasa.',
+        };
+      }
+      const day = latest.ts.slice(0, 10);
+      const readings = await source.getHistory(
+        new Date(`${day}T00:00:00Z`),
+        new Date(`${day}T23:59:59Z`),
+      );
+      const { set: rainSet } = await rainLookahead();
+      const a = buildAgreement(readings, (ts) => rainSet.has(ts.slice(0, 13)));
+      if (!a) {
+        return {
+          answer: 'This station is not reporting all three thermometers, so there is nothing to compare.',
+          answerSw: 'Kituo hakitumi vipimo vitatu vya joto, hakuna cha kulinganisha.',
+        };
+      }
+      const rb = a.robustness;
+      return {
+        answer:
+          `The station carries three thermometers and they disagree by ` +
+          `${a.meanSpreadC.toFixed(3)} °C on average across ${a.n} readings — that is the ` +
+          `station measuring its own uncertainty. It changes the spray verdict on ` +
+          `${rb.verdictFlips} of ${rb.evaluated} readings, though on ${rb.deltaTFlips} the ` +
+          `temperature gate alone disagrees.`,
+        answerSw:
+          `Kituo kina vipimo vitatu vya joto vinavyotofautiana kwa ` +
+          `${a.meanSpreadC.toFixed(3)} °C kwa wastani. Huu ndio usahihi wa kituo chenyewe.`,
+      };
+    }
+
     if (id === 'irrigate') {
       const daily = await meteo.dailyForecast(7);
       const balance = buildWaterBalance(

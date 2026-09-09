@@ -18,7 +18,16 @@
  * "naweza kunyunyiza?" should not have to ask it in English.
  */
 
-export type IntentId = 'spray' | 'drying' | 'irrigate' | 'drought' | 'rain' | 'heat' | 'uv';
+export type IntentId =
+  | 'spray'
+  | 'drying'
+  | 'irrigate'
+  | 'drought'
+  | 'rain'
+  | 'heat'
+  | 'uv'
+  | 'station'
+  | 'sensors';
 
 export interface Intent {
   id: IntentId;
@@ -73,6 +82,44 @@ export const INTENTS: Intent[] = [
     keywords: ['uv', 'sun', 'sunburn', 'burn', 'ultraviolet', 'jua', 'ngozi'],
     example: 'How strong is the sun?',
   },
+  // The two below read the Conduit station itself rather than a model. They
+  // are last on purpose: matchIntent breaks ties by list position, and their
+  // keywords ("reading", "accurate") are general enough to steal a match from
+  // the more specific agronomic questions above.
+  // "How accurate is the station?" names the station but asks about accuracy,
+  // so `sensors` is listed first: a tie on keyword count goes to the earlier
+  // entry, and the accuracy question is the more specific reading of it.
+  {
+    id: 'sensors',
+    source: '/api/validation',
+    keywords: [
+      'accurate',
+      'accuracy',
+      'agree',
+      'disagree',
+      'uncertainty',
+      'thermometer',
+      'thermometers',
+      'trust',
+      'reliable',
+      'wrong',
+    ],
+    example: 'How accurate is the station?',
+  },
+  {
+    id: 'station',
+    source: '/api/today',
+    keywords: [
+      'station',
+      'instrument',
+      'reading',
+      'measuring',
+      'measured',
+      'kituo',
+      'kipimo',
+    ],
+    example: 'What is the station reading now?',
+  },
 ];
 
 export interface IntentMatch {
@@ -113,6 +160,8 @@ const SWAHILI_STEMS = new Set([
   'jua',
   'ngozi',
   'dawa',
+  'kituo',
+  'kipimo',
 ]);
 
 function hits(text: string, keyword: string): boolean {

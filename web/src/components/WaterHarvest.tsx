@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ClimateResponse, MonthClimate } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { useChartReveal, useCountUp } from '../lib/useChartReveal';
+import { DataTip, alignFor } from './DataTip';
 
 /**
  * What a roof could collect here, and why storage is the point.
@@ -66,20 +67,46 @@ function BalanceChart({ climatology }: { climatology: MonthClimate[] }) {
           const grow = reveal.transition(i, 'height', count);
           return (
             <div key={m.month} className="flex flex-1 flex-col justify-end gap-0.5">
-              <div className="relative flex items-end gap-0.5" style={{ height: 116 }}>
-                {/* Rain */}
-                <div
-                  className={`w-1/2 rounded-t-sm ${surplus ? 'bg-kenya-green-500' : 'bg-shade-600'}`}
-                  style={{ height: `${(m.rainMm / max) * 100 * reveal.progress}%`, transition: grow }}
-                  title={`${MONTH_FULL[m.month - 1]}: ${m.rainMm.toFixed(0)} mm rain`}
-                />
-                {/* Evapotranspiration */}
-                <div
-                  className="w-1/2 rounded-t-sm bg-amber-500/50"
-                  style={{ height: `${(m.et0Mm / max) * 100 * reveal.progress}%`, transition: grow }}
-                  title={`${MONTH_FULL[m.month - 1]}: ${m.et0Mm.toFixed(0)} mm evaporation demand`}
-                />
-              </div>
+              {/* One tip per month covering both bars: the surplus or deficit
+                  is the difference between them, so splitting it across two
+                  tooltips would hide the only number that matters here. */}
+              <DataTip
+                className="block"
+                triggerClassName="block"
+                align={alignFor(i, count)}
+                label={MONTH_FULL[m.month - 1]}
+                detailText={
+                  `${m.rainMm.toFixed(0)} mm rain against ${m.et0Mm.toFixed(0)} mm ` +
+                  `evaporation demand — a ${Math.abs(m.balanceMm).toFixed(0)} mm ` +
+                  `${surplus ? 'surplus' : 'deficit'}.`
+                }
+                detail={
+                  <>
+                    <span className="tabular-nums text-kenya-green-300">
+                      {m.rainMm.toFixed(0)} mm
+                    </span>{' '}
+                    rain against{' '}
+                    <span className="tabular-nums text-amber-300">{m.et0Mm.toFixed(0)} mm</span>{' '}
+                    evaporation demand.
+                    <span className="mt-1 block text-bleach">
+                      A {Math.abs(m.balanceMm).toFixed(0)} mm {surplus ? 'surplus' : 'deficit'}.
+                    </span>
+                  </>
+                }
+              >
+                <span className="relative flex items-end gap-0.5" style={{ height: 116 }}>
+                  {/* Rain */}
+                  <span
+                    className={`w-1/2 rounded-t-sm ${surplus ? 'bg-kenya-green-500' : 'bg-shade-600'}`}
+                    style={{ height: `${(m.rainMm / max) * 100 * reveal.progress}%`, transition: grow }}
+                  />
+                  {/* Evapotranspiration */}
+                  <span
+                    className="w-1/2 rounded-t-sm bg-amber-500/50"
+                    style={{ height: `${(m.et0Mm / max) * 100 * reveal.progress}%`, transition: grow }}
+                  />
+                </span>
+              </DataTip>
               <span
                 className={`text-center text-[10px] ${surplus ? 'text-kenya-green-300' : 'text-shade-400'}`}
               >

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { VariableValidation } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { Glossary } from './Term';
@@ -24,6 +25,13 @@ function ErrorBars({ variable }: { variable: VariableValidation }) {
   // arriving fully formed.
   const reveal = useChartReveal({ duration: 650 });
   const count = variable.diurnal.length;
+  // A read-out line rather than a popover. These bars are a few pixels wide
+  // and sit in a clipped flex row: a tooltip over them would occlude the
+  // neighbours it is being compared against, and would be cut off by the
+  // wrapper. The line below the axis never covers the data and is the only
+  // form of this that works on a phone, where the old `title` showed nothing
+  // at all.
+  const [reading, setReading] = useState<(typeof variable.diurnal)[number] | null>(null);
 
   return (
     <div ref={reveal.ref}>
@@ -37,10 +45,19 @@ function ErrorBars({ variable }: { variable: VariableValidation }) {
           return (
             <div
               key={d.localHour}
-              className="flex h-full flex-1 flex-col justify-center"
-              title={`${String(d.localHour).padStart(2, '0')}:00 — model ${
+              className="flex h-full flex-1 cursor-pointer flex-col justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-kenya-green-400"
+              tabIndex={0}
+              role="button"
+              aria-label={`${String(d.localHour).padStart(2, '0')}:00 — model ${
                 negative ? 'below' : 'above'
               } station by ${Math.abs(d.meanError).toFixed(2)} ${variable.unit}`}
+              onMouseEnter={() => setReading(d)}
+              onMouseLeave={() => setReading(null)}
+              onFocus={() => setReading(d)}
+              onBlur={() => setReading(null)}
+              // Touch: a tap sets the read-out without needing a hover that
+              // the device cannot produce.
+              onTouchStart={() => setReading(d)}
             >
               <div className="flex h-1/2 flex-col justify-end">
                 {!negative && (
@@ -71,8 +88,29 @@ function ErrorBars({ variable }: { variable: VariableValidation }) {
         <span>18:00</span>
         <span>23:00</span>
       </div>
-      <p className="mt-2 text-[11px] text-shade-400">
-        Local hour. Bars below the line mean the model read lower than the station.
+      <p className="mt-2 min-h-[2.5rem] text-xs leading-relaxed text-shade-200">
+        {reading ? (
+          <>
+            <span className="font-medium tabular-nums text-bleach">
+              {String(reading.localHour).padStart(2, '0')}:00
+            </span>{' '}
+            — model read{' '}
+            <span
+              className={
+                reading.meanError < 0 ? 'text-kenya-red-400' : 'text-amber-300'
+              }
+            >
+              {Math.abs(reading.meanError).toFixed(2)} {variable.unit}{' '}
+              {reading.meanError < 0 ? 'below' : 'above'}
+            </span>{' '}
+            the station, averaged over {reading.n} {reading.n === 1 ? 'reading' : 'readings'}.
+          </>
+        ) : (
+          <span className="text-shade-400">
+            Local hour. Bars below the line mean the model read lower than the station — hover,
+            tap or tab through an hour for its figure.
+          </span>
+        )}
       </p>
     </div>
   );

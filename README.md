@@ -338,6 +338,12 @@ Known limits, stated rather than hidden:
   UV figures on the Working day page come from the forecast and are tagged `raw forecast`. The
   sensor is dead; the hazard is not, and reporting a modelled 9 is more useful than reporting a
   broken 0. The two are never mixed.
+- **Tooltips used to be unreachable on a phone.** Chart values and the explanation behind every
+  provenance tag lived in the native `title` attribute, which needs a hover a touch device cannot
+  produce. On the project's stated primary device that content did not exist at all. It now uses a
+  CSS-only popover that opens on tap, hover and keyboard focus; the dense charts use a read-out
+  line under the axis instead, which never covers the bars being compared. This was an
+  accessibility defect, not a missing flourish, and it is recorded here as one.
 - No rain fell during the sample day, so the rain gate is exercised from forecast data only.
 - The bundled sample is ~24 usable hours. The calibration is a validated constant offset, not a
   regression — a longer record via the live API would support a richer model, and the code

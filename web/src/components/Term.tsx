@@ -114,7 +114,7 @@ export function Term({ term, children }: { term: TermKey; children?: ReactNode }
       {/* CSS-only popover. `title` above is the no-JS and no-hover fallback. */}
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-0 z-20 mb-2 hidden w-64 rounded-lg border border-shade-700 bg-shade-900 p-3 text-left text-xs font-normal leading-relaxed text-shade-200 shadow-lg group-hover:block group-focus-within:block"
+        className="pointer-events-none absolute bottom-full left-0 z-20 mb-2 hidden w-64 rounded-lg border border-shade-700 bg-shade-900 p-3 text-left text-xs font-normal leading-relaxed text-shade-200 shadow-lg group-hover:block group-focus-within:block group-active:block"
       >
         <span className="block font-display text-sm text-bleach">{def.short}</span>
         <span className="mt-1 block normal-case tracking-normal">{def.full}</span>

@@ -1,6 +1,7 @@
 import type { RiverOutlook } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { useChartReveal } from '../lib/useChartReveal';
+import { DataTip, alignFor } from './DataTip';
 
 /**
  * River discharge, where a river exists.
@@ -50,17 +51,30 @@ export function RiverPanel({ river }: { river: RiverOutlook }) {
       {/* No reach means no data, so there is deliberately nothing to chart. */}
       {river.hasReach && (
         <div className="mt-6">
-          <div ref={reveal.ref} className="flex h-24 items-end gap-1">
+          <div ref={reveal.ref} className="flex h-24 items-stretch gap-1">
             {river.days.map((d, i) => (
-              <div
+              <DataTip
                 key={d.date}
-                className="flex-1 rounded-t-sm bg-shade-400"
-                style={{
-                  height: `${Math.max((d.cumecs / peak) * 100, 2) * reveal.progress}%`,
-                  transition: reveal.transition(i, 'height', river.days.length),
-                }}
-                title={`${d.date}: ${d.cumecs} m³/s`}
-              />
+                className="flex flex-1 flex-col justify-end"
+                triggerClassName="flex h-full flex-col justify-end"
+                align={alignFor(i, river.days.length)}
+                label={d.date}
+                detailText={`${d.cumecs} m³/s daily mean discharge.`}
+                detail={
+                  <>
+                    <span className="tabular-nums text-bleach">{d.cumecs} m³/s</span> daily mean
+                    discharge.
+                  </>
+                }
+              >
+                <span
+                  className="block w-full rounded-t-sm bg-shade-400"
+                  style={{
+                    height: `${Math.max((d.cumecs / peak) * 100, 2) * reveal.progress}%`,
+                    transition: reveal.transition(i, 'height', river.days.length),
+                  }}
+                />
+              </DataTip>
             ))}
           </div>
           <div className="mt-1 flex justify-between text-[10px] tabular-nums text-shade-400">

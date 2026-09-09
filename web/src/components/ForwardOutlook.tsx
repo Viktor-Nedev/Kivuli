@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { OutlookHour, OutlookResponse } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { useChartReveal } from '../lib/useChartReveal';
@@ -57,10 +58,13 @@ function HourCell({
   hour,
   band,
   style,
+  onRead,
 }: {
   hour: OutlookHour;
   band: 'spray' | 'drying';
   style?: React.CSSProperties;
+  /** Reports this cell to the read-out line below the grid. */
+  onRead?: (text: string | null) => void;
 }) {
   const verdict = band === 'spray' ? hour.spray : hour.drying;
   const clock = hour.time.slice(11, 16);
@@ -80,14 +84,104 @@ function HourCell({
       ? `${clock}: suitable`
       : `${clock}: ${verdict.reason}`;
 
+  // These cells are ~8px wide. A popover over one would cover the hours on
+  // either side, which are exactly what it is being compared against — so the
+  // detail goes to a read-out line under the grid instead. `title` is gone
+  // rather than kept: it did nothing on touch, which is where this is read.
   return (
     <span
-      className={`h-6 flex-1 origin-bottom rounded-[2px] ${fill}`}
+      className={`h-6 flex-1 origin-bottom cursor-pointer rounded-[2px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-kenya-green-400 ${fill}`}
       role="img"
       aria-label={label}
-      title={label}
+      tabIndex={onRead ? 0 : undefined}
+      onMouseEnter={() => onRead?.(label)}
+      onMouseLeave={() => onRead?.(null)}
+      onFocus={() => onRead?.(label)}
+      onBlur={() => onRead?.(null)}
+      onTouchStart={() => onRead?.(label)}
       style={style}
     />
+  );
+}
+
+/**
+ * One band's grid, plus its own read-out line.
+ *
+ * The read-out state lives here rather than in the parent because the two
+ * bands render the same clock times: a single shared value meant pointing at
+ * an hour in the spray grid also rewrote the drying grid's line underneath it.
+ */
+function BandGrid({
+  band,
+  days,
+  windows,
+  reveal,
+}: {
+  band: (typeof BANDS)[number];
+  days: { date: string; hours: OutlookHour[] }[];
+  windows: OutlookResponse['windows'];
+  reveal: ReturnType<typeof useChartReveal>;
+}) {
+  // Six rows share the same clock times, so the read-out carries the day too
+  // or "09:00: suitable" is ambiguous across the grid.
+  const [reading, setReading] = useState<string | null>(null);
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="font-display text-sm uppercase tracking-[0.2em] text-bleach">
+          {band.label}
+        </h3>
+        <span className="text-xs text-shade-400">{band.hint}</span>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {days.map((d) => (
+          <div key={d.date} className="flex items-center gap-3">
+            <span className="w-24 shrink-0 text-xs tabular-nums text-shade-400">
+              {dayLabel(d.date)}
+            </span>
+            <div className="flex flex-1 gap-[2px]">
+              {d.hours.map((h, i) => (
+                <HourCell
+                  key={h.time}
+                  hour={h}
+                  band={band.key}
+                  onRead={(text) => setReading(text ? `${dayLabel(d.date)} ${text}` : null)}
+                  style={{
+                    opacity: reveal.progress,
+                    transform: `scaleY(${reveal.progress || 0.25})`,
+                    transition: `${reveal.transition(i, 'opacity', 24)}, ${reveal.transition(i, 'transform', 24)}`,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Read-out for the grid above. Held at a fixed height so pointing at an
+          hour never shifts the layout under the cursor. */}
+      <p className="mt-2 min-h-[1.5rem] text-xs text-shade-200">
+        {reading ?? (
+          <span className="text-shade-400">
+            Hover, tap or tab through an hour for its verdict.
+          </span>
+        )}
+      </p>
+
+      <p className="mt-1 text-sm text-shade-200">
+        {windows.length
+          ? `${windows.length} window${windows.length > 1 ? 's' : ''}: ` +
+            windows
+              .map(
+                (w) =>
+                  `${w.start.slice(11, 16)}–${w.end.slice(11, 16)} ${dayLabel(w.start.slice(0, 10))}`,
+              )
+              .join(', ')
+          : `No ${band.label.toLowerCase()} window in the next three days.`}
+      </p>
+    </div>
   );
 }
 
@@ -128,47 +222,13 @@ export function ForwardOutlook({ outlook }: { outlook: OutlookResponse }) {
         {BANDS.map((band) => {
           const windows = band.key === 'spray' ? sprayWindows : dryingWindows;
           return (
-            <div key={band.key}>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="font-display text-sm uppercase tracking-[0.2em] text-bleach">
-                  {band.label}
-                </h3>
-                <span className="text-xs text-shade-400">{band.hint}</span>
-              </div>
-
-              <div className="mt-3 space-y-2">
-                {days.map((d) => (
-                  <div key={d.date} className="flex items-center gap-3">
-                    <span className="w-24 shrink-0 text-xs tabular-nums text-shade-400">
-                      {dayLabel(d.date)}
-                    </span>
-                    <div className="flex flex-1 gap-[2px]">
-                      {d.hours.map((h, i) => (
-                        <HourCell
-                          key={h.time}
-                          hour={h}
-                          band={band.key}
-                          style={{
-                            opacity: reveal.progress,
-                            transform: `scaleY(${reveal.progress || 0.25})`,
-                            transition: `${reveal.transition(i, 'opacity', 24)}, ${reveal.transition(i, 'transform', 24)}`,
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <p className="mt-2 text-sm text-shade-200">
-                {windows.length
-                  ? `${windows.length} window${windows.length > 1 ? 's' : ''}: ` +
-                    windows
-                      .map((w) => `${w.start.slice(11, 16)}–${w.end.slice(11, 16)} ${dayLabel(w.start.slice(0, 10))}`)
-                      .join(', ')
-                  : `No ${band.label.toLowerCase()} window in the next three days.`}
-              </p>
-            </div>
+            <BandGrid
+              key={band.key}
+              band={band}
+              days={days}
+              windows={windows}
+              reveal={reveal}
+            />
           );
         })}
       </div>

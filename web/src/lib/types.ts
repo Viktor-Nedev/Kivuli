@@ -325,12 +325,83 @@ export interface VariableValidation {
   n: number;
 }
 
+/* ---------------------------------------------------------------------------
+ * Instrument agreement: the station judged against itself.
+ *
+ * Three dry-bulb thermometers on one mast, measuring the same air. Their
+ * disagreement is the station own measurement uncertainty, and it bounds how
+ * far correcting a forecast against this station is worth pushing.
+ * ------------------------------------------------------------------------- */
+
+export type ChannelId = 'bmxC' | 'mcpC' | 'shtC';
+
+export interface ChannelSummary {
+  id: ChannelId;
+  /** Part number, so a reader can see these are three real instruments. */
+  sensor: string;
+  meanC: number;
+  minC: number;
+  maxC: number;
+  /** Mean signed offset from the median of the three. Negative reads cool. */
+  meanOffsetFromMedianC: number;
+  /** The channel the rest of the app treats as the station reading. */
+  isReference: boolean;
+  n: number;
+}
+
+export interface AgreementPoint {
+  ts: string;
+  bmxC: number;
+  mcpC: number;
+  shtC: number;
+  medianC: number;
+  /** max minus min across the three. */
+  spreadC: number;
+}
+
+export interface PairOffset {
+  a: ChannelId;
+  b: ChannelId;
+  meanOffsetC: number;
+  maeC: number;
+}
+
+/**
+ * Two counts, deliberately. The full verdict is the flattering one; the
+ * Delta-T gate alone is the honest measure of how much the disagreement
+ * touches the temperature half of the decision.
+ */
+export interface DecisionRobustness {
+  evaluated: number;
+  verdictFlips: number;
+  deltaTFlips: number;
+  verdictFlippedAt: string[];
+  withinSpreadOfThreshold: number;
+}
+
+export interface Agreement {
+  channels: ChannelSummary[];
+  points: AgreementPoint[];
+  pairs: PairOffset[];
+  meanSpreadC: number;
+  medianSpreadC: number;
+  minSpreadC: number;
+  maxSpread: { ts: string; spreadC: number } | null;
+  /** Reported without a causal claim: the obvious mechanism was tested and failed. */
+  daylightMeanSpreadC: number;
+  nightMeanSpreadC: number;
+  robustness: DecisionRobustness;
+  n: number;
+}
+
 export interface ValidationResponse {
   station: { name: string; day: string; hours: number };
   degraded: boolean;
   detail?: string;
   generatedAt: string;
   variables: VariableValidation[];
+  /** Null when no reading carried all three thermometers. */
+  agreement?: Agreement | null;
 }
 
 /* ---------------------------------------------------------------------------

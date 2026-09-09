@@ -66,7 +66,11 @@ export function ValidationPage() {
 
   return (
     <Reveal>
-      <ValidationPanel variables={state.data.variables} station={state.data.station} />
+      <ValidationPanel
+        variables={state.data.variables}
+        station={state.data.station}
+        agreement={state.data.agreement}
+      />
     </Reveal>
   );
 }

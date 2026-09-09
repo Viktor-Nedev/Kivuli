@@ -28,6 +28,7 @@ export type TermKey =
   | 'thi'
   | 'era5'
   | 'mae'
+  | 'instrumentSpread'
   | 'bias'
   | 'uvIndex';
 
@@ -88,6 +89,11 @@ export const TERMS: Record<TermKey, TermDefinition> = {
   mae: {
     short: 'Mean absolute error',
     full: 'The average size of a miss, ignoring whether it was high or low. Smaller is better.',
+  },
+  instrumentSpread: {
+    short: 'Instrument spread',
+    full: "The gap between the highest and lowest of the station's three thermometers at the same moment. It is the station measuring its own uncertainty — and the floor below which correcting a forecast stops meaning anything.",
+    sw: 'Tofauti kati ya vipimo vitatu vya joto vya kituo kimoja',
   },
   bias: {
     short: 'Bias',

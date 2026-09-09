@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import type { VariableValidation } from '../lib/types';
+import type { Agreement, VariableValidation } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { Glossary } from './Term';
 import { useChartReveal } from '../lib/useChartReveal';
 import { Section } from './Section';
+import { AgreementSection } from './Agreement';
 
 /**
  * The station scoring the model.
@@ -187,9 +188,12 @@ export function VariableCard({ variable }: { variable: VariableValidation }) {
 export function ValidationPanel({
   variables,
   station,
+  agreement,
 }: {
   variables: VariableValidation[];
   station: { name: string; day: string; hours: number };
+  /** Absent when no reading carried all three thermometers. */
+  agreement?: Agreement | null;
 }) {
   const temp = variables.find((v) => v.variable === 'tempC');
 
@@ -246,6 +250,13 @@ export function ValidationPanel({
           routes.
         </p>
       </Section>
+
+      {/* The station judged against itself. It sits after the model-vs-station
+          comparison because it only makes sense once the reader has accepted
+          the station as the reference — this is the question that follows. */}
+      {agreement && (
+        <AgreementSection agreement={agreement} modelMaeC={temp?.mae ?? null} />
+      )}
 
       {/* The page is already about what the numbers mean, so the definitions
           belong here rather than in a seventh nav item. */}

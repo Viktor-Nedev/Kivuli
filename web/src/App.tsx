@@ -21,6 +21,7 @@ const ShadeMapPage = lazy(() =>
 import { ClimatePage } from './pages/ClimatePage';
 import { ValidationPage } from './pages/ValidationPage';
 import { SiteHeader } from './components/SiteHeader';
+import { Skeleton, SkeletonCard, SkeletonBlock } from './components/Skeleton';
 import { SiteFooter } from './components/SiteFooter';
 
 type State =
@@ -107,8 +108,16 @@ function AppLayout() {
   return (
     <Shell subtitle={subtitle}>
       {state.phase === 'loading' && (
-        <div key="loading" className="py-16">
-          <p className="text-shade-200">Reading the station…</p>
+        // The first frame a new reader ever sees. It used to be one grey line
+        // on an otherwise blank page, which is indistinguishable from a broken
+        // deployment.
+        <div key="loading" className="py-12">
+          <SkeletonBlock caption="Reading the station…">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+          </SkeletonBlock>
         </div>
       )}
 
@@ -185,7 +194,15 @@ function PageTransition({ children }: { children: React.ReactNode }) {
     // transform must land on, and be cleared from, the same element.
     <div key={pathname} ref={ref}>
       <Suspense
-        fallback={<p className="py-16 text-sm text-shade-200">Loading the shade map…</p>}
+        fallback={
+          // Mapbox is a several-hundred-kB chunk; on a slow connection this
+          // fallback is on screen for a while.
+          <div className="py-12">
+            <SkeletonBlock caption="Loading the shade map…">
+              <Skeleton className="h-[60vh] w-full rounded-xl" />
+            </SkeletonBlock>
+          </div>
+        }
       >
         {children}
       </Suspense>

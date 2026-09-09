@@ -6,6 +6,7 @@ import { SeasonOnset } from '../components/SeasonOnset';
 import { WaterHarvest } from '../components/WaterHarvest';
 import { ShareAdvisory } from '../components/ShareAdvisory';
 import { SitePicker, SiteSplitNote } from '../components/SitePicker';
+import { SkeletonCard, SkeletonChart, SkeletonBlock } from '../components/Skeleton';
 import { WaterBalancePanel } from '../components/WaterBalancePanel';
 import { RiverPanel } from '../components/RiverPanel';
 import { DEFAULT_SITE_ID, SITE_OPTIONS, type SiteOption } from '../lib/site';
@@ -121,10 +122,17 @@ export function ClimatePage() {
     return (
       <>
         {header}
-        <section className="py-16">
-          <p className="text-sm text-shade-200">
-            Reading eleven years of rainfall records for {site.label}…
-          </p>
+        {/* Every SitePicker switch used to blank the whole page. The shapes
+            match the cards and chart that follow, so nothing jumps on swap. */}
+        <section className="py-10">
+          <SkeletonBlock caption={`Reading eleven years of rainfall records for ${site.label}…`}>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+            <SkeletonChart className="mt-8" />
+          </SkeletonBlock>
         </section>
       </>
     );

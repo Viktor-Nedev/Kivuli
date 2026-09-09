@@ -3,6 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- The fonts are pulled by an @import at the top of index.css, which the
+         browser cannot discover until the stylesheet has downloaded and
+         parsed. These two hints start the TLS handshakes in parallel with
+         that, which is most of what self-hosting would buy and none of the
+         build-config risk the week of a demo. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <title>KIVULI — field decisions from the JKUAT Conduit station</title>
 
     <!-- The project is meant to be forwarded, so a pasted link should explain

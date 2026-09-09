@@ -23,15 +23,6 @@
   }
 }
 
-@keyframes ken-burns {
-  from {
-    transform: scale(1.08) translateY(0);
-  }
-  to {
-    transform: scale(1.16) translateY(-1.5%);
-  }
-}
-
 @keyframes float-slow {
   0%,
   100% {
@@ -51,8 +42,25 @@
   }
 }
 
-.animate-ken-burns {
-  animation: ken-burns 20s ease-out both alternate infinite;
+/*
+ * The shimmer keyframe animates `background-position`, which does nothing
+ * unless something defines a background with room to move. Nothing did, which
+ * is the actual reason the keyframe sat unused since it was written. This is
+ * that missing half.
+ *
+ * Under the global prefers-reduced-motion rule below the animation is zeroed
+ * and this leaves a flat gradient block. That is the correct reduced-motion
+ * skeleton, not a broken one.
+ */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    theme(colors.shade.800) 25%,
+    theme(colors.shade.700) 50%,
+    theme(colors.shade.800) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
 }
 
 .animate-float-slow {
@@ -122,5 +130,10 @@
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+    /* Duration alone is not enough for a looping animation: a 0.01ms
+       iteration repeated infinitely is a flicker, not a stop. The skeleton
+       shimmer is the only infinite animation in the app and it is exactly the
+       case this covers — it settles into a flat gradient block instead. */
+    animation-iteration-count: 1 !important;
   }
 }

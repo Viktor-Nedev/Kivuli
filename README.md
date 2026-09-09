@@ -28,6 +28,15 @@ Correcting against the Conduit station cuts temperature error nearly in half:
 Every figure is **leave-one-out validated**: each point is corrected by a model fitted on all the
 *other* points, so nothing scores itself. Regenerate with `python analysis/calibrate.py`.
 
+### Then we checked whether the improvement was real
+
+The station carries **three independent thermometers**. They disagree with each other by
+**0.435 °C** on average — against a corrected model error of 0.565 °C. The correction has reached
+the noise floor of the instrument it is corrected against, and there is little room left below it.
+
+That is the sort of thing a dashboard has no reason to look for. It is on `/validation`, next to
+the figure it limits, because a station that scores a model should be willing to be scored itself.
+
 ---
 
 ## Run it
@@ -238,6 +247,16 @@ to the same answer is evidence; one path is an assertion.
 One station, one day, 24 paired hours. That is a demonstration of method, not a
 climatology, and the page says so.
 
+**And then the station is scored against itself.** The same page carries the
+three-thermometer comparison: 0.435 °C of disagreement between instruments
+against 0.565 °C of corrected model error, and the honest consequence that the
+correction has run out of room. The robustness figures are given as a pair —
+94 of 95 spray verdicts survive the disagreement, but only 84 of 95 survive it
+on the temperature gate alone — because the first number alone would flatter
+the result. The whole section is built by `server/validation/agreement.ts`,
+which calls the real `assessSpray` rather than a copy of its thresholds, so the
+figure measures the decision the app actually makes.
+
 
 **Ask KIVULI.** A question box on the landing page — and deliberately not a
 language model. Every answer is a figure one of the pages already computes,
@@ -289,7 +308,7 @@ anything public would need all three before it saw real traffic.
 | `GET /api/climate?lat=&lon=&place=` | Eleven years of rainfall standing, season onset, water balance and the bilingual advisory. Defaults to the station; any in-Kenya coordinate is accepted. |
 | `GET /api/outlook?lat=&lon=` | The next three days as decisions: daylight-gated spray and drying windows, projected heat, and forecast rainfall ranked against this site's own record. |
 | `GET /api/water?lat=&lon=&crop=` | Seven-day crop water balance (FAO-56) with the crossing day for every soil texture, plus peak UV. |
-| `GET /api/validation` | The station scoring the model: hourly station means against ERA5 for the same hours, per variable, with the diurnal error shape. Takes no lat/lon — there is one station. |
+| `GET /api/validation` | The station scoring the model: hourly station means against ERA5 for the same hours, per variable, with the diurnal error shape. Also carries `agreement` — the station scored against *itself*, across its three thermometers. Takes no lat/lon — there is one station. |
 | `GET /api/ask?q=` | Routes a question to a figure the app already computes, naming the endpoint that answered. Unmatched questions return the capability list, never a guess. |
 | `GET /api/health` | Liveness plus the name of the active station source. |
 
@@ -338,6 +357,34 @@ Known limits, stated rather than hidden:
   UV figures on the Working day page come from the forecast and are tagged `raw forecast`. The
   sensor is dead; the hazard is not, and reporting a modelled 9 is more useful than reporting a
   broken 0. The two are never mixed.
+- **The correction is as good as the instrument allows.** The mast carries three independent
+  dry-bulb thermometers — a BMX280, an MCP9808 and an SHT31 — and across the bundled day they
+  disagree with each other by **0.435 °C on average**, 0.40 °C median, up to 1.60 °C at 15:29
+  local. The calibration above reduces the model's temperature error to **0.565 °C**. Those two
+  numbers are close enough that the correction has essentially reached the noise floor of the
+  instrument it is corrected against; tuning it further would fit the station's own scatter rather
+  than the model's bias. Three sensor packages agreeing to within half a degree is ordinary, not a
+  fault — the point is that it was measured rather than assumed. A station cannot certify a model
+  to a precision finer than it can certify itself. See `/validation`.
+- **The app reads one of those three thermometers, and it is the coolest.** `tempC` comes from
+  `temp_bmx`, which runs **0.237 °C below the median** of the three. So the headline "the model
+  runs 1.12 °C cold" carries that choice inside it; against a median-of-three reference the bias
+  would be about −1.36 °C. It was not switched mid-project: `analysis/calibrate.py` fitted the
+  coefficients against this channel, and Delta-T pairs it against a separate wet-bulb instrument,
+  so changing the reference would invalidate both without changing the numbers printed beside
+  them. Publishing the offset is the honest option; quietly improving the headline is not.
+- **The disagreement mostly does not reach the advice, and "mostly" is doing work.** The full
+  spray verdict is unchanged on **94 of 95** readings whichever thermometer you believe. But on
+  the Delta-T gate alone, **11 of 95 disagree** — the gap is the wind gate having already closed
+  the question on those readings. A further 21 sit close enough to a threshold that the
+  instruments' own spread could move them across it. Both figures are on the page, because quoting
+  only the first would be the better-looking claim and the less true one.
+- **Spread runs slightly wider in daylight (0.479 °C) than at night (0.398 °C), and the cause is
+  not established.** The obvious explanation is solar heating of the sensor housings under poor
+  ventilation. That hypothesis was tested against this sample and failed: in daylight, calm hours
+  (under 1 m/s) show 0.469 °C and windier hours 0.450 °C — the wrong direction, and the gap is far
+  below the scatter. The observation is reported; the mechanism is left open rather than given a
+  story it has not earned.
 - **Tooltips used to be unreachable on a phone.** Chart values and the explanation behind every
   provenance tag lived in the native `title` attribute, which needs a hover a touch device cannot
   produce. On the project's stated primary device that content did not exist at all. It now uses a

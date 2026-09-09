@@ -29,6 +29,17 @@ export function rowToReading(row: Record<string, string>): Reading | null {
   const humidityPct = num(row.humidity_sht);
   const wetBulbC = num(row.wet_bulb_temp);
 
+  // The mast carries three dry-bulb thermometers. Only `temp_bmx` feeds
+  // `tempC` (see the Reading docstring for why), but all three are kept so the
+  // station can be measured against itself. All-or-nothing: a spread computed
+  // from two channels is not the same quantity as one computed from three.
+  const bmxC = num(row.temp_bmx);
+  const mcpC = num(row.temp_mcp);
+  const shtC = num(row.temp_sht);
+  const temps = [bmxC, mcpC, shtC].every(Number.isFinite)
+    ? { bmxC, mcpC, shtC }
+    : undefined;
+
   // These three drive every downstream index. A row missing any of them
   // cannot produce a decision, so drop it rather than emit a hole.
   if (!Number.isFinite(tempC) || !Number.isFinite(humidityPct) || !Number.isFinite(wetBulbC)) {
@@ -48,6 +59,7 @@ export function rowToReading(row: Record<string, string>): Reading | null {
     visCounts: num(row.si1145_vis),
     irCounts: num(row.si1145_ir),
     rainMm: rainOf(row),
+    temps,
   };
 }
 

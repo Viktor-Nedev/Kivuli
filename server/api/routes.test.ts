@@ -222,6 +222,40 @@ test('/api/validation reads the station and scores the model against it', async 
   });
 });
 
+test('/api/validation carries the station judged against itself', async () => {
+  // The instrument-agreement block. It rides on the validation endpoint
+  // deliberately: that page already argues the station is the reference, and
+  // this is the same argument one level deeper - how good is the reference?
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/api/validation`);
+    const body = (await res.json()) as {
+      degraded: boolean;
+      agreement?: {
+        n: number;
+        meanSpreadC: number;
+        channels: { id: string; isReference: boolean }[];
+        robustness: { evaluated: number; verdictFlips: number; deltaTFlips: number };
+      } | null;
+    };
+    if (body.degraded) return;
+
+    const a = body.agreement;
+    assert.ok(a, 'the bundled sample carries all three thermometers');
+    assert.equal(a.n, 95);
+    assert.equal(a.channels.length, 3);
+    assert.equal(a.channels.filter((c) => c.isReference).length, 1);
+
+    // The claim the model-check page is built on: the three instruments
+    // disagree by about as much as the calibration claims to have gained.
+    assert.ok(a.meanSpreadC > 0, 'a zero spread would mean a parse regression');
+    assert.equal(a.robustness.evaluated, a.n);
+    assert.ok(
+      a.robustness.deltaTFlips >= a.robustness.verdictFlips,
+      'the temperature gate cannot disagree less often than the full verdict',
+    );
+  });
+});
+
 test('/api/validation degrades rather than 502s when the archive is unreachable', async () => {
   const restore = severNetwork();
   try {

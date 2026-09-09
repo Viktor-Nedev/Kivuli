@@ -14,6 +14,7 @@ import { buildRainOutlook } from '../climate/rainOutlook.js';
 import { buildWaterBalance, CROP_STAGES, DEFAULT_CROP_ID } from '../climate/waterBalance.js';
 import { assessUv, peakUv } from '../indices/uv.js';
 import { validateAll } from '../validation/groundTruth.js';
+import { buildAgreement } from '../validation/agreement.js';
 import { buildRiverOutlook } from '../climate/rivers.js';
 import { matchIntent, capabilities } from '../query/intents.js';
 import type { DailyRain } from '../climate/rainfall.js';
@@ -378,11 +379,21 @@ export function createRouter(root: string): Router {
       );
       const archive = await meteo.archive(day, day);
 
+      // The station judged against itself, alongside the model judged against
+      // the station. rainLookahead swallows its own network failure and
+      // returns an empty set, so a dead network costs the rain gate rather
+      // than the endpoint. An empty set lets more hours pass that gate, but
+      // identically for all three thermometers - which is all the agreement
+      // comparison claims.
+      const { set: rainSet } = await rainLookahead();
+      const agreement = buildAgreement(readings, (ts) => rainSet.has(ts.slice(0, 13)));
+
       res.json({
         station: { name: source.name, day, hours: readings.length },
         degraded: false,
         generatedAt: new Date().toISOString(),
         variables: validateAll(readings, archive),
+        agreement,
       });
     } catch (err) {
       // Degrade rather than 502, matching /api/climate: the station half is

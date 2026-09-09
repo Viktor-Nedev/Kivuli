@@ -18,6 +18,20 @@ test('parses a well-formed row into the canonical shape', () => {
   assert.equal(r.wetBulbC, 17.5);
   assert.equal(r.wbgtC, 19);
   assert.equal(r.windSpeedMs, 1.1);
+  // All three dry-bulb channels are kept, not just the one tempC reports.
+  assert.deepEqual(r.temps, { bmxC: 23.6, mcpC: 23.8, shtC: 23.9 });
+  assert.equal(r.tempC, r.temps?.bmxC, 'tempC still reports BMX');
+});
+
+test('a row missing one thermometer keeps tempC but carries no channel set', () => {
+  // Two of three channels is a different quantity from three, so the spread
+  // comparison drops the row rather than silently understating it. The reading
+  // itself is still usable: one working thermometer produces a decision.
+  const csv = `${HEADER}
+2026-09-01T10:11:54Z,0,0,0,0,0.4,0,23.6,853,,23.9,51.4,810,6347,0,1.1,110,1.4,1.4,23.9,17.5,19`;
+  const [r] = parseCsv(csv);
+  assert.equal(r.tempC, 23.6);
+  assert.equal(r.temps, undefined);
 });
 
 test('drops rows missing a field the indices depend on', () => {

@@ -16,12 +16,6 @@ export const longDate = (iso: string) =>
     timeZone: NAIROBI,
   });
 
-/** Minutes past local midnight — the x-axis for the day timeline. */
-export function minutesOfDay(iso: string): number {
-  const [h, m] = hhmm(iso).split(':').map(Number);
-  return h * 60 + m;
-}
-
 export const DAY_MINUTES = 24 * 60;
 
 /**

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useChartReveal } from '../lib/useChartReveal';
 
 /**
  * Circular meter: fill carries the value's position in [min, max], track is a
@@ -27,15 +27,12 @@ export function Gauge({
   color?: string;
   size?: number;
 }) {
-  const [animated, setAnimated] = useState(min);
+  // Reveals on scroll rather than on mount. Six of these sit below the fold on
+  // the Station page, so the old mount-time animation had always finished by
+  // the time anyone scrolled far enough to see it.
+  const reveal = useChartReveal({ duration: 900 });
 
-  useEffect(() => {
-    // Defer to the next frame so the transition is observed from the start
-    // value rather than skipping straight to the end.
-    const raf = requestAnimationFrame(() => setAnimated(value));
-    return () => cancelAnimationFrame(raf);
-  }, [value]);
-
+  const animated = min + (value - min) * reveal.progress;
   const clamped = Math.min(Math.max(animated, min), max);
   const fraction = max > min ? (clamped - min) / (max - min) : 0;
 
@@ -49,14 +46,18 @@ export function Gauge({
   const dashOffset = dashTotal * (1 - fraction);
 
   return (
-    <div className="flex flex-col items-center" style={{ width: size }}>
+    <div ref={reveal.ref} className="flex flex-col items-center" style={{ width: size }}>
       <svg
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
         className="-rotate-[135deg]"
         role="img"
-        aria-label={`${label}: ${value}${unit ?? ''}`}
+        // `label` is optional, and four call sites omit it because a text
+        // block beside the arc already names the value. Interpolating it
+        // unconditionally announced "undefined: 24.3°C" to a screen reader on
+        // every one of them.
+        aria-label={label ? `${label}: ${value}${unit ?? ''}` : `${value}${unit ?? ''}`}
       >
         <circle
           cx={size / 2}
@@ -79,7 +80,7 @@ export function Gauge({
           strokeDasharray={`${dashTotal} ${circumference}`}
           strokeDashoffset={dashOffset}
           strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 900ms cubic-bezier(0.16, 1, 0.3, 1)' }}
+          style={{ transition: reveal.transition(0, 'stroke-dashoffset') }}
         />
       </svg>
       <div className="flex flex-col items-center" style={{ marginTop: -size * 0.52 }}>

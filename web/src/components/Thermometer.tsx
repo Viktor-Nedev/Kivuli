@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useChartReveal } from '../lib/useChartReveal';
 
 /**
  * Vertical thermometer, for temperature-family values specifically — the one
@@ -21,13 +21,10 @@ export function Thermometer({
   label: string;
   height?: number;
 }) {
-  const [animated, setAnimated] = useState(min);
+  // Reveals on scroll, not on mount: see the note in Gauge.
+  const reveal = useChartReveal({ duration: 900 });
 
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => setAnimated(value));
-    return () => cancelAnimationFrame(raf);
-  }, [value]);
-
+  const animated = min + (value - min) * reveal.progress;
   const clamped = Math.min(Math.max(animated, min), max);
   const fraction = max > min ? (clamped - min) / (max - min) : 0;
 
@@ -39,7 +36,7 @@ export function Thermometer({
   const tubeWidth = 10;
 
   return (
-    <div className="flex flex-col items-center">
+    <div ref={reveal.ref} className="flex flex-col items-center">
       <div className="relative flex items-end" style={{ height: tubeHeight + bulbSize }}>
         {/* Track */}
         <div
@@ -52,7 +49,7 @@ export function Thermometer({
             style={{
               height: `${fraction * 100}%`,
               backgroundColor: fillColor,
-              transition: 'height 900ms cubic-bezier(0.16, 1, 0.3, 1), background-color 500ms ease-out',
+              transition: `${reveal.transition(0, 'height')}, background-color 500ms ease-out`,
             }}
           />
         </div>

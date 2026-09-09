@@ -40,11 +40,9 @@ export function MapPanel({
  */
 export function LegendRow({
   color,
-  opacity = 1,
   children,
 }: {
   color: string;
-  opacity?: number;
   children: ReactNode;
 }) {
   return (
@@ -52,7 +50,7 @@ export function LegendRow({
       <span
         aria-hidden
         className="h-3 w-3 shrink-0 rounded-sm ring-1 ring-shade-600"
-        style={{ backgroundColor: color, opacity }}
+        style={{ backgroundColor: color }}
       />
       <span className="text-xs leading-tight text-shade-200">{children}</span>
     </li>

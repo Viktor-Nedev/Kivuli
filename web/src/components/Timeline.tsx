@@ -66,6 +66,9 @@ export function Timeline({ points }: { points: TimelinePoint[] }) {
                   onMouseLeave={() => setHovered(null)}
                   onFocus={() => setHovered(s)}
                   onBlur={() => setHovered(null)}
+                  // Touch: without this the read-out below is dead on a phone,
+                  // which is the device this app is written for.
+                  onTouchStart={() => setHovered(s)}
                   aria-label={`${band.label} ${s.pass ? 'suitable' : 'not suitable'} ${hhmm(s.startTs)} to ${hhmm(s.endTs)}${s.reason ? `: ${s.reason}` : ''}`}
                   className={`absolute top-0 h-full origin-center transition-all duration-200 hover:z-10 hover:scale-y-110 hover:brightness-110 focus-visible:z-10 focus-visible:scale-y-110 ${
                     s.pass ? 'bg-kenya-green-500 shadow-[0_0_12px_-2px_rgba(90,160,125,0.6)]' : 'bg-shade-600'
@@ -100,7 +103,7 @@ export function Timeline({ points }: { points: TimelinePoint[] }) {
           </>
         ) : (
           <span className="text-shade-400">
-            Hover or tab through a band to see why a period is open or closed.
+            Hover, tap or tab through a band to see why a period is open or closed.
           </span>
         )}
       </p>

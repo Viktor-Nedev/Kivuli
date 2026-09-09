@@ -1,6 +1,7 @@
 import type { MonthClimate, RainCategory, WindowStat } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { useChartReveal, useCountUp } from '../lib/useChartReveal';
+import { Section } from './Section';
 
 /**
  * Where this season's rainfall sits against the same window in previous years.
@@ -210,21 +211,20 @@ export function RainfallStanding({
   const reading = readingFor(windows, climatology, throughDate);
 
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          Rainfall standing
-        </h2>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-shade-400">
-            {referenceYears.from}–{referenceYears.to}
-          </span>
-          <ProvenanceTag
-            kind="reanalysis"
-            title="ERA5 reanalysis via Open-Meteo — a model reconstruction on a ~9 km grid, not this station's rain gauge"
-          />
-        </div>
-      </div>
+      <Section
+        title="Rainfall standing"
+        aside={
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-shade-400">
+              {referenceYears.from}–{referenceYears.to}
+            </span>
+            <ProvenanceTag
+              kind="reanalysis"
+              title="ERA5 reanalysis via Open-Meteo — a model reconstruction on a ~9 km grid, not this station's rain gauge"
+            />
+          </div>
+        }
+      >
 
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
         Each window is ranked against the <em>same calendar window</em> in every previous year, so
@@ -244,6 +244,6 @@ export function RainfallStanding({
         <p className="font-display text-xl text-bleach">{reading.headline}</p>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-shade-200">{reading.body}</p>
       </div>
-    </section>
+    </Section>
   );
 }

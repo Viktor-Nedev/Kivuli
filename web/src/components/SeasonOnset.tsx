@@ -1,6 +1,7 @@
 import type { OnsetDistribution } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { useChartReveal } from '../lib/useChartReveal';
+import { Section } from './Section';
 
 /**
  * When the rains have historically started.
@@ -142,16 +143,15 @@ function OnsetCard({ dist }: { dist: OnsetDistribution }) {
 
 export function SeasonOnset({ mam, ond }: { mam: OnsetDistribution; ond: OnsetDistribution }) {
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          When the rains start
-        </h2>
-        <ProvenanceTag
-          kind="reanalysis"
-          title="Onset dates derived from ERA5 daily rainfall, not forecast"
-        />
-      </div>
+      <Section
+        title="When the rains start"
+        aside={
+          <ProvenanceTag
+            kind="reanalysis"
+            title="Onset dates derived from ERA5 daily rainfall, not forecast"
+          />
+        }
+      >
 
       {/* Stated up front, because this is the one number on the site most
           likely to be mistaken for advice. */}
@@ -171,6 +171,6 @@ export function SeasonOnset({ mam, ond }: { mam: OnsetDistribution; ond: OnsetDi
         spell follows within three weeks. The dry-spell condition is what separates the real onset
         from a single storm — planting on a false start costs the seed.
       </p>
-    </section>
+    </Section>
   );
 }

@@ -3,6 +3,7 @@ import { ProvenanceTag } from './Provenance';
 import { hhmm } from '../lib/format';
 import { Thermometer } from './Thermometer';
 import { Gauge } from './Gauge';
+import { Section } from './Section';
 
 /**
  * Current station observations.
@@ -16,16 +17,15 @@ import { Gauge } from './Gauge';
  */
 export function StationPanel({ reading, sourceName }: { reading: Reading; sourceName: string }) {
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          Station at {hhmm(reading.ts)}
-        </h2>
-        <div className="flex items-center gap-2">
-          <ProvenanceTag kind="measured" />
-          <span className="text-xs text-shade-400">{sourceName}</span>
-        </div>
-      </div>
+      <Section
+        title={`Station at ${hhmm(reading.ts)}`}
+        aside={
+          <div className="flex items-center gap-2">
+            <ProvenanceTag kind="measured" />
+            <span className="text-xs text-shade-400">{sourceName}</span>
+          </div>
+        }
+      >
 
       <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-6">
         <div className="lift-on-hover flex justify-center rounded-lg py-2">
@@ -68,6 +68,6 @@ export function StationPanel({ reading, sourceName }: { reading: Reading; source
           />
         </div>
       </div>
-    </section>
+    </Section>
   );
 }

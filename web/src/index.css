@@ -122,6 +122,10 @@
 .lift-on-hover:hover {
   transform: translateY(-3px);
   box-shadow: 0 12px 28px -12px rgb(0 0 0 / 0.45);
+  /* The brighter border the rule above has always been transitioning toward.
+     border-color was in the transition list from the start, but no hover state
+     ever changed it, so the lift arrived without the ring it was paired with. */
+  border-color: theme(colors.shade.600);
 }
 
 @media (prefers-reduced-motion: reduce) {

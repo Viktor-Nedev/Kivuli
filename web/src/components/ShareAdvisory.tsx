@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ProvenanceTag } from './Provenance';
+import { Section } from './Section';
 
 /**
  * The season summary as plain text, ready to be forwarded.
@@ -39,13 +40,13 @@ export function ShareAdvisory({ advisory }: { advisory: { en: string; sw: string
   }
 
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          Share this summary
-        </h2>
-        <ProvenanceTag kind="reanalysis" title="Summarised from ERA5 rainfall history" />
-      </div>
+      <Section
+        tone="raised"
+        title="Share this summary"
+        aside={
+          <ProvenanceTag kind="reanalysis" title="Summarised from ERA5 rainfall history" />
+        }
+      >
 
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
         Written to be forwarded on WhatsApp or SMS, so it explains itself without the charts above.
@@ -89,6 +90,6 @@ export function ShareAdvisory({ advisory }: { advisory: { en: string; sw: string
           {text}
         </p>
       </div>
-    </section>
+    </Section>
   );
 }

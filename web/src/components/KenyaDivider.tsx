@@ -50,6 +50,16 @@ export function KenyaDivider({
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill={`url(#${patternId})`} opacity={variant === 'thin' ? 0.5 : 0.85} />
+      {/* The ochre baseline this component's own docstring has always
+          described. It was never drawn, which also left `kenya-ochre` — a
+          token the palette reserves for exactly this — unused everywhere. */}
+      <rect
+        y={height - 1}
+        width="100%"
+        height={1}
+        className="fill-kenya-ochre"
+        opacity={variant === 'thin' ? 0.55 : 0.8}
+      />
     </svg>
   );
 }

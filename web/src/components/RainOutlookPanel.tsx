@@ -1,5 +1,6 @@
 import type { RainOutlook } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
+import { Section } from './Section';
 
 /**
  * How much rain is coming, against how much this site actually gets.
@@ -36,22 +37,21 @@ const LEVEL_TEXT: Record<RainOutlook['level'], string> = {
 
 export function RainOutlookPanel({ outlook }: { outlook: RainOutlook }) {
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          Rain ahead
-        </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <ProvenanceTag
-            kind="raw_forecast"
-            title="Forecast rainfall from Open-Meteo. No bias coefficients are fitted for precipitation, so this value is uncorrected."
-          />
-          <ProvenanceTag
-            kind="reanalysis"
-            title={`How often each threshold is crossed here, from ${outlook.referenceYears} years of ERA5 daily rainfall`}
-          />
-        </div>
-      </div>
+      <Section
+        title="Rain ahead"
+        aside={
+          <div className="flex flex-wrap items-center gap-2">
+            <ProvenanceTag
+              kind="raw_forecast"
+              title="Forecast rainfall from Open-Meteo. No bias coefficients are fitted for precipitation, so this value is uncorrected."
+            />
+            <ProvenanceTag
+              kind="reanalysis"
+              title={`How often each threshold is crossed here, from ${outlook.referenceYears} years of ERA5 daily rainfall`}
+            />
+          </div>
+        }
+      >
 
       <div className={`mt-5 rounded-r-lg border-l-4 bg-shade-800/40 p-5 ${LEVEL_RULE[outlook.level]}`}>
         <p className={`font-display text-2xl ${LEVEL_TEXT[outlook.level]}`}>{outlook.headline}</p>
@@ -106,6 +106,6 @@ export function RainOutlookPanel({ outlook }: { outlook: RainOutlook }) {
         to name a genuinely rare event — the wettest day in it is the wettest day it knows — so this
         panel reports how often a threshold is actually crossed and never how rare it is.
       </p>
-    </section>
+    </Section>
   );
 }

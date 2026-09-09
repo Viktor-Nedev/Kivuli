@@ -3,6 +3,7 @@ import type { CropStage, SoilProfile, WaterBalance } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { Term } from './Term';
 import { useChartReveal } from '../lib/useChartReveal';
+import { Section } from './Section';
 
 /**
  * How much water the crop is owed, and when that starts to matter.
@@ -108,16 +109,15 @@ export function WaterBalancePanel({
   const chosen = balance.soils.find((s) => s.texture === soil) ?? null;
 
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          Water owed
-        </h2>
-        <ProvenanceTag
-          kind="raw_forecast"
-          title="Reference evapotranspiration and rainfall from Open-Meteo. No bias coefficients are fitted for either, so these are uncorrected model values."
-        />
-      </div>
+      <Section
+        title="Water owed"
+        aside={
+          <ProvenanceTag
+            kind="raw_forecast"
+            title="Reference evapotranspiration and rainfall from Open-Meteo. No bias coefficients are fitted for either, so these are uncorrected model values."
+          />
+        }
+      >
 
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
         An account of water arriving and leaving — rain in, crop evapotranspiration out. This is not
@@ -230,6 +230,6 @@ export function WaterBalancePanel({
         evaporation and transpiration and any stress feedback. And the far end of a seven-day
         forecast is soft: the first two days carry most of the confidence.
       </p>
-    </section>
+    </Section>
   );
 }

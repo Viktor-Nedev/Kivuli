@@ -3,6 +3,7 @@ import type { ClimateResponse, MonthClimate } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { useChartReveal, useCountUp } from '../lib/useChartReveal';
 import { DataTip, alignFor } from './DataTip';
+import { Section } from './Section';
 
 /**
  * What a roof could collect here, and why storage is the point.
@@ -150,16 +151,15 @@ export function WaterHarvest({ harvest, climatology }: Pick<ClimateResponse, 'ha
   const surplusNames = surplusMonths.map((m) => MONTH_FULL[m.month - 1]);
 
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          Roof water harvesting
-        </h2>
-        <ProvenanceTag
-          kind="reanalysis"
-          title="Rainfall depth from ERA5 reanalysis; the runoff coefficient is an engineering convention"
-        />
-      </div>
+      <Section
+        title="Roof water harvesting"
+        aside={
+          <ProvenanceTag
+            kind="reanalysis"
+            title="Rainfall depth from ERA5 reanalysis; the runoff coefficient is an engineering convention"
+          />
+        }
+      >
 
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
         Rain here is not so much scarce as badly timed. Over{' '}
@@ -239,6 +239,6 @@ export function WaterHarvest({ harvest, climatology }: Pick<ClimateResponse, 'ha
           <BalanceChart climatology={climatology} />
         </div>
       </div>
-    </section>
+    </Section>
   );
 }

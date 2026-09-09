@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { OutlookHour, OutlookResponse } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { useChartReveal } from '../lib/useChartReveal';
+import { Section } from './Section';
 
 /**
  * The next three days as working windows.
@@ -197,20 +198,19 @@ export function ForwardOutlook({ outlook }: { outlook: OutlookResponse }) {
   const dryingWindows = outlook.windows.filter((w) => w.band === 'drying');
 
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          The next three days
-        </h2>
-        <ProvenanceTag
-          kind={outlook.uncalibrated ? 'raw_forecast' : 'bias_corrected'}
-          title={
-            outlook.uncalibrated
-              ? 'Forecast values, uncorrected — no calibration coefficients were available'
-              : 'Forecast temperature, humidity and wind corrected against this station'
-          }
-        />
-      </div>
+      <Section
+        title="The next three days"
+        aside={
+          <ProvenanceTag
+            kind={outlook.uncalibrated ? 'raw_forecast' : 'bias_corrected'}
+            title={
+              outlook.uncalibrated
+                ? 'Forecast values, uncorrected — no calibration coefficients were available'
+                : 'Forecast temperature, humidity and wind corrected against this station'
+            }
+          />
+        }
+      >
 
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
         The same gates as today, run forward over the forecast. These are model values, never
@@ -267,6 +267,6 @@ export function ForwardOutlook({ outlook }: { outlook: OutlookResponse }) {
           : 'no work/rest restriction applies — reported plainly rather than manufactured.'}
       </p>
 
-    </section>
+    </Section>
   );
 }

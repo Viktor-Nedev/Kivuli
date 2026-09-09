@@ -1,5 +1,6 @@
 import { useChartReveal, useCountUp } from '../lib/useChartReveal';
 import type { Calibration } from '../lib/types';
+import { Section } from './Section';
 
 const LABELS: Record<string, { name: string; unit: string }> = {
   tempC: { name: 'Temperature', unit: '°C' },
@@ -18,10 +19,7 @@ const LABELS: Record<string, { name: string; unit: string }> = {
 export function CalibrationTable({ calibration }: { calibration: Calibration | null }) {
   if (!calibration) {
     return (
-      <section className="border-t border-shade-700 py-10 sm:py-12">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          Forecast calibration
-        </h2>
+      <Section title="Forecast calibration">
         <p className="mt-3 text-sm text-shade-200">
           No coefficients yet. Run{' '}
           <code className="rounded bg-shade-800 px-1.5 py-0.5 text-amber-300">
@@ -29,17 +27,14 @@ export function CalibrationTable({ calibration }: { calibration: Calibration | n
           </code>{' '}
           to fit them against the station record.
         </p>
-      </section>
+      </Section>
     );
   }
 
   const rows = Object.entries(calibration.variables);
 
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-        Forecast calibration
-      </h2>
+    <Section title="Forecast calibration">
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-shade-200">
         The global forecast is measurably wrong at this point. Correcting it against the Conduit
         station cuts the error shown below. Every figure is{' '}
@@ -103,7 +98,7 @@ export function CalibrationTable({ calibration }: { calibration: Calibration | n
         Fitted on {calibration.training_window.station_hours} station hours (
         {calibration.training_window.from}). {calibration.training_window.note}
       </p>
-    </section>
+    </Section>
   );
 }
 

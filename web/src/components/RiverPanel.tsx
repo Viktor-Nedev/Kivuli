@@ -2,6 +2,7 @@ import type { RiverOutlook } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { useChartReveal } from '../lib/useChartReveal';
 import { DataTip, alignFor } from './DataTip';
+import { Section } from './Section';
 
 /**
  * River discharge, where a river exists.
@@ -21,16 +22,15 @@ export function RiverPanel({ river }: { river: RiverOutlook }) {
   const reveal = useChartReveal({ stagger: 45 });
 
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          The river
-        </h2>
-        <ProvenanceTag
-          kind="raw_forecast"
-          title="Modelled river discharge from Open-Meteo's flood API (GloFAS). Catchment-scale, on a coarse grid."
-        />
-      </div>
+      <Section
+        title="The river"
+        aside={
+          <ProvenanceTag
+            kind="raw_forecast"
+            title="Modelled river discharge from Open-Meteo's flood API (GloFAS). Catchment-scale, on a coarse grid."
+          />
+        }
+      >
 
       <div
         className={`mt-5 rounded-r-lg border-l-4 bg-shade-800/40 p-5 ${
@@ -86,6 +86,6 @@ export function RiverPanel({ river }: { river: RiverOutlook }) {
           </p>
         </div>
       )}
-    </section>
+    </Section>
   );
 }

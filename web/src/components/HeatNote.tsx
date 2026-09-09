@@ -1,5 +1,6 @@
 import { Gauge } from './Gauge';
 import { Term } from './Term';
+import { Section } from './Section';
 
 /**
  * Heat and livestock indices.
@@ -16,10 +17,7 @@ export function HeatNote({
   thi: { thi: number; band: string; instruction: string };
 }) {
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-        Heat exposure
-      </h2>
+    <Section title="Heat exposure">
 
       <div className="mt-6 grid gap-6 sm:grid-cols-2">
         <div className="lift-on-hover flex items-center gap-5 rounded-lg py-2">
@@ -44,6 +42,6 @@ export function HeatNote({
         indicative: real limits shift with workload, clothing and individual health. This is not
         medical or regulatory advice.
       </p>
-    </section>
+    </Section>
   );
 }

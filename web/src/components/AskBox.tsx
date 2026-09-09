@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { AskResponse } from '../lib/types';
+import { Section } from './Section';
 
 /**
  * Ask KIVULI.
@@ -42,10 +43,7 @@ export function AskBox() {
   const data = state.phase === 'answered' ? state.data : null;
 
   return (
-    <section className="border-t border-shade-700 py-10 sm:py-12">
-      <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-        Ask KIVULI
-      </h2>
+    <Section tone="raised" title="Ask KIVULI">
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
         Every answer here is a number from one of the pages above, quoted with the page it came
         from. Nothing is generated — if the question is outside what this measures, it says so.
@@ -123,6 +121,6 @@ export function AskBox() {
           )}
         </div>
       )}
-    </section>
+    </Section>
   );
 }

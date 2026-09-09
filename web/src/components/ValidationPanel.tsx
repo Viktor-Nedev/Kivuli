@@ -3,6 +3,7 @@ import type { VariableValidation } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { Glossary } from './Term';
 import { useChartReveal } from '../lib/useChartReveal';
+import { Section } from './Section';
 
 /**
  * The station scoring the model.
@@ -230,10 +231,7 @@ export function ValidationPanel({
         )}
       </section>
 
-      <section className="border-t border-shade-700 py-10 sm:py-12">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          Hour by hour, by variable
-        </h2>
+      <Section title="Hour by hour, by variable">
         <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
           {variables.map((v) => (
             <VariableCard key={v.variable} variable={v} />
@@ -247,14 +245,11 @@ export function ValidationPanel({
           coefficients on the Calibration page; these two arrive at the same numbers by independent
           routes.
         </p>
-      </section>
+      </Section>
 
       {/* The page is already about what the numbers mean, so the definitions
           belong here rather than in a seventh nav item. */}
-      <section className="border-t border-shade-700 py-10 sm:py-12">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          What the words mean
-        </h2>
+      <Section tone="raised" title="What the words mean">
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
           Every term this site uses, in one place. They also appear as dotted underlines throughout
           the app — hover or tab to one for the same definition.
@@ -262,7 +257,7 @@ export function ValidationPanel({
         <div className="mt-6">
           <Glossary />
         </div>
-      </section>
+      </Section>
     </>
   );
 }

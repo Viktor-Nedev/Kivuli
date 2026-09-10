@@ -297,6 +297,41 @@ Overview page; it is now a lazy route chunk that loads only when the shade map i
 clip loads when the section approaches the viewport rather than on arrival — someone who never
 scrolls past the fold pays nothing for it, and the 136 KB poster carries the frame until then.
 
+## The model we did not train
+
+This hackathon came with credits to train a custom frontier model. They went unused, and the
+reasoning is worth more to a reader than the model would have been.
+
+**The data does not support it.** The station sample is 95 readings from a single day, which align
+to **24 hours** against the reanalysis — that is the entire empirical base, and it is what
+`data/coefficients.json` was fitted on. `analysis/calibrate.py` already refuses a ridge regression
+on four features at that size, because it would fit the noise; the default is a constant offset,
+escalating to an hour-of-day offset only where each hour has enough support. A trained model on
+those same 24 pairs is the idea this project already rejected, several orders of magnitude larger.
+Doing it anyway would contradict a decision documented in our own source.
+
+**And the ceiling is not a modelling ceiling.** The Conduit mast carries three thermometers that
+disagree with each other by 0.435 °C, against a corrected model error of 0.565 °C. The correction
+has already arrived at the noise floor of the instrument it is corrected against. No model, at any
+size or compute budget, can resolve a forecast finer than the reference can certify. What would
+improve these numbers is more instrument-days, not more parameters.
+
+**The obvious place for a language model is Ask KIVULI, and that is exactly where it must not
+go.** The Ask box maps a question to a figure this app already computed and already tagged with
+its provenance, and names the endpoint that answered. An unmatched question returns the list of
+what it can answer rather than a guess. A generated answer would paraphrase figures it cannot
+verify, which is the one thing this project is built never to do — so the router stays a router.
+
+**One place a language model would genuinely help, deferred rather than refused.** The advisories
+are bilingual: 44 Kiswahili strings, written by hand and human-checked, because those are the
+sentences that get forwarded. Translation is a language task and not a numeric claim, so it does
+not conflict with anything above — but shipping machine-translated field advice without a
+Kiswahili speaker to review it would. That reviewer does not exist on this team yet. When one
+does, this is the first thing to revisit.
+
+None of this is a criticism of the tool. It is a statement about the size of our evidence. Give
+this project a year of station data and a Kiswahili reviewer, and both answers change.
+
 ## The API
 
 Four read-only JSON endpoints. No key, no auth, no rate limit — this is a hackathon prototype, and
@@ -454,6 +489,10 @@ On the **Season** page, which reads eleven years of ERA5 rainfall rather than th
 - **UI Swahili is deliberately not attempted.** The field-facing advisory is bilingual and
   human-checked, which is the part that gets forwarded. Machine-translating two hundred interface
   strings and presenting them as field-ready would contradict everything above.
+- **No model was trained, though the credits to train one were available.** 24 aligned
+  station-hours cannot support it, and the instrument's own 0.435 °C disagreement already bounds
+  what a better model could buy. See [The model we did not train](#the-model-we-did-not-train) for
+  the full reasoning, including the one case that is deferred rather than refused.
 
 Every number in the interface carries a provenance tag — `measured`, `bias-corrected`,
 `raw forecast`, or `reanalysis` — so it is always clear what came from the station and what came

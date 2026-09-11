@@ -21,7 +21,13 @@ export default defineConfig({
     // Relative to this config's directory, and forward slashes: a Windows
     // absolute path with backslashes is not a valid glob.
     root: here,
-    include: ['src/**/*.test.tsx'],
+    // `.ts` as well as `.tsx`, so pure-logic modules under src/lib can be
+    // tested at all — the narrower glob silently ran neither runner for them,
+    // which is worse than a failing test. `src/map` stays excluded because
+    // those two files already run under the node runner (see package.json)
+    // and would otherwise be executed twice.
+    include: ['src/**/*.test.{ts,tsx}'],
+    exclude: ['src/map/**'],
     setupFiles: ['src/test-setup.ts'],
   },
 });

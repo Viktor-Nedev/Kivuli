@@ -3,6 +3,9 @@ import { Timeline } from '../components/Timeline';
 import { ForwardOutlook } from '../components/ForwardOutlook';
 import { UvCard } from '../components/UvCard';
 import { Reveal } from '../components/Reveal';
+import { ExportButtons } from '../components/ExportButtons';
+import { Section } from '../components/Section';
+import { TIMELINE_COLUMNS, TIMELINE_NOTES } from '../lib/exportColumns';
 import type { AppContext } from '../lib/outletContext';
 import { StationUnavailable } from '../components/StationUnavailable';
 import { useOutlook, useWater } from '../lib/useOutlook';
@@ -71,6 +74,24 @@ export function TimelinePage() {
           </p>
         </section>
       )}
+
+      {/* The measured day, as a file. This is the Conduit's own readings beside
+          the decision each one produced — the project's argument in one
+          download. */}
+      <Section title="Take the data">
+        <ExportButtons
+          rows={data.timeline}
+          columns={TIMELINE_COLUMNS}
+          coversDate={data.timeline[0]?.ts.slice(0, 10) ?? ''}
+          label={`these ${data.timeline.length} station readings and the gates run on them`}
+          meta={{
+            dataset: 'working-day',
+            title: 'the working day — station readings and decision gates',
+            source: `JKUAT Conduit station via ${data.source}`,
+            notes: TIMELINE_NOTES,
+          }}
+        />
+      </Section>
     </>
   );
 }

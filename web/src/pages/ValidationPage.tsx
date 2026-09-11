@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import type { ValidationResponse } from '../lib/types';
 import { Reveal } from '../components/Reveal';
+import { Section } from '../components/Section';
+import { ExportButtons } from '../components/ExportButtons';
+import {
+  AGREEMENT_COLUMNS,
+  AGREEMENT_NOTES,
+  VALIDATION_COLUMNS,
+  VALIDATION_NOTES,
+} from '../lib/exportColumns';
 import { ValidationPanel } from '../components/ValidationPanel';
 
 /**
@@ -64,13 +72,50 @@ export function ValidationPage() {
     );
   }
 
+  const { station, variables, agreement } = state.data;
+  // Temperature is the variable every gate on this site depends on, and the
+  // one the calibration was fitted for, so it is the one worth exporting.
+  const temp = variables.find((v) => v.variable === 'tempC');
+
   return (
-    <Reveal>
-      <ValidationPanel
-        variables={state.data.variables}
-        station={state.data.station}
-        agreement={state.data.agreement}
-      />
-    </Reveal>
+    <>
+      <Reveal>
+        <ValidationPanel variables={variables} station={station} agreement={agreement} />
+      </Reveal>
+
+      {/* The two comparisons this page makes, as files: the model scored
+          against the station, and the station scored against itself. */}
+      <Section title="Take the comparison">
+        {temp && temp.hours.length > 0 && (
+          <ExportButtons
+            rows={temp.hours}
+            columns={VALIDATION_COLUMNS}
+            coversDate={station.day}
+            label={`these ${temp.hours.length} paired hours of station against model`}
+            meta={{
+              dataset: 'model-check',
+              title: 'station against model, hour by hour (temperature)',
+              source: `${station.name}, compared against ERA5 reanalysis`,
+              notes: VALIDATION_NOTES,
+            }}
+          />
+        )}
+
+        {agreement && (
+          <ExportButtons
+            rows={agreement.points}
+            columns={AGREEMENT_COLUMNS}
+            coversDate={station.day}
+            label={`these ${agreement.n} readings from all three thermometers`}
+            meta={{
+              dataset: 'instrument-agreement',
+              title: 'three thermometers on one mast',
+              source: station.name,
+              notes: AGREEMENT_NOTES,
+            }}
+          />
+        )}
+      </Section>
+    </>
   );
 }

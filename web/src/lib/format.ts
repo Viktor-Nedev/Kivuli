@@ -36,3 +36,25 @@ export function makeDayAxis(firstIso: string) {
 
   return (iso: string) => (new Date(iso).getTime() - originMs) / 60_000;
 }
+
+/**
+ * "about 3 hours ago", "yesterday", "4 days ago".
+ *
+ * Deliberately vague, and deliberately never "just now": the whole purpose of
+ * this string is to make a reader discount a number, so it rounds away from
+ * freshness rather than toward it. A precise second count would imply live
+ * data, which is the opposite of what it is there to say.
+ *
+ * `nowMs` is injectable so the output is deterministic under test.
+ */
+export function relativeAge(fromIso: string, nowMs: number = Date.now()): string {
+  const minutes = Math.floor((nowMs - new Date(fromIso).getTime()) / 60_000);
+  if (minutes < 0) return 'just recorded';
+  if (minutes < 5) return 'moments ago';
+  if (minutes < 60) return `about ${Math.floor(minutes / 5) * 5} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours === 1) return 'about an hour ago';
+  if (hours < 24) return `about ${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? 'yesterday' : `${days} days ago`;
+}

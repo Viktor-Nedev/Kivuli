@@ -1,0 +1,22 @@
+{
+  "name": "KIVULI — field decisions from the JKUAT Conduit station",
+  "short_name": "KIVULI",
+  "description": "Spray windows, grain drying and crop water from a ground station in Juja, Kenya. Every number is tagged measured, corrected or modelled.",
+  "start_url": "/#/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "lang": "en",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -11,6 +11,13 @@
          build-config risk the week of a demo. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Installable, and able to open with no connection: the app shell and the
+         last station reading are cached, nothing else is. See
+         web/src/lib/cachePolicy.ts for why almost nothing else qualifies. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0b1220" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>KIVULI — field decisions from the JKUAT Conduit station</title>
 
     <!-- The project is meant to be forwarded, so a pasted link should explain

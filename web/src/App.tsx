@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { HashRouter, Routes, Route, Outlet, useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import type { TodayResponse } from './lib/types';
-import type { AppContext } from './lib/outletContext';
+import type { AppContext, StaleInfo } from './lib/outletContext';
 import { longDate } from './lib/format';
 import { prefersReducedMotion } from './lib/prefersReducedMotion';
 import { Overview } from './pages/Overview';
@@ -23,11 +23,12 @@ import { ValidationPage } from './pages/ValidationPage';
 import { SiteHeader } from './components/SiteHeader';
 import { Skeleton, SkeletonCard, SkeletonBlock } from './components/Skeleton';
 import { SiteFooter } from './components/SiteFooter';
+import { StaleBanner } from './components/StaleBanner';
 
 type State =
   | { phase: 'loading' }
   | { phase: 'error'; message: string; hint?: string; detail?: string }
-  | { phase: 'ready'; data: TodayResponse };
+  | { phase: 'ready'; data: TodayResponse; stale?: StaleInfo };
 
 export default function App() {
   return (
@@ -85,7 +86,17 @@ function AppLayout() {
           });
           return;
         }
-        setState({ phase: 'ready', data: body as TodayResponse });
+        // The service worker marks a response it served from storage, and
+        // stamps when it stored it. `latest.ts` is when the instrument read
+        // the air, which is a different number — reporting one as the other
+        // would misstate how old the advice is.
+        const data = body as TodayResponse;
+        const cachedAt = res.headers.get('X-Kivuli-Cached-At');
+        const stale =
+          res.headers.get('X-Kivuli-From-Cache') === '1' && data.latest
+            ? { cachedAt: cachedAt ?? data.latest.ts, readingTs: data.latest.ts }
+            : undefined;
+        setState({ phase: 'ready', data, stale });
       } catch (err) {
         if (!cancelled) {
           setState({
@@ -126,6 +137,11 @@ function AppLayout() {
           Season page, the shade map and the validation page — none of which
           read station data — because one unrelated endpoint had failed. Pages
           that do need a reading check for null and render StationUnavailable. */}
+      {/* Above every route and outside the content column: a reader who lands
+          on any page from an installed icon must see this before the numbers,
+          and must not be able to scroll past it first. */}
+      {state.phase === 'ready' && state.stale && <StaleBanner stale={state.stale} />}
+
       {state.phase !== 'loading' && (
         <PageTransition>
           <Outlet
@@ -136,6 +152,7 @@ function AppLayout() {
                   state.phase === 'error'
                     ? { message: state.message, hint: state.hint, detail: state.detail }
                     : undefined,
+                stale: state.phase === 'ready' ? state.stale : undefined,
                 mapboxToken,
               } satisfies AppContext
             }

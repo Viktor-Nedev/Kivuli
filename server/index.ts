@@ -25,6 +25,18 @@ app.use(createRouter(root));
 // running it locally. `index: false` so the SPA fallback below owns `/` rather
 // than static short-circuiting it.
 const dist = path.join(root, 'dist');
+
+// `maxAge: '1h'` is right for the content-hashed bundles under /assets and
+// wrong for these three. A bad sw.js pinned in the HTTP cache for an hour
+// cannot be recovered from without devtools, and index.html carries the
+// *names* of the hashed bundles, so a stale copy points at files a new deploy
+// has already deleted — a white screen that survives a reload.
+const NO_STORE = new Set(['/sw.js', '/manifest.webmanifest', '/index.html', '/']);
+app.use((req, res, next) => {
+  if (NO_STORE.has(req.path)) res.setHeader('Cache-Control', 'no-cache');
+  next();
+});
+
 app.use(express.static(dist, { maxAge: '1h', index: false }));
 
 // SPA fallback. Strictly redundant today: the client uses HashRouter, so every
@@ -32,6 +44,7 @@ app.use(express.static(dist, { maxAge: '1h', index: false }));
 // one line and stops a future switch to BrowserRouter from silently 404ing
 // every deep link.
 app.get('*', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(dist, 'index.html'));
 });
 

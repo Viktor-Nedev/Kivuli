@@ -155,6 +155,77 @@ async function pruneDailyCache(cacheDir: string, site: Site, keep: string): Prom
   }
 }
 
+/**
+ * `cached()` for the daily archive, with two differences that matter offline.
+ *
+ * First it reports whether today's snapshot is actually on disk (`fresh`), so
+ * the caller prunes only when a current file exists to keep — never on the
+ * stale-fallback path, where the file it would delete is the one just served.
+ *
+ * Second, and more importantly, its stale fallback is not limited to its own
+ * key. The archive key carries today's date, so at local midnight it becomes a
+ * filename that has never been written — and the committed offline snapshot,
+ * which is what the demo depends on, sits under an older date. Falling back to
+ * the newest snapshot for this site turns "the network is down and the date
+ * rolled over" from a total failure into eleven-year-old history that is a day
+ * or two stale, which is exactly what a rainfall climatology can absorb.
+ */
+async function cachedArchive(
+  cacheDir: string,
+  key: string,
+  ttlMs: number,
+  load: () => Promise<any>,
+): Promise<{ body: any; fresh: boolean }> {
+  const file = path.join(cacheDir, `${key}.json`);
+
+  try {
+    const raw = JSON.parse(await readFile(file, 'utf8')) as { at: number; body: any };
+    // An in-TTL hit under today's own key is as safe to prune around as a
+    // fresh fetch: the current snapshot is on disk either way. `fresh` is
+    // false only on the stale-fallback path below, where the file that would
+    // be pruned is the one we just served from.
+    if (Date.now() - raw.at < ttlMs) return { body: raw.body, fresh: true };
+  } catch {
+    // No usable entry under today's key; fall through and fetch.
+  }
+
+  try {
+    const body = await load();
+    await mkdir(cacheDir, { recursive: true });
+    await writeFile(file, JSON.stringify({ at: Date.now(), body }));
+    return { body, fresh: true };
+  } catch (err) {
+    // Today's key first, then any older snapshot for the same coordinates.
+    const prefix = key.slice(0, key.lastIndexOf('_') + 1);
+    for (const name of await newestFirst(cacheDir, prefix)) {
+      try {
+        const raw = JSON.parse(await readFile(path.join(cacheDir, name), 'utf8')) as {
+          at: number;
+          body: any;
+        };
+        return { body: raw.body, fresh: false };
+      } catch {
+        // Corrupt or unreadable; try the next one.
+      }
+    }
+    throw err;
+  }
+}
+
+/** Snapshot filenames for a prefix, newest date first. */
+async function newestFirst(cacheDir: string, prefix: string): Promise<string[]> {
+  try {
+    const names = (await readdir(cacheDir)).filter(
+      (n) => n.startsWith(prefix) && n.endsWith('.json'),
+    );
+    // The trailing date sorts lexicographically, which for ISO dates is
+    // chronological.
+    return names.sort().reverse();
+  } catch {
+    return [];
+  }
+}
+
 async function getJson(url: string): Promise<any> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Open-Meteo ${res.status} for ${url}`);
@@ -258,17 +329,30 @@ export class OpenMeteoClient {
     // this project could ship.
     const key = `daily_${siteKey(site)}_${startDate}_${endDate}`;
 
-    // A new ~90 KB file lands each day, so superseded ones are dropped. Scoped
-    // to this site only: a blanket prune would delete the committed snapshot
-    // for JKUAT the first time anyone looked at another town, and with it the
-    // offline demo.
-    await pruneDailyCache(this.cacheDir, site, `${key}.json`);
-
     const url =
       `${ARCHIVE_URL}?latitude=${site.latitude}&longitude=${site.longitude}` +
       `&start_date=${startDate}&end_date=${endDate}&daily=${DAILY_VARS}` +
       `&timezone=${encodeURIComponent(site.timezone)}`;
-    const body = await cached(this.cacheDir, key, 24 * 3600_000, () => getJson(url));
+
+    // `endDate` is today's date in Nairobi, so the key changes at local
+    // midnight and yesterday's snapshot is a different filename. That is what
+    // makes the ordering here load-bearing: pruning *before* the fetch deleted
+    // every older snapshot — including the committed offline fallback — and
+    // only then discovered the network was down. `cached()` then looked for a
+    // stale entry under today's key, which had never been written, so a single
+    // page load on a bad venue network destroyed the asset `.gitignore`
+    // whitelists precisely to survive one, and left the Season page broken
+    // even after connectivity returned.
+    //
+    // So: fetch first, prune only once a fresh snapshot is safely on disk.
+    const { body, fresh } = await cachedArchive(this.cacheDir, key, 24 * 3600_000, () =>
+      getJson(url),
+    );
+
+    if (fresh) {
+      await pruneDailyCache(this.cacheDir, site, `${key}.json`);
+    }
+
     return body.daily as DailyArchive;
   }
 }

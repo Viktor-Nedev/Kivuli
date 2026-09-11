@@ -20,6 +20,13 @@ data/cache/*
 # that dies on a bad venue network. Stale by demo day, but the stale-fallback
 # path is exactly what it is there to exercise.
 !data/cache/forecast_3d.json
+# ...and the 2-day forecast the rain gate on /api/today runs on. Without it a
+# fresh clone opens on an amber "forecast unreachable" banner across the first
+# screen a judge sees, for want of 2.6 KB.
+!data/cache/forecast_2d.json
+# ...and the flood snapshots, so the river panel states its finding rather than
+# vanishing. 0.4 KB each.
+!data/cache/flood_*.json
 # ...and the daily forecast the water balance runs on, for the same reason.
 !data/cache/dailyfc_*.json
 # ...and the hourly archive the model-check page compares the station against.

@@ -159,7 +159,12 @@ test('every window sits inside field hours', () => {
     const startHour = Number(w.start.slice(11, 13));
     const endHour = Number(w.end.slice(11, 13));
     assert.ok(startHour >= FIELD_HOURS.first, `${w.band} window starts at ${startHour}`);
-    assert.ok(endHour < FIELD_HOURS.last, `${w.band} window ends at ${endHour}`);
+    // `end` is the close of the last passing hour, so a window whose final
+    // hour is 17:00 ends at 18:00 — the boundary itself, which is inside the
+    // working day rather than past it. The start is what must be strictly
+    // before the last field hour.
+    assert.ok(startHour < FIELD_HOURS.last, `${w.band} window starts at ${startHour}`);
+    assert.ok(endHour <= FIELD_HOURS.last, `${w.band} window ends at ${endHour}`);
   }
 });
 
@@ -224,4 +229,37 @@ test('bias correction can never produce a negative wind speed', () => {
 
   assert.ok(outlook.hours[0].windSpeedMs >= 0, 'wind speed must never be negative');
   assert.ok(outlook.hours[0].humidityPct >= 0 && outlook.hours[0].humidityPct <= 100);
+});
+
+test('a one-hour window ends when the hour does, not when it starts', () => {
+  // Four of eight windows on the sample day were single-hour runs, and every
+  // one rendered as "09:00-09:00" — which reads as a bug rather than as a
+  // one-hour window. The Ask box quoted it too.
+  const hours = [
+    { time: day(8), spray: { pass: false, reason: 'wind' } },
+    { time: day(9), spray: { pass: true, reason: '' } },
+    { time: day(10), spray: { pass: false, reason: 'wind' } },
+  ] as Parameters<typeof outlookWindows>[0];
+
+  const [w] = outlookWindows(hours, 'spray');
+  assert.equal(w.hours, 1);
+  assert.equal(w.start.slice(11, 16), '09:00');
+  assert.equal(w.end.slice(11, 16), '10:00');
+});
+
+test('window ends stay in local time, never shifted to UTC', () => {
+  // These stamps are timezone-naive local time. Round-tripping them through
+  // `new Date().toISOString()` parses them as UTC and shifts them by the East
+  // Africa offset, which produced windows ending three hours before they
+  // began — worse than the bug it was fixing.
+  const hours = [
+    { time: day(14), spray: { pass: true, reason: '' } },
+    { time: day(15), spray: { pass: true, reason: '' } },
+  ] as Parameters<typeof outlookWindows>[0];
+
+  const [w] = outlookWindows(hours, 'spray');
+  assert.ok(!w.end.endsWith('Z'), 'no UTC marker may appear');
+  assert.equal(w.end.slice(0, 11), w.start.slice(0, 11), 'same local date');
+  assert.ok(w.end.slice(11, 16) > w.start.slice(11, 16), 'end must follow start');
+  assert.equal(w.end.slice(11, 16), '16:00');
 });

@@ -68,9 +68,15 @@ function AppLayout() {
       try {
         // `?at=HH:MM` pins the evaluation moment. The bundled sample is a fixed
         // historical day, so without a pin the app opens on its final row at
-        // 02:55 local — a dead night-time state that shows none of the day's
-        // decisions. A live feed should drop the parameter.
-        const at = new URLSearchParams(window.location.search).get('at') ?? '13:00';
+        // 02:55 local — a dead night-time state where every card reads "no safe
+        // window left". A live feed should drop the parameter.
+        //
+        // 10:15 specifically: it is the moment the sample day produces "Spray
+        // now until 10:38", which is the sentence the README opens with. The
+        // pin used to be 13:00, where spray reads "do not spray" — so anyone
+        // who read the pitch and then opened the app met a contradiction on
+        // the first screen.
+        const at = new URLSearchParams(window.location.search).get('at') ?? '10:15';
         const res = await fetch(`/api/today?at=${encodeURIComponent(at)}`);
         const body = await res.json();
         if (cancelled) return;

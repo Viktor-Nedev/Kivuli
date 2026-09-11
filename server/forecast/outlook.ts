@@ -138,6 +138,22 @@ function hourOf(time: string): number {
 }
 
 /**
+ * The close of the hour a `YYYY-MM-DDTHH:MM` stamp opens.
+ *
+ * Done as string arithmetic on purpose. These stamps are timezone-naive local
+ * time, so `new Date(t).getTime() + 3600_000` parses them as UTC and emits a
+ * `Z` instant shifted by the East Africa offset — which produced windows
+ * ending three hours before they began. The 23:00 case rolls to 24:00 rather
+ * than to the next date: a forward window never spans local midnight (night
+ * hours are excluded from every band), so 24:00 reads correctly as "to the end
+ * of the day" and no consumer has to parse a date change.
+ */
+function endOfHour(time: string): string {
+  const h = hourOf(time);
+  return `${time.slice(0, 11)}${String(h + 1).padStart(2, '0')}:00`;
+}
+
+/**
  * Groups consecutive passing hours of one band into windows.
  *
  * A window never spans the night gap, because non-daylight hours are already
@@ -149,10 +165,15 @@ export function outlookWindows(hours: OutlookHour[], band: OutlookBand): Outlook
 
   const flush = () => {
     if (!run.length) return;
+    // The end is the close of the last passing hour, not its start. A run of
+    // one hour used to set start === end and render as "09:00-09:00", which
+    // reads as a bug rather than as a one-hour window — and four of eight
+    // windows on the sample day were single-hour runs.
+    const end = endOfHour(run[run.length - 1].time);
     windows.push({
       band,
       start: run[0].time,
-      end: run[run.length - 1].time,
+      end,
       hours: run.length,
     });
     run = [];

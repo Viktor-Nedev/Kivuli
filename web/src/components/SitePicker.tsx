@@ -34,7 +34,14 @@ export function SitePicker({
               onClick={() => onSelect(option)}
               disabled={busy && !active}
               aria-pressed={active}
-              title={option.note}
+              // `title` used to carry this note, which renders nothing on a
+              // phone — the exact defect DataTip was built to remove. DataTip
+              // cannot be used here: its trigger is a focusable span, and
+              // nesting one inside this button would create a second tab stop
+              // on the same control. A description association carries the same
+              // text to every reader, with no hover and no new focusable
+              // element.
+              aria-describedby={`site-note-${option.id}`}
               className={`rounded-full border px-3 py-1.5 font-display text-xs uppercase tracking-[0.15em] transition-colors disabled:opacity-50 ${
                 active
                   ? 'border-kenya-green-400 bg-kenya-green-500/20 text-kenya-green-300'
@@ -42,6 +49,9 @@ export function SitePicker({
               }`}
             >
               {option.label}
+              <span id={`site-note-${option.id}`} className="sr-only">
+                {option.note}
+              </span>
             </button>
           );
         })}

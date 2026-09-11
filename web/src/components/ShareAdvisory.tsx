@@ -22,20 +22,25 @@ import { Section } from './Section';
  */
 export function ShareAdvisory({ advisory }: { advisory: { en: string; sw: string } }) {
   const [lang, setLang] = useState<'en' | 'sw'>('en');
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   const text = advisory[lang];
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      setStatus('copied');
+      window.setTimeout(() => setStatus('idle'), 2000);
     } catch {
-      // Clipboard access can be refused (insecure origin, permissions policy).
-      // The text is already on screen and selectable, so the fallback is to
-      // say so plainly rather than to fail silently.
-      setCopied(false);
+      // Clipboard access can be refused (insecure origin, permissions policy),
+      // and a demo served over plain HTTP is exactly where that happens. The
+      // text is already on screen and selectable, so the fallback is to say so
+      // plainly — this branch used to set the idle state, which showed nothing
+      // at all and made the sentence above untrue.
+      //
+      // Deliberately not cleared on a timer: a failure message that disappears
+      // after two seconds is one nobody reads.
+      setStatus('failed');
     }
   }
 
@@ -77,9 +82,22 @@ export function ShareAdvisory({ advisory }: { advisory: { en: string; sw: string
             onClick={copy}
             className="rounded border border-shade-600 px-3 py-1 font-display text-xs uppercase tracking-[0.2em] text-shade-200 transition-colors hover:border-kenya-green-400 hover:text-bleach"
           >
-            {copied ? 'Copied' : 'Copy'}
+            {status === 'copied' ? 'Copied' : 'Copy'}
           </button>
         </div>
+
+        {/* Announced, because a clipboard write that silently fails is
+            indistinguishable from a button that does nothing. */}
+        <p aria-live="polite" className="px-4 pt-3 text-xs text-shade-200">
+          {status === 'copied' && (
+            <span className="text-kenya-green-300">Copied to the clipboard.</span>
+          )}
+          {status === 'failed' && (
+            <span className="text-amber-300">
+              The browser refused the clipboard — select the text below and copy it by hand.
+            </span>
+          )}
+        </p>
 
         {/* Selectable text, not just a button target: if the clipboard API is
             unavailable the message must still be obtainable by hand. */}

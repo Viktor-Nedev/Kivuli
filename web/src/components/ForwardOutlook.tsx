@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { OutlookHour, OutlookResponse } from '../lib/types';
 import { ProvenanceTag } from './Provenance';
 import { useChartReveal } from '../lib/useChartReveal';
@@ -92,7 +92,10 @@ function HourCell({
   return (
     <span
       className={`h-6 flex-1 origin-bottom cursor-pointer rounded-[2px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-kenya-green-400 ${fill}`}
-      role="img"
+      // Not role="img": this is focusable and answers pointer and touch, so
+      // announcing it as a picture misdescribes a control. ValidationPanel's
+      // equivalent bars already use role="button"; this matches them.
+      role="button"
       aria-label={label}
       tabIndex={onRead ? 0 : undefined}
       onMouseEnter={() => onRead?.(label)}
@@ -187,15 +190,24 @@ function BandGrid({
 }
 
 export function ForwardOutlook({ outlook }: { outlook: OutlookResponse }) {
-  const days = byDay(outlook.hours);
+  // Memoised for the same reason Timeline memoises its bands: this component
+  // re-renders on every progress tick of its own reveal animation, and without
+  // this it re-buckets 72 hours and re-filters the windows on each one.
+  const days = useMemo(() => byDay(outlook.hours), [outlook.hours]);
   // Staggered by hour-of-day column rather than by cell, so the strip wipes
   // left to right like a day passing. 144 cells staggered individually would
   // tail for seconds and read as decoration; 24 columns reads as time.
   // scaleY + opacity rather than height: compositor-only, so it stays smooth
   // on a cheap phone.
   const reveal = useChartReveal({ stagger: 18, duration: 550 });
-  const sprayWindows = outlook.windows.filter((w) => w.band === 'spray');
-  const dryingWindows = outlook.windows.filter((w) => w.band === 'drying');
+  const sprayWindows = useMemo(
+    () => outlook.windows.filter((w) => w.band === 'spray'),
+    [outlook.windows],
+  );
+  const dryingWindows = useMemo(
+    () => outlook.windows.filter((w) => w.band === 'drying'),
+    [outlook.windows],
+  );
 
   return (
       <Section

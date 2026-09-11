@@ -73,11 +73,11 @@
 
 /* The header title's entrance: a touch more presence than the plain fade-up
    used for page transitions, since this is the one-time "front door" moment
-   rather than a per-navigation repeat. */
-.animate-title-in {
-  animation: title-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
+   rather than a per-navigation repeat.
 
+   Only the delayed variant survives. The undelayed one was written alongside
+   it and never used — its apparent usages were all prefix matches of this
+   class name. The `title-in` keyframe itself is still live, below. */
 .animate-title-in-delayed {
   animation: title-in 900ms cubic-bezier(0.16, 1, 0.3, 1) 250ms both;
 }

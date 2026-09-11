@@ -297,6 +297,65 @@ Overview page; it is now a lazy route chunk that loads only when the shade map i
 clip loads when the section approaches the viewport rather than on arrival — someone who never
 scrolls past the fold pays nothing for it, and the 136 KB poster carries the frame until then.
 
+## Works without a network, and says so
+
+The server has cached its upstreams since the third phase. The client had no
+equivalent: close the browser without a connection and there was nothing to
+open. For an app whose audience is on intermittent rural signal, that was the
+wrong half to have solved.
+
+KIVULI is now installable, and opens offline showing the last station reading
+it received.
+
+**Exactly one API response is stored — `/api/today`, the station's own
+measurements.** An old measurement is still a measurement: it can be shown with
+its age attached and remain honest. Everything else is refused on purpose. The
+Season, model-check and water endpoints are model output over long windows, and
+a stale forecast presented without a way to see how stale is the confident
+wrong answer this project exists to avoid. Offline those fetches fail and each
+page says so in words. The 8.7 MB hero video is excluded by name — caching it
+would consume the budget the one stored reading depends on.
+
+When the reading comes from storage, a banner sits above every page:
+
+> **Offline** — showing the last reading KIVULI received. Measured at 13:55 on
+> 1 September, about 6 hours ago. The spray and drying verdicts below were
+> computed from that reading and have not been rechecked since. Conditions
+> change within the hour — treat these as a record of what was true, not as
+> advice for now.
+
+Staleness is deliberately **not** a fifth provenance kind. A cached reading is
+still `measured` — the instrument did not become a model while the phone was
+out of signal. Only its currency changed, and the two claims are shown
+separately.
+
+The caching rules live in `web/src/lib/cachePolicy.ts` as a pure, tested
+function rather than inside the worker, because the rules deciding whether a
+farmer is shown an old number deserve to be verified rather than trusted.
+
+If a bad build is ever cached: open with `?nosw`, or run `kivuliReset()` in the
+console.
+
+## Take the data with you
+
+Three datasets download as CSV or JSON — the working day (station readings with
+the gates run on each), the model check (paired station-against-model hours),
+and the instrument agreement (all three thermometers).
+
+**Provenance travels with the file.** A CSV reading `tempC,26.4` with no
+indication of whether an instrument or a ~9 km model produced it has stripped
+off every guarantee this interface makes, at exactly the moment the number
+stops being watched. So every column header carries its tag, every file opens
+with a comment block naming the source and the legend, and the JSON keeps the
+rows byte-identical to the API with provenance in an envelope beside them.
+
+Exports carry one tag the API does not: `derived`. Delta-T, THI and the
+pass/fail gates are arithmetic on measured inputs — no instrument reads a
+Delta-T and no model produced one — so calling them `measured` or
+`raw_forecast` would both be false.
+
+Exporting works offline too: everything is already in memory.
+
 ## The model we did not train
 
 This hackathon came with credits to train a custom frontier model. They went unused, and the
@@ -489,6 +548,17 @@ On the **Season** page, which reads eleven years of ERA5 rainfall rather than th
 - **UI Swahili is deliberately not attempted.** The field-facing advisory is bilingual and
   human-checked, which is the part that gets forwarded. Machine-translating two hundred interface
   strings and presenting them as field-ready would contradict everything above.
+- **Offline, only the station reading is available — everything else fails.** The Season,
+  model-check and water pages read live services and are not cached, so offline they show their
+  degraded copy rather than old numbers. That is a provenance decision, not an oversight: a stale
+  forecast shown without a way to see how stale it is would be exactly the confident wrong answer
+  the rest of this file argues against, and building a staleness marker for six more endpoints was
+  not a job for the week before a deadline. The cached reading is marked with its age on every
+  page. See [Works without a network](#works-without-a-network-and-says-so).
+- **A cached reading is old, not wrong.** The spray and drying verdicts beside it were computed
+  when it arrived and are not recomputed offline. The banner says so; the numbers themselves carry
+  the same `measured` tag they always did, because the instrument did not become a model while the
+  phone was out of signal.
 - **No model was trained, though the credits to train one were available.** 24 aligned
   station-hours cannot support it, and the instrument's own 0.435 °C disagreement already bounds
   what a better model could buy. See [The model we did not train](#the-model-we-did-not-train) for

@@ -1,5 +1,5 @@
 import type { Column } from './export';
-import type { AgreementPoint, HourComparison, TimelinePoint } from './types';
+import type { AgreementPoint, HourComparison, MonthClimate, TimelinePoint, YearTotal } from './types';
 
 /**
  * Which columns each dataset exports, and what each one's provenance is.
@@ -110,4 +110,47 @@ export const AGREEMENT_NOTES = [
   'coolest — the station’s own measurement uncertainty.',
   'bmx280_c is the channel the rest of the app reports as the station',
   'temperature, and the one the calibration coefficients were fitted against.',
+];
+
+/**
+ * Eleven years of annual rainfall totals.
+ *
+ * Every column is `reanalysis`: this is ERA5, a model reconstruction on a
+ * ~9 km grid, and no instrument at this site recorded any of it. The station
+ * measured one day; this is the record it sits inside.
+ */
+export const ANNUAL_COLUMNS: Column<YearTotal>[] = [
+  { header: 'year', provenance: 'reanalysis', value: (r) => r.year },
+  { header: 'rainfall_mm', provenance: 'reanalysis', value: (r) => r.mm },
+  { header: 'days_with_data', provenance: 'reanalysis', value: (r) => r.days },
+  // A partial year would otherwise read as a drought.
+  { header: 'year_complete', provenance: 'reanalysis', value: (r) => r.complete },
+];
+
+export const ANNUAL_NOTES = [
+  'ERA5 reanalysis via Open-Meteo — a model reconstruction on a roughly 9 km',
+  'grid. Not a rain gauge, and not this station: the Conduit mast measured one',
+  'day, and this is the record that day sits inside.',
+  '',
+  'year_complete is false where the year is still running or the archive is',
+  'short. Those rows are not droughts and must not be ranked against full ones.',
+];
+
+/** The twelve-month water balance: what arrives against what leaves. */
+export const CLIMATOLOGY_COLUMNS: Column<MonthClimate>[] = [
+  { header: 'month', provenance: 'reanalysis', value: (r) => r.month },
+  { header: 'mean_rain_mm', provenance: 'reanalysis', value: (r) => r.rainMm },
+  { header: 'mean_et0_mm', provenance: 'reanalysis', value: (r) => r.et0Mm },
+  { header: 'balance_mm', provenance: 'derived', value: (r) => r.balanceMm },
+  { header: 'years_averaged', provenance: 'reanalysis', value: (r) => r.years },
+];
+
+export const CLIMATOLOGY_NOTES = [
+  'ERA5 reanalysis via Open-Meteo, averaged per calendar month.',
+  '',
+  'balance_mm is rain minus reference evapotranspiration — arithmetic on the',
+  'two columns before it, not a measurement. A negative month loses more water',
+  'than it gains, which at this site is most of them.',
+  'et0 is FAO-56 reference evapotranspiration for a standard grass surface, not',
+  'the demand of any particular crop.',
 ];

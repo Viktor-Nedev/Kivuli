@@ -7,6 +7,14 @@ import { WaterHarvest } from '../components/WaterHarvest';
 import { ShareAdvisory } from '../components/ShareAdvisory';
 import { SitePicker, SiteSplitNote } from '../components/SitePicker';
 import { SkeletonCard, SkeletonChart, SkeletonBlock } from '../components/Skeleton';
+import { Section } from '../components/Section';
+import { ExportButtons } from '../components/ExportButtons';
+import {
+  ANNUAL_COLUMNS,
+  ANNUAL_NOTES,
+  CLIMATOLOGY_COLUMNS,
+  CLIMATOLOGY_NOTES,
+} from '../lib/exportColumns';
 import { WaterBalancePanel } from '../components/WaterBalancePanel';
 import { RiverPanel } from '../components/RiverPanel';
 import { DEFAULT_SITE_ID, SITE_OPTIONS, type SiteOption } from '../lib/site';
@@ -221,6 +229,44 @@ export function ClimatePage() {
       <Reveal>
         <ShareAdvisory advisory={data.advisory} />
       </Reveal>
+
+      {/* The longest record in the app, and the one most likely to be plotted
+          somewhere else. Both datasets are ERA5, and every column says so. */}
+      {(data.annual.length > 0 || data.climatology.length > 0) && (
+      <Reveal>
+        <Section title="Take the record">
+          {data.annual.length > 0 && (
+            <ExportButtons
+              rows={data.annual}
+              columns={ANNUAL_COLUMNS}
+              coversDate={data.throughDate}
+              label={`these ${data.annual.length} years of annual rainfall`}
+              meta={{
+                dataset: 'annual-rainfall',
+                title: 'annual rainfall totals, ERA5 reanalysis',
+                source: `ERA5 via Open-Meteo for ${data.place ?? 'this site'}`,
+                notes: ANNUAL_NOTES,
+              }}
+            />
+          )}
+
+          {data.climatology.length > 0 && (
+            <ExportButtons
+              rows={data.climatology}
+              columns={CLIMATOLOGY_COLUMNS}
+              coversDate={data.throughDate}
+              label="the twelve-month rainfall and evaporation balance"
+              meta={{
+                dataset: 'monthly-balance',
+                title: 'monthly rainfall against evaporation demand',
+                source: `ERA5 via Open-Meteo for ${data.place ?? 'this site'}`,
+                notes: CLIMATOLOGY_NOTES,
+              }}
+            />
+          )}
+        </Section>
+      </Reveal>
+      )}
 
       <Reveal>
         <section className="border-t border-shade-700 py-8">

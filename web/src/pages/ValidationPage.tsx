@@ -76,6 +76,7 @@ export function ValidationPage() {
   // Temperature is the variable every gate on this site depends on, and the
   // one the calibration was fitted for, so it is the one worth exporting.
   const temp = variables.find((v) => v.variable === 'tempC');
+  const hasHours = Boolean(temp && temp.hours.length > 0);
 
   return (
     <>
@@ -84,9 +85,13 @@ export function ValidationPage() {
       </Reveal>
 
       {/* The two comparisons this page makes, as files: the model scored
-          against the station, and the station scored against itself. */}
+          against the station, and the station scored against itself.
+          The heading is inside the guard: with a station reporting only one
+          thermometer, or an archive hiccup, both children vanish and a lone
+          bordered heading over empty space reads as a broken page. */}
+      {(hasHours || agreement) && (
       <Section title="Take the comparison">
-        {temp && temp.hours.length > 0 && (
+        {hasHours && temp && (
           <ExportButtons
             rows={temp.hours}
             columns={VALIDATION_COLUMNS}
@@ -116,6 +121,7 @@ export function ValidationPage() {
           />
         )}
       </Section>
+      )}
     </>
   );
 }

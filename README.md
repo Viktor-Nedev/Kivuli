@@ -338,9 +338,11 @@ console.
 
 ## Take the data with you
 
-Three datasets download as CSV or JSON — the working day (station readings with
+Four datasets download as CSV or JSON — the working day (station readings with
 the gates run on each), the model check (paired station-against-model hours),
-and the instrument agreement (all three thermometers).
+the instrument agreement (all three thermometers), and the Season record
+(eleven years of annual totals, and the twelve-month rainfall-against-
+evaporation balance).
 
 **Provenance travels with the file.** A CSV reading `tempC,26.4` with no
 indication of whether an instrument or a ~9 km model produced it has stripped
@@ -354,7 +356,12 @@ pass/fail gates are arithmetic on measured inputs — no instrument reads a
 Delta-T and no model produced one — so calling them `measured` or
 `raw_forecast` would both be false.
 
-Exporting works offline too: everything is already in memory.
+**Only the working day exports offline.** Its data is the one response the
+service worker stores, so it is in memory with no connection. The other three
+read live endpoints that are deliberately not cached, so offline their pages
+show the degraded copy and the download buttons never appear. That follows from
+the caching decision above rather than working around it: an export is only as
+available as the page it sits on.
 
 ## The model we did not train
 
@@ -548,6 +555,14 @@ On the **Season** page, which reads eleven years of ERA5 rainfall rather than th
 - **UI Swahili is deliberately not attempted.** The field-facing advisory is bilingual and
   human-checked, which is the part that gets forwarded. Machine-translating two hundred interface
   strings and presenting them as field-ready would contradict everything above.
+- **The committed rainfall snapshot used to delete itself on a bad network.** The archive cache
+  key carries today's date, so it changes at local midnight and the committed file always sits
+  under an older one — and the pruner ran before the fetch. On a dead network that meant: delete
+  the older snapshots, try the network, fail, then look for a stale entry under a key never
+  written. One page load destroyed the asset this file whitelists precisely to survive a bad venue
+  network, and the Season page stayed broken afterwards. Pruning now happens only once a current
+  snapshot is on disk, and the fallback reaches any snapshot for the site rather than only today's.
+  Reproduced and pinned by `server/forecast/archiveCache.test.ts`.
 - **Offline, only the station reading is available — everything else fails.** The Season,
   model-check and water pages read live services and are not cached, so offline they show their
   degraded copy rather than old numbers. That is a provenance decision, not an oversight: a stale

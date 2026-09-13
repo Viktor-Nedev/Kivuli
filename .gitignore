@@ -33,6 +33,11 @@ data/cache/*
 # Without it that page is empty on a dead venue network, which is the one
 # screen that demonstrates the station doing real work.
 !data/cache/archive_*.json
+# ...and the satellite's daily irradiance. NASA POWER is the only upstream that
+# is not Open-Meteo, so a venue network that blocks one may not block the other
+# — but the model-check page now makes a two-instrument claim, and half of it
+# missing reads worse than either half alone. Under 1 KB.
+!data/cache/solar_*.json
 .DS_Store
 .scratch/
 .claude/

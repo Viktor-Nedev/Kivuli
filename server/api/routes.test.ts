@@ -256,6 +256,49 @@ test('/api/validation carries the station judged against itself', async () => {
   });
 });
 
+test('/api/validation carries the satellite cross-check', async () => {
+  // The Conduit's stated purpose names satellite observations specifically,
+  // and this endpoint only ever scored a model until now.
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/api/validation`);
+    const body = (await res.json()) as {
+      degraded: boolean;
+      solar?: {
+        satelliteMJ: number | null;
+        daylightAgreement: number | null;
+        cloudEvents: number;
+      } | null;
+    };
+    if (body.degraded) return;
+
+    const s = body.solar;
+    if (!s) return; // the satellite is a second opinion; its own test covers absence
+    assert.ok(
+      s.daylightAgreement === null || (s.daylightAgreement > 0 && s.daylightAgreement <= 1),
+      'a correlation must be a correlation',
+    );
+    assert.ok(s.cloudEvents >= 0);
+    assert.ok(
+      s.satelliteMJ === null || s.satelliteMJ > 0,
+      'a fill value must never arrive as a number',
+    );
+  });
+});
+
+test('a satellite outage costs the panel and nothing else', async () => {
+  // The station half of this page must survive an upstream that is not
+  // Open-Meteo going down on its own.
+  const restore = severNetwork();
+  try {
+    await withServer(async (base) => {
+      const res = await fetch(`${base}/api/validation`);
+      assert.equal(res.status, 200, 'a missing satellite must not error the page');
+    });
+  } finally {
+    restore();
+  }
+});
+
 test('/api/validation degrades rather than 502s when the archive is unreachable', async () => {
   const restore = severNetwork();
   try {

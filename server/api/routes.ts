@@ -15,6 +15,8 @@ import { buildWaterBalance, CROP_STAGES, DEFAULT_CROP_ID } from '../climate/wate
 import { assessUv, peakUv } from '../indices/uv.js';
 import { validateAll } from '../validation/groundTruth.js';
 import { buildAgreement } from '../validation/agreement.js';
+import { NasaPowerClient } from '../satellite/power.js';
+import { buildSolarCrossCheck } from '../satellite/crosscheck.js';
 import { buildRiverOutlook } from '../climate/rivers.js';
 import { matchIntent, capabilities } from '../query/intents.js';
 import type { DailyRain } from '../climate/rainfall.js';
@@ -123,6 +125,9 @@ export function createRouter(root: string): Router {
   const router = Router();
   const source = createConduitSource(root);
   const meteo = new OpenMeteoClient(path.join(root, 'data', 'cache'));
+  // Shares the cache directory; its own `solar_` key prefix keeps it from
+  // touching any warm entry another route depends on.
+  const power = new NasaPowerClient(path.join(root, 'data', 'cache'));
 
   /**
    * Rain lookahead from the forecast, keyed by local hour.
@@ -397,12 +402,26 @@ export function createRouter(root: string): Router {
       const { set: rainSet } = await rainLookahead();
       const agreement = buildAgreement(readings, (ts) => rainSet.has(ts.slice(0, 13)));
 
+      // And the station against an actual satellite. The Conduit's stated
+      // purpose names satellite observations specifically, and until now this
+      // endpoint only ever scored a model. Its own try: NASA POWER is a second
+      // opinion, not a dependency, so its absence costs this panel and nothing
+      // else on the page.
+      let solar = null;
+      try {
+        const days = await power.dailySolar(SITE, day, day);
+        solar = buildSolarCrossCheck(readings, days, SITE);
+      } catch {
+        // Left null; the panel says the satellite could not be reached.
+      }
+
       res.json({
         station: { name: source.name, day, hours: readings.length },
         degraded: false,
         generatedAt: new Date().toISOString(),
         variables: validateAll(readings, archive),
         agreement,
+        solar,
       });
     } catch (err) {
       // Degrade rather than 502, matching /api/climate: the station half is

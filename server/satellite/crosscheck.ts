@@ -55,6 +55,15 @@ const CLOUD_DROP_COUNTS = 80;
 /** Sun elevation below this is not usable daylight for the correlation. */
 const DAYLIGHT_SIN_ELEVATION = 0.05;
 
+/** One 15-minute sample of the station's light channel. */
+export interface LightPoint {
+  ts: string;
+  /** Raw SI1145 visible counts. Not W/m², and never presented as such. */
+  counts: number;
+  /** True where the previous daylight sample fell sharply — a cloud crossing. */
+  cloud: boolean;
+}
+
 export interface SolarCrossCheck {
   /** The satellite's daily total, MJ/m². Null when POWER returned a fill. */
   satelliteMJ: number | null;
@@ -75,6 +84,14 @@ export interface SolarCrossCheck {
   peakCounts: number;
   /** The sensor's night baseline, for scale. */
   darkFloorCounts: number;
+  /**
+   * The day's light curve, every sample.
+   *
+   * Shipped whole rather than aggregated: the argument of this panel is that
+   * the station resolves what a daily mean erases, and an hourly average here
+   * would erase exactly the same thing.
+   */
+  points: LightPoint[];
   /** Set when there is nothing to compare; then a consumer draws no chart. */
   unavailable?: string;
 }
@@ -151,11 +168,14 @@ export function buildSolarCrossCheck(
   // Consecutive-sample drops, in time order, daylight only — a fall at dusk is
   // the sun setting, not a cloud.
   const ordered = [...lit].sort((a, b) => a.ts.localeCompare(b.ts));
+  const points: LightPoint[] = [];
   let cloudEvents = 0;
   let prev: number | null = null;
   for (const r of ordered) {
     const isDay = sinSolarElevation(r.ts, site) > DAYLIGHT_SIN_ELEVATION;
-    if (isDay && prev !== null && r.visCounts - prev < -CLOUD_DROP_COUNTS) cloudEvents += 1;
+    const cloud = isDay && prev !== null && r.visCounts - prev < -CLOUD_DROP_COUNTS;
+    if (cloud) cloudEvents += 1;
+    points.push({ ts: r.ts, counts: r.visCounts, cloud });
     prev = isDay ? r.visCounts : null;
   }
 
@@ -168,6 +188,7 @@ export function buildSolarCrossCheck(
     cloudEvents,
     peakCounts,
     darkFloorCounts: DARK_FLOOR_COUNTS,
+    points,
     ...(day === null
       ? { unavailable: 'The satellite returned no usable value for this day.' }
       : {}),

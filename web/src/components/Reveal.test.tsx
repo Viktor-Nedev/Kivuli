@@ -40,12 +40,20 @@ class ManualObserver {
 }
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
 describe('Reveal', () => {
   test('content already on screen does not fade itself', async () => {
+    // Pinned clock. Reveal decides "was this on screen when the page arrived?"
+    // by comparing Date.now() against a 250ms window, so under test-runner
+    // load a genuinely-immediate reveal can measure as a late one and this
+    // assertion flakes. Freezing time removes the machine's speed from the
+    // question the test is actually asking.
+    const t = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(t);
     vi.stubGlobal('IntersectionObserver', ImmediateObserver);
     render(
       <Reveal>

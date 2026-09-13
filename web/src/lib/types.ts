@@ -394,6 +394,40 @@ export interface Agreement {
   n: number;
 }
 
+/* ---------------------------------------------------------------------------
+ * The satellite, on `/api/validation`. Two instruments describing one day from
+ * very different places: NASA POWER integrates a whole day the station cannot,
+ * and the station resolves cloud the satellite's daily mean averages away.
+ * ------------------------------------------------------------------------- */
+
+export interface LightPoint {
+  ts: string;
+  /** Raw SI1145 visible counts. Not W/m², and never presented as such. */
+  counts: number;
+  /** True where the previous daylight sample fell sharply — a cloud crossing. */
+  cloud: boolean;
+}
+
+export interface SolarCrossCheck {
+  /** All-sky downward shortwave, MJ/m². Null when the satellite had no value. */
+  satelliteMJ: number | null;
+  /**
+   * Correlation between the station's visible counts and modelled sun
+   * elevation, daylight only. Dimensionless on purpose: counts are not W/m²,
+   * so only the shape of the day is comparable.
+   */
+  daylightAgreement: number | null;
+  daylightSamples: number;
+  /** Sharp falls in one 15-minute step — cloud the satellite cannot resolve. */
+  cloudEvents: number;
+  peakCounts: number;
+  darkFloorCounts: number;
+  /** The day's light curve, every sample — an average here would erase the point. */
+  points: LightPoint[];
+  /** Present when the satellite had nothing; then there is no chart to draw. */
+  unavailable?: string;
+}
+
 export interface ValidationResponse {
   station: { name: string; day: string; hours: number };
   degraded: boolean;
@@ -402,6 +436,8 @@ export interface ValidationResponse {
   variables: VariableValidation[];
   /** Null when no reading carried all three thermometers. */
   agreement?: Agreement | null;
+  /** Null when the satellite could not be reached. A second opinion, not a dependency. */
+  solar?: SolarCrossCheck | null;
 }
 
 /* ---------------------------------------------------------------------------

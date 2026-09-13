@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ValidationResponse } from '../lib/types';
 import { Reveal } from '../components/Reveal';
 import { Section } from '../components/Section';
+import { SolarPanel } from '../components/SolarPanel';
 import { ExportButtons } from '../components/ExportButtons';
 import {
   AGREEMENT_COLUMNS,
@@ -72,7 +73,7 @@ export function ValidationPage() {
     );
   }
 
-  const { station, variables, agreement } = state.data;
+  const { station, variables, agreement, solar } = state.data;
   // Temperature is the variable every gate on this site depends on, and the
   // one the calibration was fitted for, so it is the one worth exporting.
   const temp = variables.find((v) => v.variable === 'tempC');
@@ -83,6 +84,15 @@ export function ValidationPage() {
       <Reveal>
         <ValidationPanel variables={variables} station={station} agreement={agreement} />
       </Reveal>
+
+      {/* The third comparison: the station and an actual satellite. It sits
+          last because it is the only one where neither side is the reference —
+          the reader needs the two above to see why that is different. */}
+      {solar && (
+        <Reveal>
+          <SolarPanel solar={solar} />
+        </Reveal>
+      )}
 
       {/* The two comparisons this page makes, as files: the model scored
           against the station, and the station scored against itself.

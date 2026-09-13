@@ -297,6 +297,42 @@ Overview page; it is now a lazy route chunk that loads only when the shade map i
 clip loads when the section approaches the viewport rather than on arrival — someone who never
 scrolls past the fold pays nothing for it, and the 136 KB poster carries the frame until then.
 
+## Ground and orbit, checking each other
+
+`server/validation/groundTruth.ts` opens by quoting the Conduit's stated
+purpose — that its measurements *"contribute to the calibration and validation
+of satellite observations and digital models"* — and calls that endpoint the
+sentence made executable. It was half executable. The station scored ERA5,
+which is a model. No satellite was ever involved.
+
+NASA POWER supplies daily all-sky shortwave for the station's exact
+coordinates, with no API key and no registration. On the bundled day it reports
+**19.7 MJ/m²** — roughly three quarters of a clear day at this latitude and
+season.
+
+**Neither instrument is the reference, and that is the point.** Each sees
+something the other cannot:
+
+- The **satellite** integrates a whole day into one number. The mast cannot:
+  its UV channel is dead and its visible channel reports raw counts, not energy.
+- The **station** samples every fifteen minutes, and on this day caught **ten
+  sharp falls** in visible light — cloud crossing overhead. A daily satellite
+  mean averages every one of them away.
+
+The station's light channel tracks the sun at **r = 0.727** across 46 daylight
+readings. That correlation runs against modelled *sun position*, not against
+the satellite's energy figure — the SI1145 reports counts and POWER reports
+MJ/m², and the two cannot be compared in absolute terms. `indices/drying.ts`
+already states that the station and forecast light gates *"answer the same
+question with different instruments and are not interchangeable"*, and
+`analysis/calibrate.py` refuses a four-feature regression at a comparable
+sample size. Fitting a counts-to-W/m² conversion on 43 daylight points from one
+day would contradict both. Comparing the *shape* of the day contradicts
+neither.
+
+Both figures were computed independently in Python against the same CSV before
+the TypeScript existed, and agree exactly. Both are pinned by tests.
+
 ## Works without a network, and says so
 
 The server has cached its upstreams since the third phase. The client had no
@@ -555,6 +591,19 @@ On the **Season** page, which reads eleven years of ERA5 rainfall rather than th
 - **UI Swahili is deliberately not attempted.** The field-facing advisory is bilingual and
   human-checked, which is the part that gets forwarded. Machine-translating two hundred interface
   strings and presenting them as field-ready would contradict everything above.
+- **The satellite is daily-only, and that was decided by testing rather than by preference.** NASA
+  POWER's hourly endpoint returns `-999` — its fill value — for this station's sample date, so an
+  hourly satellite curve would mean inventing the numbers. `CLRSKY_SFC_SW_DWN` was also tested and
+  is missing on thirteen of seventeen days sampled, so the obvious "fraction of a clear day" ratio
+  cannot be computed reliably and is not offered. The daily all-sky series is complete: twelve
+  consecutive days with zero fills.
+- **A fill value is not a small number.** `-999` parses, averages and looks entirely plausible in a
+  payload, so it is mapped to `null` at the adapter boundary and never enters a mean. Nine tests
+  hold it there, including one checking that a mixed response separates rather than averages.
+- **The satellite does not revive the dead UV sensor.** `si1145_uv` still reads 0 on every row.
+  Solar shortwave is a different quantity, POWER's own UV products are deliberately not fetched
+  (UV comes from the forecast, for the reasons above), and the panel's copy does not imply
+  otherwise.
 - **The committed rainfall snapshot used to delete itself on a bad network.** The archive cache
   key carries today's date, so it changes at local midnight and the committed file always sits
   under an older one — and the pruner ran before the fetch. On a dead network that meant: delete

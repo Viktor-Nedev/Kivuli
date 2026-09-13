@@ -19,13 +19,22 @@ import type { ReactNode } from 'react';
  * the point of elevation is that most things are not elevated.
  */
 
+/**
+ * Two surfaces, and only two.
+ *
+ * An audit counted nine distinct card treatments across the app, several
+ * differing only by a 10% opacity step that is invisible on screen. That is
+ * not a system, it is drift. Evidence sits on `plain`; conclusions sit on
+ * `glass`.
+ *
+ * The glass recipe is lifted from `MapPanels`, which was the one genuinely
+ * well-made surface in the codebase and the only `backdrop-blur` anywhere.
+ * Used sparingly on purpose — a blur on every card is just a new uniform.
+ */
 const TONE: Record<'plain' | 'raised', string> = {
   plain: 'border-t border-shade-700 py-10 sm:py-12',
-  // Sits on the page rather than being ruled off from it, with a 1px ochre
-  // hairline along the top edge — the decorative-only role the palette's own
-  // comment reserves that token for.
   raised:
-    'relative mt-10 overflow-hidden rounded-2xl bg-shade-800/40 p-6 ring-1 ring-shade-700 sm:p-8',
+    'relative mt-10 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:p-8',
 };
 
 export function Section({
@@ -49,15 +58,19 @@ export function Section({
     <section id={id} className={`${TONE[tone]} ${className}`.trimEnd()}>
       {tone === 'raised' && (
         <span
-          className="absolute inset-x-0 top-0 h-px bg-kenya-ochre/40"
+          className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
           aria-hidden
         />
       )}
 
       {(title || aside) && (
         <div className="flex flex-wrap items-baseline justify-between gap-3">
+          {/* Was 14px uppercase grey — visually weaker than the body text
+              underneath it, which is the wrong way round for a heading.
+              Sentence case at 22px in the primary ink reads as a heading
+              without needing letter-spacing to look deliberate. */}
           {title && (
-            <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
+            <h2 className="font-display text-xl tracking-[-0.01em] text-bleach sm:text-2xl">
               {title}
             </h2>
           )}

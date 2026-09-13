@@ -40,7 +40,10 @@ export type CacheStrategy =
 /** The one API response allowed to be served stale. */
 const CACHEABLE_API = '/api/today';
 
-/** Never cached, at any size, for any reason. */
+// The hero video is gone — its container had no sync-sample table, which is
+// why scrubbing it stuttered, and the sequence is CSS now. The rule stays as a
+// standing guard: nothing that large may enter the cache the one stored
+// reading depends on, whatever it is called.
 const NEVER_CACHE = ['/hero-farmer.mp4'];
 
 /** Worth the bytes: the header photo is the app's identity offline. */

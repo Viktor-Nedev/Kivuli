@@ -10,47 +10,71 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Dark base — reads as the flag's black. Kept from the original
-        // shade-to-sun palette; only the accent colors below changed.
+        /**
+         * Neutral base.
+         *
+         * Was a blue-grey ramp (#0b1220 -> #8697b8), and a count of every
+         * colour class in the app found 76% of all usage sitting in it. That
+         * is what made the interface read as uniformly grey no matter what
+         * accent sat on top: there was no true black, no true white, and a
+         * warm cream ink over a cool blue ground fighting each other at the
+         * two highest-frequency positions.
+         *
+         * These are neutral greys on a near-black ground. The names are
+         * unchanged so every component keeps working while the surfaces move
+         * underneath.
+         */
         shade: {
-          900: '#0b1220',
-          800: '#131c2e',
-          700: '#1c2840',
-          600: '#273553',
-          400: '#4a5f86',
-          200: '#8697b8',
+          900: '#000000', // page ground
+          800: '#0e0e11', // raised surface
+          700: '#2a2a30', // hairline / border
+          600: '#3a3a42', // hover edge
+          400: '#86868b', // secondary ink (Apple's own secondary grey)
+          200: '#d2d2d7', // body ink
         },
-        // Primary accent, replacing the old amber "sun" family: a muted
-        // Kenyan green, desaturated so it never sits at full flag saturation.
-        // Used for "go"/positive status, links, and the primary brand accent.
+        /**
+         * Status, and only status.
+         *
+         * The old palette spent its whole accent budget on green and amber as
+         * decoration, so colour carried no meaning: 81% of all accent usage
+         * was those two families. Now green means go, amber means wait, red
+         * means stop, and nothing else is tinted at all — which is what makes
+         * a coloured thing worth looking at.
+         *
+         * Brighter than the old muted set because they now sit on black
+         * rather than on a mid blue-grey, and they are never adjacent in one
+         * control (the deuteranopia pair rule still holds).
+         */
         kenya: {
           green: {
-            500: '#3d8361',
-            400: '#5aa07d',
-            300: '#8fc2a5',
+            500: '#248a3d',
+            400: '#30d158', // system green on dark
+            300: '#7ee2a8',
           },
-          // Danger/"stop" accent, muted flag red. Kept visually distinct from
-          // kenya-green (never adjacent in one control) — full-saturation
-          // red+green next to each other is a known deuteranopia/protanopia
-          // failure pair, so both are desaturated and used in disjoint roles
-          // instead of relying on hue alone.
           red: {
-            500: '#b8433a',
-            400: '#cc5c4f',
+            500: '#d70015',
+            400: '#ff453a', // system red on dark
           },
-          // Decorative-only accent for dividers/ornaments — never used for
-          // text or status, so it can sit apart from the semantic palette.
-          ochre: '#a8683d',
+          // Decorative only — dividers and ornaments, never text or status.
+          ochre: '#ac8e68',
         },
-        // A third, non-flag "wait"/caution state — collapsing it into green
-        // or red would misrepresent an in-between status, so it keeps its
-        // own warm-amber identity distinct from both.
         amber: {
-          500: '#e8a33d',
-          400: '#f2b955',
-          300: '#f7cd82',
+          500: '#c93400',
+          400: '#ff9f0a', // system orange on dark
+          300: '#ffd60a',
         },
-        bleach: '#f5efe4',
+        /**
+         * The single non-status accent: links, focus rings, the one element
+         * on a screen meant to pull the eye. Having exactly one means it
+         * always reads as "this is interactive" rather than as decoration.
+         */
+        accent: {
+          500: '#0a84ff',
+          400: '#409cff',
+          300: '#7ab8ff',
+        },
+        /** Primary ink. A true near-white, not the old warm cream. */
+        bleach: '#f5f5f7',
       },
       fontFamily: {
         display: ['"Barlow Condensed"', 'system-ui', 'sans-serif'],

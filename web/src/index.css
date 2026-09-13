@@ -6,11 +6,19 @@
 @layer base {
   body {
     @apply bg-shade-900 text-bleach font-body antialiased;
+    /* 17px, not the browser's 16. An audit found 68% of all type in the app
+       sitting at 12-14px, which is why it read as a dense instrument panel
+       rather than something written to be read. Raising the root lifts every
+       relative size with it. */
+    font-size: 17px;
+    line-height: 1.53;
+    letter-spacing: -0.011em;
   }
 
-  /* Keyboard focus must stay visible against the dark ground. */
+  /* Focus takes the interaction accent, not the "go" status green — those are
+     different meanings and only one of them is about the keyboard. */
   :focus-visible {
-    @apply outline outline-2 outline-offset-2 outline-kenya-green-400;
+    @apply outline outline-2 outline-offset-2 outline-accent-400;
   }
 }
 

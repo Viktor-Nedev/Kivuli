@@ -29,10 +29,13 @@ describe('Section', () => {
       </Section>,
     );
     const h2 = screen.getByRole('heading', { level: 2, name: 'Rainfall standing' });
-    // Uppercase tracked display type is the convention every section shared.
     expect(h2.className).toContain('font-display');
-    expect(h2.className).toContain('uppercase');
-    expect(h2.className).toContain('tracking-[0.2em]');
+    // Sentence case in the primary ink, at a size above the body text. The
+    // old style was 14px uppercase grey, which made every section heading
+    // visually weaker than the paragraph beneath it.
+    expect(h2.className).not.toContain('uppercase');
+    expect(h2.className).toContain('text-bleach');
+    expect(h2.className).toMatch(/text-(xl|2xl)/);
   });
 
   test('an untitled section renders no heading row at all', () => {
@@ -45,19 +48,22 @@ describe('Section', () => {
     expect(screen.queryByRole('heading')).toBeNull();
   });
 
-  test('raised carries the ochre hairline and no top rule', () => {
+  test('raised is a glass surface with a lit top edge and no top rule', () => {
     const { container } = render(
       <Section tone="raised" title="Conclusion">
         <p>body</p>
       </Section>,
     );
     const section = container.querySelector('section');
-    expect(section?.className).toContain('ring-1');
+    // Glass: a blur and a white-tinted edge, not a flat fill with a ring.
+    expect(section?.className).toContain('backdrop-blur');
+    expect(section?.className).toContain('border-white/10');
     // A raised block sits on the page; a top border would fight the ring.
     expect(section?.className).not.toContain('border-t');
+    // The lit top edge that reads as a light source catching the panel.
     // Attribute match rather than a class selector: the "/" in a Tailwind
     // opacity modifier needs CSS escaping that jsdom's parser rejects.
-    expect(container.querySelector('[class*="bg-kenya-ochre/40"]')).not.toBeNull();
+    expect(container.querySelector('[class*="via-white/20"]')).not.toBeNull();
   });
 
   test('the aside sits on the title row', () => {

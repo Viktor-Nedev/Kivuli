@@ -11,70 +11,77 @@ export default {
     extend: {
       colors: {
         /**
-         * Neutral base.
+         * The ground, and the light on it.
          *
-         * Was a blue-grey ramp (#0b1220 -> #8697b8), and a count of every
-         * colour class in the app found 76% of all usage sitting in it. That
-         * is what made the interface read as uniformly grey no matter what
-         * accent sat on top: there was no true black, no true white, and a
-         * warm cream ink over a cool blue ground fighting each other at the
-         * two highest-frequency positions.
+         * Not flat black. A previous pass reduced everything to #000 and one
+         * blue accent and the result was sterile — an empty terminal rather
+         * than a product. Apple's dark surfaces are never one value: they sit
+         * on a deep blue-violet that warms toward the light source, and the
+         * elevation between them is real, not a 1px border.
          *
-         * These are neutral greys on a near-black ground. The names are
-         * unchanged so every component keeps working while the surfaces move
-         * underneath.
+         * So this ramp carries a slight cool cast that gives the glass
+         * something to tint, and the steps are far enough apart to read as
+         * distance.
          */
         shade: {
-          900: '#000000', // page ground
-          800: '#0e0e11', // raised surface
-          700: '#2a2a30', // hairline / border
-          600: '#3a3a42', // hover edge
-          400: '#86868b', // secondary ink (Apple's own secondary grey)
-          200: '#d2d2d7', // body ink
+          950: '#050509', // deepest — page ground behind everything
+          900: '#0a0a12', // page ground
+          800: '#12121c', // raised surface
+          700: '#1c1c2a', // hairline / border
+          600: '#2a2a3d', // hover edge
+          500: '#3d3d54', // disabled ink
+          400: '#8b8ba7', // secondary ink
+          200: '#d8d8e4', // body ink
         },
         /**
-         * Status, and only status.
+         * Status, and only status: go, wait, stop.
          *
-         * The old palette spent its whole accent budget on green and amber as
-         * decoration, so colour carried no meaning: 81% of all accent usage
-         * was those two families. Now green means go, amber means wait, red
-         * means stop, and nothing else is tinted at all — which is what makes
-         * a coloured thing worth looking at.
-         *
-         * Brighter than the old muted set because they now sit on black
-         * rather than on a mid blue-grey, and they are never adjacent in one
-         * control (the deuteranopia pair rule still holds).
+         * Bright enough to glow against a dark ground, because they are now
+         * used with light behind them rather than as flat fills.
          */
         kenya: {
           green: {
-            500: '#248a3d',
-            400: '#30d158', // system green on dark
-            300: '#7ee2a8',
+            600: '#0f7a3d',
+            500: '#1db954',
+            400: '#34e07a',
+            300: '#7ef2ab',
           },
           red: {
-            500: '#d70015',
-            400: '#ff453a', // system red on dark
+            600: '#c11a2b',
+            500: '#f0325a',
+            400: '#ff5c7a',
           },
-          // Decorative only — dividers and ornaments, never text or status.
-          ochre: '#ac8e68',
+          ochre: '#c9a227',
         },
         amber: {
-          500: '#c93400',
-          400: '#ff9f0a', // system orange on dark
-          300: '#ffd60a',
+          600: '#b8690a',
+          500: '#f59e0b',
+          400: '#fbbf24',
+          300: '#fcd34d',
         },
         /**
-         * The single non-status accent: links, focus rings, the one element
-         * on a screen meant to pull the eye. Having exactly one means it
-         * always reads as "this is interactive" rather than as decoration.
+         * The interaction accent, as a family rather than one value.
+         *
+         * A single flat blue cannot make a gradient, a glow or a focus ring
+         * that reads as the same thing at three depths — which is why the
+         * previous pass looked cheap. Violet at the far end lets every accent
+         * gradient travel rather than sit.
          */
         accent: {
-          500: '#0a84ff',
-          400: '#409cff',
-          300: '#7ab8ff',
+          700: '#4c1d95',
+          600: '#6d28d9',
+          500: '#7c5cff', // primary — links, focus, the eye-catcher
+          400: '#9d7fff',
+          300: '#c4b5fd',
         },
-        /** Primary ink. A true near-white, not the old warm cream. */
-        bleach: '#f5f5f7',
+        /** A second hue, so gradients have somewhere to go. */
+        cyan: {
+          500: '#06b6d4',
+          400: '#22d3ee',
+          300: '#67e8f9',
+        },
+        /** Primary ink — a fraction cool, to sit with the ground. */
+        bleach: '#f7f7fb',
       },
       fontFamily: {
         display: ['"Barlow Condensed"', 'system-ui', 'sans-serif'],

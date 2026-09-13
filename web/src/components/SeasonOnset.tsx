@@ -75,7 +75,7 @@ function OnsetCard({ dist }: { dist: OnsetDistribution }) {
   const pos = (d: number) => ((d - axisFrom) / axisSpan) * 100;
 
   return (
-    <div className="rounded-xl border border-shade-700 bg-shade-800/40 p-5">
+    <div className="glass glass-edge lift rounded-2xl p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
           {SEASON_NAME[dist.season]}

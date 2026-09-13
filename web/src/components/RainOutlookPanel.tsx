@@ -63,7 +63,7 @@ export function RainOutlookPanel({ outlook }: { outlook: RainOutlook }) {
 
       {/* The scale itself, so the headline can be checked rather than trusted. */}
       <dl className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-shade-700 bg-shade-800/40 p-4">
+        <div className="glass glass-edge lift rounded-2xl p-4">
           <dt className="text-xs uppercase tracking-[0.2em] text-shade-400">
             Wettest day ahead
           </dt>
@@ -77,7 +77,7 @@ export function RainOutlookPanel({ outlook }: { outlook: RainOutlook }) {
         </div>
 
         {outlook.thresholds.map((t) => (
-          <div key={t.mm} className="rounded-lg border border-shade-700 bg-shade-800/40 p-4">
+          <div key={t.mm} className="glass glass-edge lift rounded-2xl p-4">
             <dt className="text-xs uppercase tracking-[0.2em] text-shade-400">
               {t.mm} mm in a day
             </dt>

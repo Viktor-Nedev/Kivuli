@@ -1,6 +1,7 @@
 import { useOutletContext } from 'react-router-dom';
 import { Hero } from '../components/Hero';
 import { HeroMedia } from '../components/HeroMedia';
+import { AnimatedText } from '../components/AnimatedText';
 import { Term } from '../components/Term';
 import { AskBox } from '../components/AskBox';
 import { Reveal } from '../components/Reveal';
@@ -62,12 +63,19 @@ export function Overview() {
           which was the reason this block was hoisted in the first place. */}
       <HeroMedia />
 
-      <section className="pt-10 sm:pt-12">
-        <h1 className="max-w-3xl font-display text-2xl leading-snug text-bleach sm:text-3xl">
-          A forecast built for a continent is wrong for one field. KIVULI corrects it against a
-          ground station in Juja, Kenya, and turns it into one instruction.
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-shade-200">
+      <section className="pt-14 sm:pt-20">
+        <AnimatedText
+          as="h1"
+          text="A forecast built for a continent is wrong for one field."
+          className="max-w-4xl font-display text-4xl leading-[1.08] tracking-[-0.02em] text-bleach sm:text-6xl"
+        />
+        <AnimatedText
+          as="p"
+          text="KIVULI corrects it against a ground station in Juja, Kenya, and turns it into one instruction."
+          className="text-gradient mt-3 max-w-3xl font-display text-3xl leading-[1.12] tracking-[-0.02em] sm:text-5xl"
+          delay={420}
+        />
+        <p className="rise-in mt-8 max-w-2xl leading-relaxed text-shade-200" style={{ '--i': 9 } as React.CSSProperties}>
           Spray now or wait. Spread grain or keep it covered. Every number below says whether it
           was measured at the station, corrected against it, or modelled — so you can tell what is
           evidence and what is inference.

@@ -57,7 +57,7 @@ export function ShareAdvisory({ advisory }: { advisory: { en: string; sw: string
         Written to be forwarded on WhatsApp or SMS, so it explains itself without the charts above.
       </p>
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-shade-700 bg-shade-800/40">
+      <div className="mt-6 overflow-hidden glass glass-edge lift rounded-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-shade-700/60 px-4 py-2">
           <div className="flex gap-1" role="group" aria-label="Advisory language">
             {(['en', 'sw'] as const).map((code) => (

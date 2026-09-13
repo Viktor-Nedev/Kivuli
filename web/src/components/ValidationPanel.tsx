@@ -64,7 +64,7 @@ function ErrorBars({ variable }: { variable: VariableValidation }) {
               <div className="flex h-1/2 flex-col justify-end">
                 {!negative && (
                   <span
-                    className="w-full rounded-t-sm bg-amber-500"
+                    className="w-full rounded-t-md bg-gradient-to-t from-amber-600 to-amber-400 shadow-[0_0_16px_-4px_rgba(251,191,36,0.6)]"
                     style={{ height: `${frac * 100}%`, transition: grow }}
                   />
                 )}
@@ -73,7 +73,7 @@ function ErrorBars({ variable }: { variable: VariableValidation }) {
               <div className="flex h-1/2 flex-col justify-start">
                 {negative && (
                   <span
-                    className="w-full rounded-b-sm bg-kenya-red-500"
+                    className="w-full rounded-b-md bg-gradient-to-b from-kenya-red-500 to-kenya-red-600 shadow-[0_0_16px_-4px_rgba(240,50,90,0.55)]"
                     style={{ height: `${frac * 100}%`, transition: grow }}
                   />
                 )}
@@ -121,7 +121,7 @@ function ErrorBars({ variable }: { variable: VariableValidation }) {
 export function VariableCard({ variable }: { variable: VariableValidation }) {
   if (!variable.n) {
     return (
-      <div className="rounded-xl border border-shade-700 bg-shade-800/30 p-5">
+      <div className="glass glass-edge lift rounded-2xl p-5">
         <h3 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
           {variable.label}
         </h3>
@@ -136,7 +136,7 @@ export function VariableCard({ variable }: { variable: VariableValidation }) {
   const runsLow = variable.bias < 0;
 
   return (
-    <div className="rounded-xl border border-shade-700 bg-shade-800/30 p-5">
+    <div className="glass glass-edge lift rounded-2xl p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-display text-sm uppercase tracking-[0.2em] text-bleach">
           {variable.label}

@@ -98,12 +98,12 @@ function BalanceChart({ climatology }: { climatology: MonthClimate[] }) {
                 <span className="relative flex items-end gap-0.5" style={{ height: 116 }}>
                   {/* Rain */}
                   <span
-                    className={`w-1/2 rounded-t-sm ${surplus ? 'bg-kenya-green-500' : 'bg-shade-600'}`}
+                    className={`w-1/2 rounded-t-md ${surplus ? 'bg-gradient-to-t from-kenya-green-600 to-kenya-green-400 shadow-[0_0_18px_-5px_rgba(52,224,122,0.65)]' : 'bg-gradient-to-t from-shade-700 to-shade-500'}`}
                     style={{ height: `${(m.rainMm / max) * 100 * reveal.progress}%`, transition: grow }}
                   />
                   {/* Evapotranspiration */}
                   <span
-                    className="w-1/2 rounded-t-sm bg-amber-500/50"
+                    className="w-1/2 rounded-t-md bg-gradient-to-t from-amber-600/50 to-amber-400/80"
                     style={{ height: `${(m.et0Mm / max) * 100 * reveal.progress}%`, transition: grow }}
                   />
                 </span>
@@ -171,7 +171,7 @@ export function WaterHarvest({ harvest, climatology }: Pick<ClimateResponse, 'ha
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-shade-700 bg-shade-800/40 p-5">
+        <div className="glass glass-edge lift rounded-2xl p-5">
           <label
             htmlFor="roof-area"
             className="block text-xs uppercase tracking-[0.2em] text-shade-400"
@@ -229,7 +229,7 @@ export function WaterHarvest({ harvest, climatology }: Pick<ClimateResponse, 'ha
           </p>
         </div>
 
-        <div className="rounded-xl border border-shade-700 bg-shade-800/40 p-5">
+        <div className="glass glass-edge lift rounded-2xl p-5">
           <h3 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
             Water balance through the year
           </h3>

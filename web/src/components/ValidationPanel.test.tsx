@@ -96,8 +96,11 @@ describe('ValidationPanel error bars', () => {
     await waitFor(() => expect(barHeights(container).length).toBeGreaterThan(0));
 
     // Morning hours run low (red, below the line), afternoon high (amber).
-    expect(container.querySelectorAll('.bg-kenya-red-500').length).toBeGreaterThan(0);
-    expect(container.querySelectorAll('.bg-amber-500').length).toBeGreaterThan(0);
+    // Matched on the hue in the gradient rather than a single flat class: the
+    // bars are gradient-filled now, but the invariant is unchanged — direction
+    // has to be visible without reading the axis.
+    expect(container.querySelectorAll('[class*="kenya-red"]').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('[class*="amber"]').length).toBeGreaterThan(0);
   });
 
   test('a variable with no paired hours says so instead of drawing an empty chart', () => {

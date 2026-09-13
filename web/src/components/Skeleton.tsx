@@ -55,7 +55,7 @@ export function SkeletonChart({
 export function SkeletonCard({ className = '' }: { className?: string }) {
   return (
     <div
-      className={`rounded-xl border border-shade-700 bg-shade-800/40 p-5 ${className}`}
+      className={`glass glass-edge lift rounded-2xl p-5 ${className}`}
       aria-hidden
     >
       <Skeleton className="h-3 w-1/3" />

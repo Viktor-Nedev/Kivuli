@@ -254,7 +254,14 @@ function Shell({ children, subtitle }: { children: React.ReactNode; subtitle?: s
     // `overflow-x-hidden`: hidden makes this a scroll container, which
     // silently breaks `position: sticky` for any descendant and gives the
     // browser a second scrollport to fight over.
-    <div className="min-h-screen overflow-x-clip">
+    <div className="relative min-h-screen overflow-x-clip">
+      {/* Ambient light behind everything. Fixed, so it stays put while the
+          page scrolls over it — the ground reads as lit rather than as one
+          flat value, which is what a dark interface needs to avoid looking
+          like an empty terminal. Purely decorative and pointer-transparent. */}
+      <div className="aurora" aria-hidden="true" />
+
+      <div className="relative z-10">
       <SiteHeader subtitle={subtitle} compact={compactHeader} />
       {/* The shade map is full-bleed and supplies its own chrome, so it opts
           out of the reading-width column and the bottom padding — both would
@@ -267,6 +274,7 @@ function Shell({ children, subtitle }: { children: React.ReactNode; subtitle?: s
         {children}
       </main>
       <SiteFooter />
+      </div>
     </div>
   );
 }

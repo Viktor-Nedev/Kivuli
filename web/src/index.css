@@ -127,6 +127,237 @@
   border-color: theme(colors.shade.600);
 }
 
+/* ==========================================================================
+   The visual layer.
+
+   A previous pass stripped this app to flat black and one blue, which read as
+   sterile rather than restrained. What follows is the depth that was missing:
+   an ambient light source, real glass, gradient type, and motion that arrives
+   with content instead of being applied to it.
+
+   Everything here animates `transform`, `opacity` or `filter` only, so it runs
+   on the compositor. The global reduced-motion rule at the end of this file
+   zeroes all of it.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Ambient light.
+
+   Two large, very soft radial washes fixed behind all content. This is what
+   stops a dark page reading as an empty terminal: the ground is no longer one
+   value, so every surface laid on it has something to sit against and the
+   glass has something to tint.
+   -------------------------------------------------------------------------- */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.aurora::before,
+.aurora::after {
+  content: '';
+  position: absolute;
+  width: 70vw;
+  height: 70vw;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.32;
+  will-change: transform;
+}
+
+.aurora::before {
+  top: -22vw;
+  left: -14vw;
+  background: radial-gradient(circle, #7c5cff 0%, transparent 68%);
+  animation: aurora-a 34s ease-in-out infinite alternate;
+}
+
+.aurora::after {
+  bottom: -28vw;
+  right: -16vw;
+  background: radial-gradient(circle, #06b6d4 0%, transparent 68%);
+  animation: aurora-b 44s ease-in-out infinite alternate;
+}
+
+@keyframes aurora-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(6vw, 4vh, 0) scale(1.15); }
+}
+
+@keyframes aurora-b {
+  from { transform: translate3d(0, 0, 0) scale(1.1); }
+  to   { transform: translate3d(-5vw, -5vh, 0) scale(1); }
+}
+
+/* --------------------------------------------------------------------------
+   Glass.
+
+   Three depths rather than one. The saturate() is what separates real glass
+   from a grey overlay: it pulls colour out of whatever sits behind, so the
+   aurora above shows through as a tint instead of being flattened to grey.
+   -------------------------------------------------------------------------- */
+.glass {
+  background: linear-gradient(
+    145deg,
+    rgb(255 255 255 / 0.07) 0%,
+    rgb(255 255 255 / 0.03) 40%,
+    rgb(255 255 255 / 0.015) 100%
+  );
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow:
+    0 1px 0 0 rgb(255 255 255 / 0.09) inset,
+    0 20px 60px -20px rgb(0 0 0 / 0.7);
+}
+
+.glass-strong {
+  background: linear-gradient(
+    145deg,
+    rgb(255 255 255 / 0.11) 0%,
+    rgb(255 255 255 / 0.05) 45%,
+    rgb(255 255 255 / 0.02) 100%
+  );
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  box-shadow:
+    0 1px 0 0 rgb(255 255 255 / 0.13) inset,
+    0 28px 80px -24px rgb(0 0 0 / 0.8);
+}
+
+/* The lit top edge — a highlight where a light source would catch the panel. */
+.glass-edge {
+  position: relative;
+}
+.glass-edge::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.35) 20%,
+    rgb(255 255 255 / 0.35) 80%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Gradient text, for the one number or phrase a section is about.
+   -------------------------------------------------------------------------- */
+.text-gradient {
+  background: linear-gradient(135deg, #f7f7fb 0%, #c4b5fd 45%, #67e8f9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gradient-go {
+  background: linear-gradient(135deg, #7ef2ab 0%, #34e07a 55%, #1db954 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gradient-stop {
+  background: linear-gradient(135deg, #ff5c7a 0%, #f0325a 60%, #c11a2b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   Entrance motion.
+
+   Staggered via an inline `--i` on each child, so a group arrives as a
+   sequence rather than all at once. Blur on the way in is what makes it read
+   as focusing rather than sliding.
+   -------------------------------------------------------------------------- */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+/* Per-word headline reveal. Each word is its own span with its own delay. */
+@keyframes word-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.5em, 0) rotateX(-40deg);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateX(0);
+  }
+}
+
+.word-in > span {
+  display: inline-block;
+  animation: word-in 0.75s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--w, 0) * 65ms);
+  transform-origin: 50% 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Interaction.
+
+   One hover recipe, applied to anything that behaves like a card, so the whole
+   app responds the same way to a pointer.
+   -------------------------------------------------------------------------- */
+.lift {
+  transition:
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 420ms ease-out;
+}
+
+.lift:hover {
+  transform: translate3d(0, -4px, 0);
+  border-color: rgb(255 255 255 / 0.2);
+  box-shadow:
+    0 1px 0 0 rgb(255 255 255 / 0.16) inset,
+    0 32px 70px -22px rgb(0 0 0 / 0.85),
+    0 0 40px -12px rgb(124 92 255 / 0.35);
+}
+
+/* A soft accent glow behind an element that is the point of its section. */
+.glow-accent {
+  box-shadow: 0 0 70px -18px rgb(124 92 255 / 0.55);
+}
+.glow-go {
+  box-shadow: 0 0 70px -18px rgb(52 224 122 / 0.5);
+}
+
+/* A hairline that fades at both ends rather than stopping dead. */
+.rule-fade {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.14) 15%,
+    rgb(255 255 255 / 0.14) 85%,
+    transparent
+  );
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -138,5 +369,18 @@
        shimmer is the only infinite animation in the app and it is exactly the
        case this covers — it settles into a flat gradient block instead. */
     animation-iteration-count: 1 !important;
+    /* Stagger delays too. Without this a `rise-in` child with `--i: 6` still
+       waits 540ms before appearing — the motion is gone but the content still
+       arrives late, which is the worst of both. */
+    animation-delay: 0ms !important;
+    transition-delay: 0ms !important;
+  }
+
+  /* The ambient wash is the one thing that stays: it is a static gradient
+     once its animation stops, and removing it entirely would drop the page
+     back to the flat black this layer exists to fix. */
+  .aurora::before,
+  .aurora::after {
+    animation: none !important;
   }
 }

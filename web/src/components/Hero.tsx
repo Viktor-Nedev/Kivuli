@@ -110,7 +110,7 @@ export function Hero({
   }, [metric]);
 
   return (
-    <section className="lift-on-hover relative flex h-full flex-col overflow-hidden rounded-xl border border-shade-700 bg-shade-800/40 py-6 pl-5 pr-4 sm:py-8 sm:pl-7 sm:pr-6">
+    <section className="glass glass-edge lift relative flex h-full flex-col overflow-hidden rounded-3xl py-7 pl-6 pr-5 sm:py-9 sm:pl-8 sm:pr-7">
       {/* Persistent status rail — carries the color as a band down the left
           edge, not just a small dot, so the card's overall state reads
           before any text is read. */}
@@ -160,7 +160,15 @@ export function Hero({
           {metric && (
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-shade-400">Reading</p>
-              <span className="font-display text-4xl tabular-nums text-bleach sm:text-5xl">
+              <span
+                className={`font-display text-5xl tabular-nums sm:text-6xl ${
+                  instruction.status === 'go'
+                    ? 'text-gradient-go'
+                    : instruction.status === 'stop'
+                      ? 'text-gradient-stop'
+                      : 'text-gradient'
+                }`}
+              >
                 <span ref={metricRef}>0</span>
                 {metricUnit && <span className="ml-1 text-base text-shade-200">{metricUnit}</span>}
               </span>

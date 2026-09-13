@@ -93,7 +93,7 @@ export function DataTip({
       </span>
       <span
         role="tooltip"
-        className={`pointer-events-none absolute z-30 hidden w-56 rounded-lg border border-shade-700 bg-shade-900 p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-shade-200 shadow-lg group-hover:block group-focus-within:block group-active:block ${SIDE[side]} ${ALIGN[align]}`}
+        className={`pointer-events-none absolute z-30 hidden w-56 glass-strong rounded-2xl p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-shade-200 shadow-lg group-hover:block group-focus-within:block group-active:block ${SIDE[side]} ${ALIGN[align]}`}
       >
         <span className="block font-display text-sm text-bleach">{label}</span>
         {detail && <span className="mt-1 block">{detail}</span>}

@@ -61,7 +61,7 @@ function SpreadChart({ points }: { points: AgreementPoint[] }) {
     <div>
       <div
         ref={reveal.ref}
-        className="relative h-40 w-full overflow-hidden rounded-lg bg-shade-900/60 ring-1 ring-shade-700"
+        className="relative h-40 w-full overflow-hidden rounded-2xl bg-shade-950/60 ring-1 ring-white/10"
       >
         {points.map((p, i) => {
           const top = y(Math.max(p.bmxC, p.mcpC, p.shtC));
@@ -221,7 +221,7 @@ export function AgreementSection({
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {agreement.channels.map((c) => (
-            <div key={c.id} className="rounded-xl border border-shade-700 bg-shade-800/30 p-4">
+            <div key={c.id} className="glass glass-edge lift rounded-2xl p-4">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className={`font-display text-sm ${CHANNEL_TEXT[c.id]}`}>{c.sensor}</h3>
                 {c.isReference && (
@@ -280,7 +280,7 @@ export function AgreementSection({
         </p>
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-shade-700 bg-shade-800/30 p-5">
+          <div className="glass glass-edge lift rounded-2xl p-5">
             <p className="font-display text-4xl tabular-nums text-kenya-green-400">
               {rb.evaluated - rb.verdictFlips}
               <span className="text-xl text-shade-200"> / {rb.evaluated}</span>
@@ -290,7 +290,7 @@ export function AgreementSection({
               the same whichever thermometer you believe.
             </p>
           </div>
-          <div className="rounded-xl border border-shade-700 bg-shade-800/30 p-5">
+          <div className="glass glass-edge lift rounded-2xl p-5">
             <p className="font-display text-4xl tabular-nums text-amber-400">
               {rb.evaluated - rb.deltaTFlips}
               <span className="text-xl text-shade-200"> / {rb.evaluated}</span>

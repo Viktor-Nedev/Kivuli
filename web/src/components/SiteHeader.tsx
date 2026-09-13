@@ -59,9 +59,15 @@ export function SiteHeader({
         aria-hidden="true"
         className="absolute inset-0 h-full w-full object-cover object-[50%_12%]"
       />
-      {/* Dark scrim so the title and nav stay legible over any part of the photo. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-shade-900 via-shade-900/70 to-shade-900/30" />
-      <div className="absolute inset-0 bg-shade-900/25" />
+      {/* Three layers rather than two flat scrims.
+
+          The vertical gradient seats the type. The accent wash tints the photo
+          into the same light the rest of the page sits in, so the header reads
+          as part of the product instead of a stock image dropped on top. The
+          vignette closes the corners so the eye lands on the wordmark. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-shade-950 via-shade-900/80 to-shade-900/25" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_120%,rgba(124,92,255,0.28),transparent_60%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(5,5,9,0.55)_100%)]" />
 
       <div className="relative flex flex-col items-center px-5 pb-10 text-center sm:px-8 sm:pb-14">
         {/* The wordmark is branding, not this page's heading. It renders on
@@ -78,15 +84,15 @@ export function SiteHeader({
             would already be partly visible before the rise begins. */}
         <div className="overflow-hidden pb-[0.12em]">
           <p
-            className="animate-wordmark-rise font-wordmark text-5xl leading-[0.9] tracking-tight text-bleach sm:text-7xl"
-            style={{ textShadow: '0 2px 24px rgba(11,18,32,0.6)' }}
+            className="animate-wordmark-rise text-gradient font-wordmark text-6xl leading-[0.9] tracking-tight sm:text-8xl"
+            style={{ filter: 'drop-shadow(0 4px 30px rgba(124,92,255,0.45))' }}
           >
             KIVULI
           </p>
         </div>
         <p
-          className="animate-title-in-delayed mt-3 max-w-md text-sm text-bleach/90 sm:text-base"
-          style={{ textShadow: '0 1px 10px rgba(11,18,32,0.9)' }}
+          className="animate-title-in-delayed mt-4 max-w-md text-base text-shade-200 sm:text-lg"
+          style={{ textShadow: '0 1px 12px rgba(5,5,9,0.9)' }}
         >
           Field decisions from the JKUAT Conduit station, Juja
         </p>
@@ -104,7 +110,7 @@ export function SiteHeader({
           </p>
         )}
 
-        <SiteNav className="animate-title-in-delayed mt-8 w-full justify-center gap-x-4 sm:gap-x-6" />
+        <SiteNav className="animate-title-in-delayed mt-9" />
       </div>
 
       <KenyaDivider variant="bold" className="relative" />
@@ -115,17 +121,22 @@ export function SiteHeader({
 /** The route links, shared by both header variants. */
 function SiteNav({ className = '' }: { className?: string }) {
   return (
-    <nav className={`flex flex-wrap gap-x-6 gap-y-2 ${className}`}>
+    // A floating glass pill rather than a row of bare links. The active route
+    // gets a filled chip inside it, so "where am I" is a shape rather than a
+    // colour difference a reader has to hunt for.
+    <nav
+      className={`glass glass-edge flex flex-wrap items-center justify-center gap-1 rounded-full px-2 py-1.5 ${className}`}
+    >
       {NAV_ITEMS.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
           end={'end' in item ? item.end : false}
           className={({ isActive }) =>
-            `relative pb-1 font-display text-xs uppercase tracking-[0.12em] transition-colors sm:text-sm sm:tracking-[0.2em] after:absolute after:-bottom-[1px] after:left-0 after:h-[2px] after:rounded-full after:bg-kenya-green-400 after:transition-all after:duration-300 ${
+            `relative rounded-full px-3 py-1.5 font-display text-xs tracking-[0.08em] transition-all duration-300 sm:text-sm ${
               isActive
-                ? 'text-kenya-green-400 after:w-full'
-                : 'text-shade-200 after:w-0 hover:text-bleach hover:after:w-full hover:after:bg-shade-400'
+                ? 'bg-white/[0.14] text-bleach shadow-[0_0_20px_-6px_rgba(124,92,255,0.7)]'
+                : 'text-shade-200 hover:bg-white/[0.07] hover:text-bleach'
             }`
           }
         >

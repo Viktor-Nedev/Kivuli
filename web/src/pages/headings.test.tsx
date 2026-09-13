@@ -25,12 +25,21 @@ function read(path: string): string {
   return readFileSync(path, 'utf8');
 }
 
-/** Counts opening <h1 tags, ignoring any inside a comment. */
+/**
+ * Counts headings a page renders at level 1, ignoring comments.
+ *
+ * Two forms count: a literal `<h1`, and `as="h1"` on a component that renders
+ * the tag it is given — `AnimatedText` splits a headline into per-word spans,
+ * so the page source no longer contains the literal tag even though the DOM
+ * does.
+ */
 function countH1(source: string): number {
   const withoutComments = source
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
     .replace(/\/\*[\s\S]*?\*\//g, '');
-  return (withoutComments.match(/<h1[\s>]/g) ?? []).length;
+  const literal = (withoutComments.match(/<h1[\s>]/g) ?? []).length;
+  const polymorphic = (withoutComments.match(/as=['"]h1['"]/g) ?? []).length;
+  return literal + polymorphic;
 }
 
 /** Page module -> the components it defers its heading to, if any. */

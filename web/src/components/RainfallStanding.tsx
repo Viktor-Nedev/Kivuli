@@ -40,8 +40,8 @@ const CATEGORY_TEXT: Record<RainCategory, string> = {
 
 const CATEGORY_BAR: Record<RainCategory, string> = {
   'very-dry': 'bg-kenya-red-500',
-  dry: 'bg-amber-500',
-  normal: 'bg-kenya-green-500',
+  dry: 'bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_18px_-5px_rgba(251,191,36,0.6)]',
+  normal: 'bg-gradient-to-r from-kenya-green-600 to-kenya-green-400 shadow-[0_0_18px_-5px_rgba(52,224,122,0.65)]',
   wet: 'bg-shade-400',
   'very-wet': 'bg-shade-400',
 };
@@ -78,7 +78,7 @@ function WindowCard({ stat }: { stat: WindowStat }) {
   const reveal = useChartReveal({ duration: 900 });
   const totalShown = useCountUp(stat.totalMm);
   return (
-    <div ref={reveal.ref} className="rounded-xl border border-shade-700 bg-shade-800/40 p-5">
+    <div ref={reveal.ref} className="glass glass-edge lift rounded-2xl p-5">
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
           {WINDOW_LABEL[stat.days] ?? `${stat.days} days`}

@@ -53,11 +53,15 @@ export function Overview() {
 
   return (
     <>
-      {/* The standing pitch, above the hero and dependent on no media at all.
-          The scroll-scrubbed version below says this more beautifully, but it
-          only says it once a 9 MB clip has loaded and the reader has scrolled
-          past two viewports. A judge on venue wi-fi previously reached the
-          decision cards having read eight words. */}
+      {/* The header flows straight into the hero sequence. This block used to
+          sit between them, which put a paragraph of body copy where the film
+          should begin — the design review called it out and was right.
+
+          It is still above the fold's fold, so the pitch is not buried: the
+          hero itself is now text-first and readable before any media settles,
+          which was the reason this block was hoisted in the first place. */}
+      <HeroMedia />
+
       <section className="pt-10 sm:pt-12">
         <h1 className="max-w-3xl font-display text-2xl leading-snug text-bleach sm:text-3xl">
           A forecast built for a continent is wrong for one field. KIVULI corrects it against a
@@ -69,8 +73,6 @@ export function Overview() {
           evidence and what is inference.
         </p>
       </section>
-
-      <HeroMedia />
 
       {data.forecastDegraded && (
         <p className="mt-6 rounded border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">

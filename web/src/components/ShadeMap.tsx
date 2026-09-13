@@ -192,145 +192,172 @@ export function ShadeMap({
     // later setStyle() call, so this is a safe drop-in for the one-time
     // setup this map does.
     map.on('style.load', () => {
-      // Standard's own building layer would otherwise render alongside this
-      // project's #273553 extrusion — confirmed via the style's own config
-      // schema that show3dBuildings is the property scoped to just buildings
-      // (not show3dObjects, which would also hide trees/landmarks).
-      map.setConfigProperty('basemap', 'show3dBuildings', false);
+      try {
+        // Standard's own building layer would otherwise render alongside this
+        // project's #273553 extrusion — confirmed via the style's own config
+        // schema that show3dBuildings is the property scoped to just buildings
+        // (not show3dObjects, which would also hide trees/landmarks).
+        map.setConfigProperty('basemap', 'show3dBuildings', false);
 
-      // The Standard style's own buildings live inside its imported "basemap"
-      // fragment, which is opaque to the top-level style API: addLayer
-      // referencing source: 'composite' throws `source "composite" not
-      // found`, confirmed live (getStyle() reports zero Mapbox-provided
-      // sources/layers on a Standard-style map — only ones added here).
-      // Extrude the project's own building footprints instead, the same
-      // GeoJSON already used for shadow casting, as an ordinary GeoJSON
-      // source loaded directly from its URL.
-      map.addSource('kivuli-buildings', {
-        type: 'geojson',
-        data: buildingsGeoJson,
-      });
-      map.addLayer({
-        id: '3d-buildings',
-        source: 'kivuli-buildings',
-        type: 'fill-extrusion',
-        // Places this layer among the Standard style's own layers (roads,
-        // labels) rather than on top of everything, so streets and place
-        // labels still render over the extrusions as expected.
-        slot: 'middle',
-        paint: {
-          'fill-extrusion-color': '#273553',
-          'fill-extrusion-height': ['coalesce', ['get', 'heightM'], 6.2],
-          'fill-extrusion-base': 0,
-          'fill-extrusion-opacity': 0.85,
-        },
-      });
+        // The Standard style's own buildings live inside its imported "basemap"
+        // fragment, which is opaque to the top-level style API: addLayer
+        // referencing source: 'composite' throws `source "composite" not
+        // found`, confirmed live (getStyle() reports zero Mapbox-provided
+        // sources/layers on a Standard-style map — only ones added here).
+        // Extrude the project's own building footprints instead, the same
+        // GeoJSON already used for shadow casting, as an ordinary GeoJSON
+        // source loaded directly from its URL.
+        map.addSource('kivuli-buildings', {
+          type: 'geojson',
+          data: buildingsGeoJson,
+        });
+        map.addLayer({
+          id: '3d-buildings',
+          source: 'kivuli-buildings',
+          type: 'fill-extrusion',
+          // Places this layer among the Standard style's own layers (roads,
+          // labels) rather than on top of everything, so streets and place
+          // labels still render over the extrusions as expected.
+          slot: 'middle',
+          paint: {
+            'fill-extrusion-color': '#273553',
+            'fill-extrusion-height': ['coalesce', ['get', 'heightM'], 6.2],
+            'fill-extrusion-base': 0,
+            'fill-extrusion-opacity': 0.85,
+          },
+        });
 
-      // A warm cast over the whole scene, tying the basemap to the product's
-      // sun palette so shade reads as an absence of warmth.
-      //
-      // Kept deliberately faint. A `background` layer covers the entire
-      // viewport — roads, water and parks included, not just open ground —
-      // so at the 0.16 opacity this started with, the basemap flattened into
-      // a single sheet of peach and the shadow polygons had nothing to
-      // contrast against. The wash is a tint, not a fill; the shadows are
-      // what the eye should be reading.
-      //
-      // `slot: 'bottom'` puts it beneath the basemap's labels and roads
-      // rather than over them, so place names stay crisp.
-      map.addLayer({
-        id: 'ground-exposure',
-        type: 'background',
-        slot: 'bottom',
-        paint: { 'background-color': '#e8a33d', 'background-opacity': 0.05 },
-      });
+        // A warm cast over the whole scene, tying the basemap to the product's
+        // sun palette so shade reads as an absence of warmth.
+        //
+        // Kept deliberately faint. A `background` layer covers the entire
+        // viewport — roads, water and parks included, not just open ground —
+        // so at the 0.16 opacity this started with, the basemap flattened into
+        // a single sheet of peach and the shadow polygons had nothing to
+        // contrast against. The wash is a tint, not a fill; the shadows are
+        // what the eye should be reading.
+        //
+        // `slot: 'bottom'` puts it beneath the basemap's labels and roads
+        // rather than over them, so place names stay crisp.
+        map.addLayer({
+          id: 'ground-exposure',
+          type: 'background',
+          slot: 'bottom',
+          paint: { 'background-color': '#e8a33d', 'background-opacity': 0.05 },
+        });
 
-      map.addSource(SHADOW_SOURCE, {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-      });
-      // Shadow polygons cut back through the warm wash with the map's own
-      // shade-blue, so a shaded street reads as a cool patch against the
-      // warm ground rather than a dark shape that has to compete with an
-      // already-dark basemap.
-      //
-      // Rendered as a near-flat fill-extrusion, not a plain 2D fill: Mapbox
-      // GL always composites fill-extrusion layers in front of 2D fill
-      // layers regardless of style order, so at this map's oblique pitch a
-      // flat fill shadow silently disappears behind the extruded buildings
-      // even though it is listed above them. A 0.2m extrusion keeps the
-      // shadow in the same 3D pass as the buildings it needs to sit beside.
-      map.addLayer({
-        id: SHADOW_LAYER,
-        type: 'fill-extrusion',
-        source: SHADOW_SOURCE,
-        paint: {
-          'fill-extrusion-color': '#1e3a6b',
-          // Tall enough to catch the renderer's own directional lighting on
-          // its vertical faces (a pure 0.05-0.2m sliver reads as flat and
-          // blends into the ground plane at this pitch); still far too short
-          // to be mistaken for a real structure next to 3-18m buildings.
-          'fill-extrusion-height': 1.2,
-          'fill-extrusion-base': 0,
-          'fill-extrusion-opacity': 0.95,
-        },
-      });
+        map.addSource(SHADOW_SOURCE, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        });
+        // Shadow polygons cut back through the warm wash with the map's own
+        // shade-blue, so a shaded street reads as a cool patch against the
+        // warm ground rather than a dark shape that has to compete with an
+        // already-dark basemap.
+        //
+        // Rendered as a near-flat fill-extrusion, not a plain 2D fill: Mapbox
+        // GL always composites fill-extrusion layers in front of 2D fill
+        // layers regardless of style order, so at this map's oblique pitch a
+        // flat fill shadow silently disappears behind the extruded buildings
+        // even though it is listed above them. A 0.2m extrusion keeps the
+        // shadow in the same 3D pass as the buildings it needs to sit beside.
+        map.addLayer({
+          id: SHADOW_LAYER,
+          type: 'fill-extrusion',
+          source: SHADOW_SOURCE,
+          paint: {
+            'fill-extrusion-color': '#1e3a6b',
+            // Tall enough to catch the renderer's own directional lighting on
+            // its vertical faces (a pure 0.05-0.2m sliver reads as flat and
+            // blends into the ground plane at this pitch); still far too short
+            // to be mistaken for a real structure next to 3-18m buildings.
+            'fill-extrusion-height': 1.2,
+            'fill-extrusion-base': 0,
+            'fill-extrusion-opacity': 0.95,
+          },
+        });
 
-      map.addSource(ROUTE_SOURCE, {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-      });
-      map.addLayer({
-        id: ROUTE_LAYER,
-        type: 'line',
-        source: ROUTE_SOURCE,
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: {
-          // Per-segment, not one flat colour: the gauge already reports the
-          // aggregate percentage, so a single-colour line would just repeat
-          // it. Colouring each sampled span shows *where* the shade falls,
-          // which nothing else on screen conveys.
-          'line-color': ['case', ['get', 'shaded'], routeColorFor(1), routeColorFor(0)],
-          'line-width': 5,
-          'line-opacity': 0.9,
-        },
-      });
+        map.addSource(ROUTE_SOURCE, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        });
+        map.addLayer({
+          id: ROUTE_LAYER,
+          type: 'line',
+          source: ROUTE_SOURCE,
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            // Per-segment, not one flat colour: the gauge already reports the
+            // aggregate percentage, so a single-colour line would just repeat
+            // it. Colouring each sampled span shows *where* the shade falls,
+            // which nothing else on screen conveys.
+            'line-color': ['case', ['get', 'shaded'], routeColorFor(1), routeColorFor(0)],
+            'line-width': 5,
+            'line-opacity': 0.9,
+          },
+        });
 
-      // Our layers ease between values instead of snapping. Mapbox's own
-      // `basemap.lightPreset` still steps through its four buckets — this
-      // build exposes no `lightPresetTransition`, and `setLights` is
-      // runtime-only with no typings — but since the ground wash and the
-      // shadows carry most of this map's visual weight, easing them across
-      // the moment the basemap flips is enough that the change reads as
-      // continuous.
-      map.setPaintProperty('ground-exposure', 'background-color-transition', {
-        duration: 600,
-        delay: 0,
-      });
-      map.setPaintProperty('ground-exposure', 'background-opacity-transition', {
-        duration: 600,
-        delay: 0,
-      });
-      map.setPaintProperty(SHADOW_LAYER, 'fill-extrusion-color-transition', {
-        duration: 400,
-        delay: 0,
-      });
-      map.setPaintProperty(SHADOW_LAYER, 'fill-extrusion-opacity-transition', {
-        duration: 400,
-        delay: 0,
-      });
+        // Our layers ease between values instead of snapping. Mapbox's own
+        // `basemap.lightPreset` still steps through its four buckets — this
+        // build exposes no `lightPresetTransition`, and `setLights` is
+        // runtime-only with no typings — but since the ground wash and the
+        // shadows carry most of this map's visual weight, easing them across
+        // the moment the basemap flips is enough that the change reads as
+        // continuous.
+        map.setPaintProperty('ground-exposure', 'background-color-transition', {
+          duration: 600,
+          delay: 0,
+        });
+        map.setPaintProperty('ground-exposure', 'background-opacity-transition', {
+          duration: 600,
+          delay: 0,
+        });
+        map.setPaintProperty(SHADOW_LAYER, 'fill-extrusion-color-transition', {
+          duration: 400,
+          delay: 0,
+        });
+        map.setPaintProperty(SHADOW_LAYER, 'fill-extrusion-opacity-transition', {
+          duration: 400,
+          delay: 0,
+        });
 
-      map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+        map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
 
-      new mapboxgl.Marker({ color: '#b8433a' })
-        .setLngLat([SITE.longitude, SITE.latitude])
-        .setPopup(new mapboxgl.Popup({ offset: 12 }).setText('Conduit station'))
-        .addTo(map);
+        new mapboxgl.Marker({ color: '#b8433a' })
+          .setLngLat([SITE.longitude, SITE.latitude])
+          .setPopup(new mapboxgl.Popup({ offset: 12 }).setText('Conduit station'))
+          .addTo(map);
 
-      setReady(true);
+        setReady(true);
+      } catch (err) {
+        // Every call above is a Mapbox Standard-style API — setConfigProperty
+        // and four `slot:` layers. If the style ever resolves as something
+        // else they throw, and because this is our own handler rather than a
+        // Mapbox event, `map.on('error')` never sees it. Before this catch the
+        // result was setReady(true) never running, the data effect bailing on
+        // `!ready`, and a black rectangle with nothing in the console.
+        console.error('KIVULI: map layer setup failed', err);
+        setMapError(
+          err instanceof Error
+            ? `The map loaded but its layers could not be built: ${err.message}`
+            : 'The map loaded but its layers could not be built.',
+        );
+      }
     });
 
+    // Mapbox measures the container once, at construction. This one is
+    // `absolute inset-0` inside a section sized from a CSS variable, and the
+    // token arrives asynchronously — so the map is built in the same commit
+    // the section is first laid out and can measure zero. Nothing re-ran the
+    // effect afterwards (its deps are `[token]`), so a canvas created at 0x0
+    // stayed 0x0 for the life of the page: a black screen with a perfectly
+    // healthy map behind it.
+    map.on('load', () => map.resize());
+    const ro = new ResizeObserver(() => map.resize());
+    if (containerRef.current) ro.observe(containerRef.current);
+
     return () => {
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
     };

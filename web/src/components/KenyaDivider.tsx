@@ -29,8 +29,19 @@ export function KenyaDivider({
       aria-hidden="true"
       className={`block w-full ${className}`}
       style={{ height }}
-      preserveAspectRatio="none"
-      viewBox={`0 0 ${triangleWidth * 2} ${height}`}
+      // No viewBox, deliberately.
+      //
+      // With one, the SVG scales its user space to the element width — and the
+      // old value spanned two pattern tiles, so the zigzag repeated exactly
+      // twice and each copy was stretched across half the screen. That is the
+      // "line stops in the middle and starts again" the design review
+      // reported, and no `preserveAspectRatio` setting fixes it, because the
+      // problem is the scaling itself.
+      //
+      // Without a viewBox, one user unit is one CSS pixel, so the `<pattern>`
+      // tiles in real pixels across whatever width the element happens to be:
+      // a continuous edge-to-edge zigzag whose triangles keep the proportions
+      // they are drawn with at every viewport.
     >
       <defs>
         <pattern

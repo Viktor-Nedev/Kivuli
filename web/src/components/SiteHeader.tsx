@@ -37,17 +37,27 @@ export function SiteHeader({
 
   return (
     <header className="relative flex min-h-[62vh] flex-col justify-end overflow-hidden bg-shade-900 sm:min-h-[58vh]">
-      {/* The photo is 1.905:1, so `object-cover` only crops on portrait-ish
-          viewports: a 1440x900 laptop shows the full frame, a 390x844 phone
-          shows about 39% of its height. `38%` biases the visible band upward
-          to 14-53%, which keeps every standing figure's face intact — the
-          default `50%` would show 30-70% and cut their heads off. The two
-          kneeling figures (around 65-75%) are unavoidably lost on phones. */}
+      {/* The photo is 1.905:1 and this box is far wider than that on any
+          desktop — 1440x900 at 58vh gives 2.76:1 — so `object-cover` crops
+          the *top and bottom*, not the sides. The previous comment here had
+          that backwards and claimed a laptop "shows the full frame"; showing
+          it whole would need a header 84% of the viewport tall.
+
+          Since a vertical crop is unavoidable, the only question is which end
+          it takes. The standing figures' heads sit at roughly 8-18% of the
+          image height. At the old `38%` the visible band started at 11.8%
+          (1440x900) or 14.4% (1920x1080) — below their chins, which is the
+          decapitation the design review reported. At `12%` it starts at
+          3.7-4.5%, clear of every head at every desktop width.
+
+          On a phone the box is taller than the photo, so it crops the sides
+          instead and this value does almost nothing — the `50%` does the work
+          there. */}
       <img
         src="/hero-community.jpg"
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover object-[50%_38%]"
+        className="absolute inset-0 h-full w-full object-cover object-[50%_12%]"
       />
       {/* Dark scrim so the title and nav stay legible over any part of the photo. */}
       <div className="absolute inset-0 bg-gradient-to-t from-shade-900 via-shade-900/70 to-shade-900/30" />

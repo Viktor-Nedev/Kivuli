@@ -486,7 +486,7 @@ export function ShadeMap({
           route with no h1 is still unnavigable by heading for a screen-reader
           user. This is the one page where the two requirements conflict. */}
       <h1 className="sr-only">Campus shade map</h1>
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="absolute inset-0" data-lenis-prevent />
 
       {/* Each panel is positioned individually. A single `inset-0` wrapper
           would be tidier but would sit over the whole canvas and swallow

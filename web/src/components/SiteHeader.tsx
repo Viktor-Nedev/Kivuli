@@ -66,7 +66,7 @@ export function SiteHeader({
           as part of the product instead of a stock image dropped on top. The
           vignette closes the corners so the eye lands on the wordmark. */}
       <div className="absolute inset-0 bg-gradient-to-t from-shade-950 via-shade-900/80 to-shade-900/25" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_120%,rgba(124,92,255,0.28),transparent_60%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_118%,rgba(185,96,60,0.32),transparent_62%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(5,5,9,0.55)_100%)]" />
 
       <div className="relative flex flex-col items-center px-5 pb-10 text-center sm:px-8 sm:pb-14">
@@ -85,7 +85,7 @@ export function SiteHeader({
         <div className="overflow-hidden pb-[0.12em]">
           <p
             className="animate-wordmark-rise text-gradient font-wordmark text-6xl leading-[0.9] tracking-tight sm:text-8xl"
-            style={{ filter: 'drop-shadow(0 4px 30px rgba(124,92,255,0.45))' }}
+            style={{ filter: 'drop-shadow(0 4px 26px rgba(12,9,7,0.85))' }}
           >
             KIVULI
           </p>
@@ -135,8 +135,8 @@ function SiteNav({ className = '' }: { className?: string }) {
           className={({ isActive }) =>
             `relative rounded-full px-3 py-1.5 font-display text-xs tracking-[0.08em] transition-all duration-300 sm:text-sm ${
               isActive
-                ? 'bg-white/[0.14] text-bleach shadow-[0_0_20px_-6px_rgba(124,92,255,0.7)]'
-                : 'text-shade-200 hover:bg-white/[0.07] hover:text-bleach'
+                ? 'bg-[rgb(255_240_226_/_0.13)] text-bleach shadow-[0_2px_12px_-4px_rgba(12,9,7,0.8)]'
+                : 'text-shade-200 hover:bg-[rgb(255_240_226_/_0.07)] hover:text-bleach'
             }`
           }
         >

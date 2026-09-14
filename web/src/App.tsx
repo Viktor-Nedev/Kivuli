@@ -24,6 +24,7 @@ import { SiteHeader } from './components/SiteHeader';
 import { Skeleton, SkeletonCard, SkeletonBlock } from './components/Skeleton';
 import { SiteFooter } from './components/SiteFooter';
 import { StaleBanner } from './components/StaleBanner';
+import { useSmoothScroll } from './lib/useSmoothScroll';
 
 type State =
   | { phase: 'loading' }
@@ -245,6 +246,11 @@ function Shell({ children, subtitle }: { children: React.ReactNode; subtitle?: s
   // the map is actually on screen when the page loads.
   const { pathname } = useLocation();
   const compactHeader = pathname.startsWith('/shade-map');
+
+  // Interpolates the wheel's ~100px steps into continuous movement, so every
+  // reveal and parallax downstream inherits a smooth input rather than a
+  // stepped one. Opts itself out under reduced motion and on touch.
+  useSmoothScroll();
 
   return (
     // `overflow-x-clip` because the full-bleed children (the scrubbed hero,

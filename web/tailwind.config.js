@@ -11,77 +11,80 @@ export default {
     extend: {
       colors: {
         /**
-         * The ground, and the light on it.
+         * The ground: warm earth at night, not a black screen.
          *
-         * Not flat black. A previous pass reduced everything to #000 and one
-         * blue accent and the result was sterile — an empty terminal rather
-         * than a product. Apple's dark surfaces are never one value: they sit
-         * on a deep blue-violet that warms toward the light source, and the
-         * elevation between them is real, not a 1px border.
+         * Sampled from the project's own photographs. Quantising
+         * hero-community.jpg returns #301800, #483018 and #603018 as dominant
+         * families, and the saturated mid-tones are 45% red, 21% orange, 19%
+         * yellow-ochre. That is laterite soil, dry grass and Maasai cloth —
+         * the actual subject.
          *
-         * So this ramp carries a slight cool cast that gives the glass
-         * something to tint, and the steps are far enough apart to read as
-         * distance.
+         * A previous pass put violet and cyan neon over this. It had nothing
+         * to do with a weather station in Juja, and it looked like it.
+         *
+         * These are deep warm neutrals: a brown-black ground with enough red
+         * in it to feel like soil rather than ink, rising to a bone ink that
+         * reads as paper in low light.
          */
         shade: {
-          950: '#050509', // deepest — page ground behind everything
-          900: '#0a0a12', // page ground
-          800: '#12121c', // raised surface
-          700: '#1c1c2a', // hairline / border
-          600: '#2a2a3d', // hover edge
-          500: '#3d3d54', // disabled ink
-          400: '#8b8ba7', // secondary ink
-          200: '#d8d8e4', // body ink
+          950: '#0c0907', // deepest — behind everything
+          900: '#141010', // page ground
+          800: '#1f1917', // raised surface
+          700: '#2e2622', // hairline
+          600: '#403530', // hover edge
+          500: '#5c4d44', // disabled
+          400: '#a3948a', // secondary ink
+          200: '#e4dcd2', // body ink
         },
         /**
-         * Status, and only status: go, wait, stop.
+         * Status: go, wait, stop — and nothing else is tinted.
          *
-         * Bright enough to glow against a dark ground, because they are now
-         * used with light behind them rather than as flat fills.
+         * Muted to sit inside a warm scheme. A pure #34e07a next to earth
+         * tones reads as a notification badge, not as a field condition.
          */
         kenya: {
           green: {
-            600: '#0f7a3d',
-            500: '#1db954',
-            400: '#34e07a',
-            300: '#7ef2ab',
+            600: '#3f6b46',
+            500: '#557e58',
+            400: '#7a9e76',
+            300: '#a8c3a0',
           },
           red: {
-            600: '#c11a2b',
-            500: '#f0325a',
-            400: '#ff5c7a',
+            600: '#8f2f28',
+            500: '#b03f33',
+            400: '#c96a58',
           },
-          ochre: '#c9a227',
+          ochre: '#b8894a',
         },
         amber: {
-          600: '#b8690a',
-          500: '#f59e0b',
-          400: '#fbbf24',
-          300: '#fcd34d',
+          600: '#9a6420',
+          500: '#c08434',
+          400: '#d9a855',
+          300: '#e8c48a',
         },
         /**
-         * The interaction accent, as a family rather than one value.
+         * The one non-status accent: terracotta.
          *
-         * A single flat blue cannot make a gradient, a glow or a focus ring
-         * that reads as the same thing at three depths — which is why the
-         * previous pass looked cheap. Violet at the far end lets every accent
-         * gradient travel rather than sit.
+         * Taken straight from the photograph's dominant hue. It carries links
+         * and focus, so "this is interactive" is one consistent signal — and
+         * it belongs to the subject rather than being imported from a tech
+         * palette.
          */
         accent: {
-          700: '#4c1d95',
-          600: '#6d28d9',
-          500: '#7c5cff', // primary — links, focus, the eye-catcher
-          400: '#9d7fff',
-          300: '#c4b5fd',
+          700: '#7a3b26',
+          600: '#9c4d31',
+          500: '#b9603c',
+          400: '#cf7d55',
+          300: '#e3a680',
         },
-        /** A second hue, so gradients have somewhere to go. */
-        cyan: {
-          500: '#06b6d4',
-          400: '#22d3ee',
-          300: '#67e8f9',
+        /** The second hue for gradients: dry savannah grass, not cyan. */
+        sage: {
+          500: '#6b7350',
+          400: '#8a9268',
+          300: '#adb48c',
         },
-        /** Primary ink — a fraction cool, to sit with the ground. */
-        bleach: '#f7f7fb',
+        /** Primary ink — bone, the warm paper of a field notebook. */
+        bleach: '#f7f2ea',
       },
       fontFamily: {
         display: ['"Barlow Condensed"', 'system-ui', 'sans-serif'],

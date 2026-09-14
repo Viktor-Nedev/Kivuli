@@ -163,22 +163,22 @@
   width: 70vw;
   height: 70vw;
   border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.32;
+  filter: blur(140px);
+  opacity: 0.22;
   will-change: transform;
 }
 
 .aurora::before {
   top: -22vw;
   left: -14vw;
-  background: radial-gradient(circle, #7c5cff 0%, transparent 68%);
+  background: radial-gradient(circle, #b9603c 0%, transparent 70%);
   animation: aurora-a 34s ease-in-out infinite alternate;
 }
 
 .aurora::after {
   bottom: -28vw;
   right: -16vw;
-  background: radial-gradient(circle, #06b6d4 0%, transparent 68%);
+  background: radial-gradient(circle, #6b7350 0%, transparent 70%);
   animation: aurora-b 44s ease-in-out infinite alternate;
 }
 
@@ -200,33 +200,35 @@
    aurora above shows through as a tint instead of being flattened to grey.
    -------------------------------------------------------------------------- */
 .glass {
+  /* Tinted warm, not pure white. A neutral overlay on a warm ground reads as
+     frost laid over the page; a warm one reads as light falling on it. */
   background: linear-gradient(
     145deg,
-    rgb(255 255 255 / 0.07) 0%,
-    rgb(255 255 255 / 0.03) 40%,
-    rgb(255 255 255 / 0.015) 100%
+    rgb(255 242 230 / 0.065) 0%,
+    rgb(255 242 230 / 0.028) 42%,
+    rgb(255 242 230 / 0.012) 100%
   );
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgb(255 255 255 / 0.1);
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
+  border: 1px solid rgb(255 240 226 / 0.09);
   box-shadow:
-    0 1px 0 0 rgb(255 255 255 / 0.09) inset,
-    0 20px 60px -20px rgb(0 0 0 / 0.7);
+    0 1px 0 0 rgb(255 240 226 / 0.07) inset,
+    0 20px 60px -22px rgb(12 9 7 / 0.75);
 }
 
 .glass-strong {
   background: linear-gradient(
     145deg,
-    rgb(255 255 255 / 0.11) 0%,
-    rgb(255 255 255 / 0.05) 45%,
-    rgb(255 255 255 / 0.02) 100%
+    rgb(255 242 230 / 0.1) 0%,
+    rgb(255 242 230 / 0.045) 45%,
+    rgb(255 242 230 / 0.018) 100%
   );
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid rgb(255 255 255 / 0.14);
+  backdrop-filter: blur(30px) saturate(145%);
+  -webkit-backdrop-filter: blur(30px) saturate(145%);
+  border: 1px solid rgb(255 240 226 / 0.12);
   box-shadow:
-    0 1px 0 0 rgb(255 255 255 / 0.13) inset,
-    0 28px 80px -24px rgb(0 0 0 / 0.8);
+    0 1px 0 0 rgb(255 240 226 / 0.1) inset,
+    0 28px 80px -26px rgb(12 9 7 / 0.85);
 }
 
 /* The lit top edge — a highlight where a light source would catch the panel. */
@@ -241,8 +243,8 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgb(255 255 255 / 0.35) 20%,
-    rgb(255 255 255 / 0.35) 80%,
+    rgb(255 240 226 / 0.24) 20%,
+    rgb(255 240 226 / 0.24) 80%,
     transparent
   );
   pointer-events: none;
@@ -252,21 +254,21 @@
    Gradient text, for the one number or phrase a section is about.
    -------------------------------------------------------------------------- */
 .text-gradient {
-  background: linear-gradient(135deg, #f7f7fb 0%, #c4b5fd 45%, #67e8f9 100%);
+  background: linear-gradient(135deg, #f7f2ea 0%, #e3a680 48%, #b8894a 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 .text-gradient-go {
-  background: linear-gradient(135deg, #7ef2ab 0%, #34e07a 55%, #1db954 100%);
+  background: linear-gradient(135deg, #a8c3a0 0%, #7a9e76 55%, #557e58 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 .text-gradient-stop {
-  background: linear-gradient(135deg, #ff5c7a 0%, #f0325a 60%, #c11a2b 100%);
+  background: linear-gradient(135deg, #c96a58 0%, #b03f33 60%, #8f2f28 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -333,17 +335,17 @@
   transform: translate3d(0, -4px, 0);
   border-color: rgb(255 255 255 / 0.2);
   box-shadow:
-    0 1px 0 0 rgb(255 255 255 / 0.16) inset,
-    0 32px 70px -22px rgb(0 0 0 / 0.85),
-    0 0 40px -12px rgb(124 92 255 / 0.35);
+    0 1px 0 0 rgb(255 240 226 / 0.13) inset,
+    0 32px 70px -24px rgb(12 9 7 / 0.85),
+    0 0 40px -14px rgb(185 96 60 / 0.28);
 }
 
 /* A soft accent glow behind an element that is the point of its section. */
 .glow-accent {
-  box-shadow: 0 0 70px -18px rgb(124 92 255 / 0.55);
+  box-shadow: 0 0 70px -22px rgb(185 96 60 / 0.35);
 }
 .glow-go {
-  box-shadow: 0 0 70px -18px rgb(52 224 122 / 0.5);
+  box-shadow: 0 0 70px -22px rgb(122 158 118 / 0.32);
 }
 
 /* A hairline that fades at both ends rather than stopping dead. */
@@ -352,8 +354,8 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgb(255 255 255 / 0.14) 15%,
-    rgb(255 255 255 / 0.14) 85%,
+    rgb(255 240 226 / 0.13) 15%,
+    rgb(255 240 226 / 0.13) 85%,
     transparent
   );
 }

@@ -152,33 +152,51 @@
   display: inline-block;
   transform-origin: 50% 100%;
   will-change: transform, opacity, filter;
-  animation: letter-in 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: calc(var(--l, 0) * 105ms);
+  animation: letter-in 1.05s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--l, 0) * 85ms);
 }
 
-/* A light sweeping across the finished word once it has landed. The gradient
-   is twice the width of the text, so moving its position drags a highlight
-   over the glyphs. Runs once — a looping shine on a logotype reads as a
-   banner advert. */
-@keyframes wordmark-sheen {
-  from { background-position: 220% center; }
-  to   { background-position: -120% center; }
-}
-
-.wordmark-sheen {
+/* The gradient ink for the wordmark.
+ *
+ * It sits on the letters, not on the paragraph around them. `background-clip:
+ * text` paints a background through the glyphs *of the element that declares
+ * it* — put it on the parent while the glyphs live in child spans and the
+ * children inherit only `color: transparent`, with no background of their own
+ * to show through. That is an invisible wordmark, which is exactly what it
+ * rendered as.
+ *
+ * Each letter carries its own slice of one shared gradient, positioned by
+ * `--l` so the colour continues across the word instead of restarting six
+ * times. `background-attachment: fixed` would do the same in one line, but
+ * this element also animates `filter`, and a non-none filter establishes a
+ * containing block — whether a fixed background survives that is
+ * under-specified and differs between engines. Not a gamble worth taking on
+ * the one word that has to be legible. */
+.wordmark-letter {
   background-image: linear-gradient(
     100deg,
     #f7f2ea 0%,
-    #e3a680 34%,
-    #fff6e8 48%,
-    #b8894a 62%,
+    #e3a680 38%,
+    #fff6e8 52%,
+    #b8894a 68%,
     #f7f2ea 100%
   );
-  background-size: 220% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: wordmark-sheen 2.4s cubic-bezier(0.4, 0, 0.2, 1) 900ms both;
+  /* Six letters wide, shifted one slot per letter. */
+  background-size: 600% 100%;
+  background-position: calc(var(--l, 0) * 20%) center;
+  /* A visible colour first, then transparency only where the clip is actually
+     supported. Declaring `color: transparent` unconditionally is how this
+     rendered as nothing at all once before: if the clip does not apply, the
+     glyphs are painted in a colour that is not there. */
+  color: #f7f2ea;
+}
+
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .wordmark-letter {
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 }
 
 /* Cards/rows that should feel touchable: a small lift plus a brighter ring,

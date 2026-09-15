@@ -85,7 +85,7 @@ export function SiteHeader({
               a screen reader rather than six letters. */}
           <p
             aria-label="KIVULI"
-            className="wordmark-stage wordmark-sheen font-wordmark text-7xl leading-[0.9] tracking-tight sm:text-9xl lg:text-[10rem]"
+            className="wordmark-stage font-wordmark text-7xl leading-[0.9] tracking-tight sm:text-9xl lg:text-[10rem]"
           >
             {'KIVULI'.split('').map((letter, i) => (
               <span

@@ -77,9 +77,11 @@ function sampleRoute(from: [number, number], to: [number, number], steps = 20): 
 /**
  * Sets a basemap config property, if this style still has one.
  *
- * Mapbox Standard changed shape: it used to be an import-based style whose
- * basemap fragment answered to `setConfigProperty('basemap', …)`, and it now
- * resolves flat. Calling the old API against the new style throws.
+ * `setConfigProperty` is style-schema-specific: it applies to a style that
+ * exposes the named fragment and throws against one that does not. Standard
+ * does expose `basemap` on this build — verified live, the call succeeds and
+ * `getConfigProperty('basemap', 'lightPreset')` reads back — but that is a
+ * property of the style, which Mapbox revises, not of this code.
  *
  * Returns whether it applied, so a caller can fall back rather than assume.
  * Deliberately swallowing: every use here is cosmetic — hiding duplicate
@@ -220,15 +222,12 @@ export function ShadeMap({
         // project's #273553 extrusion — confirmed via the style's own config
         // schema that show3dBuildings is the property scoped to just buildings
         // (not show3dObjects, which would also hide trees/landmarks).
-        // Mapbox Standard used to be an import-based style, where the
-        // basemap lived in a fragment addressed as 'basemap' and configured
-        // through setConfigProperty. It is no longer: the style now resolves
-        // flat, with 190 top-level layers and its own `composite` source, and
-        // that call throws `no such import` — which, running first inside
-        // style.load, took every layer after it down and left a black map.
-        //
-        // So it is attempted rather than assumed, and its failure costs only
-        // the duplicate buildings it was suppressing.
+        // Attempted rather than assumed. It does currently succeed — the
+        // served style JSON reports 190 top-level layers and no imports, yet
+        // at runtime the basemap still resolves as a fragment and answers to
+        // this call. Both shapes have shipped under the same style name, so
+        // the failure is guarded rather than relied on being impossible; its
+        // cost is only the duplicate buildings it was suppressing.
         setConfig(map, 'show3dBuildings', false);
 
         // The Standard style's own buildings live inside its imported "basemap"

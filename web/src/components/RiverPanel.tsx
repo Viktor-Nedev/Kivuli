@@ -77,7 +77,7 @@ export function RiverPanel({ river }: { river: RiverOutlook }) {
               </DataTip>
             ))}
           </div>
-          <div className="mt-1 flex justify-between text-[10px] tabular-nums text-shade-400">
+          <div className="mt-1 flex justify-between text-micro tabular-nums text-shade-400">
             <span>{river.days[0]?.date.slice(5)}</span>
             <span>{river.days[river.days.length - 1]?.date.slice(5)}</span>
           </div>

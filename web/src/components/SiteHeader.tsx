@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { KenyaDivider } from './KenyaDivider';
+import { MobileNav } from './MobileNav';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Overview', end: true },
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
 export function SiteHeader({
   subtitle,
   compact = false,
+  short = false,
 }: {
   subtitle?: string;
   /**
@@ -32,6 +34,17 @@ export function SiteHeader({
    * opposite of "full screen". Navigation stays, the photo goes.
    */
   compact?: boolean;
+  /**
+   * Halves the photo band on phones. The full hero measured 658px of an 844px
+   * screen -- 78% of the viewport -- which is the right entrance for the
+   * landing page and the wrong one for the six pages behind it, where a
+   * reader who has already chosen a page had to scroll a whole screen of
+   * photograph before reaching its first word.
+   *
+   * Only below `sm`: on a laptop the full header costs nothing, because the
+   * viewport is wide enough that the content below it is still in view.
+   */
+  short?: boolean;
 }) {
   if (compact) return <CompactHeader />;
 
@@ -43,7 +56,11 @@ export function SiteHeader({
     // bottom brings it back on screen at every size; `object-[50%_35%]` keeps
     // the band the picture is actually about — sun, horizon and most of the
     // walking figure — inside the crop.
-    <header className="relative flex h-[78vh] min-h-[480px] w-full flex-col overflow-hidden bg-shade-950">
+    <header
+      className={`relative flex w-full flex-col overflow-hidden bg-shade-950 sm:h-[78vh] sm:min-h-[480px] ${
+        short ? 'h-[46vh] min-h-[340px]' : 'h-[78vh] min-h-[480px]'
+      }`}
+    >
       <img
         src="/kenya.jpg"
         alt=""
@@ -64,11 +81,12 @@ export function SiteHeader({
       <div className="relative px-5 pt-6 sm:px-8 sm:pt-8">
         <div className="mx-auto w-full max-w-5xl">
           <SiteNav className="w-fit" />
+          <MobileNav items={NAV_ITEMS} />
         </div>
       </div>
 
       {/* The title block, left-aligned and pushed to the lower third. */}
-      <div className="relative mt-auto px-5 pb-16 sm:px-8 sm:pb-24">
+      <div className={`relative mt-auto px-5 sm:px-8 sm:pb-24 ${short ? 'pb-8' : 'pb-16'}`}>
         <div className="mx-auto w-full max-w-5xl">
           {/* Each letter swings up on its own axis and the word is swept once
               by a highlight after it lands. No `overflow-hidden` clip here:
@@ -85,7 +103,9 @@ export function SiteHeader({
               a screen reader rather than six letters. */}
           <p
             aria-label="KIVULI"
-            className="wordmark-stage font-wordmark text-7xl leading-[0.9] tracking-tight sm:text-9xl lg:text-[10rem]"
+            className={`wordmark-stage font-wordmark leading-[0.9] tracking-tight sm:text-9xl lg:text-[10rem] ${
+              short ? 'text-6xl' : 'text-7xl'
+            }`}
           >
             {'KIVULI'.split('').map((letter, i) => (
               <span
@@ -134,8 +154,11 @@ function SiteNav({ className = '' }: { className?: string }) {
     // shear is applied to the bar and to each chip, then undone on the label
     // inside so the type stays upright and readable; skewed text would be the
     // point at which a motif becomes a legibility problem.
+    // `hidden sm:flex`: below `sm` this bar is 525px wide in a 390px viewport
+    // and the header clips the overflow, so its last two links cannot be
+    // reached at all. MobileNav renders instead at that width.
     <nav
-      className={`glass glass-edge flex items-center justify-center gap-1 px-2 py-1.5 ${className}`}
+      className={`glass glass-edge hidden items-center justify-center gap-1 px-2 py-1.5 sm:flex ${className}`}
       style={{ transform: 'skewX(-12deg)' }}
     >
       {NAV_ITEMS.map((item, i) => (
@@ -199,14 +222,17 @@ function CompactHeader() {
 
   return (
     <header ref={ref} className="relative bg-shade-900">
-      {/* Stacks below `sm`: the the tracked-out links plus the wordmark are
-          wider than a 390px phone, so side-by-side clipped the last item.
-          One row from `sm` up, where they fit. */}
-      <div className="flex flex-col gap-y-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-x-8 sm:px-8">
+      {/* One row at every width now. This used to stack below `sm`, because
+          seven tracked-out links plus the wordmark could not fit a 390px
+          phone -- but below `sm` those links are a single 44px menu button,
+          which fits beside the wordmark with room to spare. Stacking would
+          only spend vertical space the map underneath wants. */}
+      <div className="flex flex-row items-center justify-between gap-x-4 px-5 py-4 sm:gap-x-8 sm:px-8">
         <NavLink to="/" className="font-wordmark text-xl tracking-tight text-bleach">
           KIVULI
         </NavLink>
         <SiteNav className="gap-x-5 sm:justify-end sm:gap-x-6" />
+        <MobileNav items={NAV_ITEMS} />
       </div>
       <KenyaDivider variant="bold" className="relative" />
     </header>

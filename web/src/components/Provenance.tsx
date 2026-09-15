@@ -62,7 +62,7 @@ export function ProvenanceTag({
       }
     >
       <span
-        className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ring-1 ${STYLE[kind]}`}
+        className={`inline-block rounded px-1.5 py-0.5 text-micro font-medium uppercase tracking-wide ring-1 ${STYLE[kind]}`}
       >
         {LABEL[kind]}
       </span>

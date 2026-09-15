@@ -73,7 +73,19 @@ export function Timeline({ points }: { points: TimelinePoint[] }) {
                   className={`absolute top-0 h-full origin-center transition-all duration-200 hover:z-10 hover:scale-y-110 hover:brightness-110 focus-visible:z-10 focus-visible:scale-y-110 ${
                     s.pass ? 'bg-kenya-green-500 shadow-[0_0_12px_-2px_rgba(90,160,125,0.6)]' : 'bg-shade-600'
                   }`}
-                  style={{ left: `${s.startPct}%`, width: `${s.widthPct}%` }}
+                  // A segment is as wide as its period is long, so a short
+                  // window renders as a sliver: measured at 390px, real
+                  // segments came out 2, 4, 7 and 11px wide, which no finger
+                  // can hit. `minWidth` raises the *hit* area to 24px while
+                  // `width` keeps the true proportion, so the band still reads
+                  // as a truthful timeline and the target is reachable.
+                  //
+                  // 24 rather than 44: these are neighbours in a continuous
+                  // strip, not isolated buttons, and a 44px floor on a 2px
+                  // period would visibly overlap the periods either side and
+                  // misreport the day. 24px is the widest that stays honest
+                  // here; the tap-anywhere read-out below carries the detail.
+                  style={{ left: `${s.startPct}%`, width: `${s.widthPct}%`, minWidth: 24 }}
                 />
               ))}
             </div>
@@ -85,7 +97,7 @@ export function Timeline({ points }: { points: TimelinePoint[] }) {
         {hours.map((h) => (
           <span
             key={h.label}
-            className="absolute -translate-x-1/2 text-[10px] tabular-nums text-shade-400"
+            className="absolute -translate-x-1/2 text-micro tabular-nums text-shade-400"
             style={{ left: `${(h.minutes / span) * 100}%` }}
           >
             {String(Math.floor((h.label / 60) % 24)).padStart(2, '0')}:00
@@ -103,7 +115,7 @@ export function Timeline({ points }: { points: TimelinePoint[] }) {
           </>
         ) : (
           <span className="text-shade-400">
-            Hover, tap or tab through a band to see why a period is open or closed.
+            Tap or tab through a band to see why a period is open or closed.
           </span>
         )}
       </p>

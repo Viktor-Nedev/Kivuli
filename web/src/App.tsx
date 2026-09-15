@@ -246,6 +246,10 @@ function Shell({ children, subtitle }: { children: React.ReactNode; subtitle?: s
   // the map is actually on screen when the page loads.
   const { pathname } = useLocation();
   const compactHeader = pathname.startsWith('/shade-map');
+  // The full-height hero is the landing page's entrance. Every other route has
+  // already been chosen, so on a phone it gets a shorter band and puts its own
+  // content on screen instead. See SiteHeader's `short` prop.
+  const shortHeader = pathname !== '/';
 
   // Interpolates the wheel's ~100px steps into continuous movement, so every
   // reveal and parallax downstream inherits a smooth input rather than a
@@ -268,7 +272,7 @@ function Shell({ children, subtitle }: { children: React.ReactNode; subtitle?: s
       <div className="aurora" aria-hidden="true" />
 
       <div className="relative z-10">
-      <SiteHeader subtitle={subtitle} compact={compactHeader} />
+      <SiteHeader subtitle={subtitle} compact={compactHeader} short={shortHeader} />
       {/* The shade map is full-bleed and supplies its own chrome, so it opts
           out of the reading-width column and the bottom padding — both would
           just add dead scroll under a viewport-height section. */}

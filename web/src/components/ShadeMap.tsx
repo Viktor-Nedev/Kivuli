@@ -16,6 +16,7 @@ import type { TimelinePoint } from '../lib/types';
 import { Gauge } from './Gauge';
 import { LegendRow, MapPanel } from './MapPanels';
 import { groundExposurePaint, routeColorFor, shadowPaint } from '../map/sunTint';
+import { isCoarsePointer } from '../lib/isCoarsePointer';
 
 const SHADOW_SOURCE = 'kivuli-shadows';
 const SHADOW_LAYER = 'kivuli-shadows-fill';
@@ -196,7 +197,13 @@ export function ShadeMap({
       // A viewport-height map otherwise captures every wheel event as zoom,
       // trapping the page scroll. Cooperative gestures require ctrl/cmd (or
       // two fingers) to zoom, and pass a plain scroll through to the page.
-      cooperativeGestures: true,
+      //
+      // Off on touch devices. This map is the whole page rather than a panel
+      // inside an article -- there is nothing to scroll past it -- so the
+      // two-finger requirement bought nothing and cost the obvious gesture:
+      // a one-finger drag did not pan, it showed an overlay telling the user
+      // to use two fingers. On a phone this is the primary interaction.
+      cooperativeGestures: !isCoarsePointer(),
     });
     mapRef.current = map;
     if (import.meta.env.DEV) (window as any).__kivuliDebugMap = map;
@@ -536,22 +543,41 @@ export function ShadeMap({
       {/* Each panel is positioned individually. A single `inset-0` wrapper
           would be tidier but would sit over the whole canvas and swallow
           every drag and zoom. */}
+      {/* On a phone this panel covered the top third of the screen, on a page
+          whose entire purpose is the map underneath it. `<details>` collapses
+          it to its heading there and leaves it open from `sm` up, where there
+          is room. A native disclosure rather than React state: it is keyboard
+          and screen-reader complete on its own, and the summary stays the
+          accessible heading either way.
+
+          The provenance sentence is not dropped on small screens, only folded.
+          It says the shadows are geometry rather than an interpolation of the
+          station reading, which is the claim this whole page rests on. */}
       <MapPanel className="absolute left-4 top-4 max-w-xs">
-        <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
-          Campus shade map
-        </h2>
-        <p className="mt-1 text-xs text-shade-200">
-          {sun.altitude > 0
-            ? `Sun ${(sun.altitude * (180 / Math.PI)).toFixed(0)}° above horizon`
-            : 'Sun below horizon'}
-        </p>
-        <p className="mt-3 text-xs leading-relaxed text-shade-200">
-          Shadows are projected from building footprints and the sun's real position — geometry,
-          not an interpolation of the station reading across campus.
-          {surveyed !== null && total !== null && (
-            <> Only {surveyed} of {total} buildings carry a surveyed height; the rest use a default.</>
-          )}
-        </p>
+        <details className="group [&[open]_.chev]:rotate-180" open={!isCoarsePointer()}>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-sm uppercase tracking-[0.2em] text-shade-200">
+                Campus shade map
+              </h2>
+              <p className="mt-1 text-xs text-shade-200">
+                {sun.altitude > 0
+                  ? `Sun ${(sun.altitude * (180 / Math.PI)).toFixed(0)}° above horizon`
+                  : 'Sun below horizon'}
+              </p>
+            </div>
+            <span className="chev shrink-0 text-shade-400 transition-transform duration-200" aria-hidden>
+              ▾
+            </span>
+          </summary>
+          <p className="mt-3 text-xs leading-relaxed text-shade-200">
+            Shadows are projected from building footprints and the sun's real position — geometry,
+            not an interpolation of the station reading across campus.
+            {surveyed !== null && total !== null && (
+              <> Only {surveyed} of {total} buildings carry a surveyed height; the rest use a default.</>
+            )}
+          </p>
+        </details>
       </MapPanel>
 
       {buildingsState.phase === 'loading' && (
@@ -606,7 +632,7 @@ export function ShadeMap({
           <LegendRow color={routeColorFor(0)}>Transect exposed</LegendRow>
           <LegendRow color="#b8433a">Conduit station</LegendRow>
         </ul>
-        <p className="mt-3 max-w-[13rem] text-[10px] leading-relaxed text-shade-200">
+        <p className="mt-3 max-w-[13rem] text-micro leading-relaxed text-shade-200">
           The transect is a straight line across campus, not a mapped footpath.
         </p>
       </MapPanel>

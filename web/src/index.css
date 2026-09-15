@@ -492,3 +492,45 @@
     animation: none !important;
   }
 }
+
+/* Micro-labels: axis ticks, legend captions, provenance chips.
+   10px is fine on a desktop monitor at arm's length and too small on a phone
+   held in a field -- measured 11 such labels on /timeline and 30 on /climate.
+   This keeps them at 12px, the floor for sustained reading on a small screen,
+   and restores the tighter 10px from `sm` up where the original density was
+   the point. One utility rather than 13 literals, so the floor is a single
+   decision instead of thirteen. */
+.text-micro {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+@media (min-width: 640px) {
+  .text-micro {
+    font-size: 0.625rem;
+    line-height: 0.875rem;
+  }
+}
+
+/* Range sliders: a thin track, a thumb a finger can actually catch.
+   The two sliders here (the shade map's time of day, the harvest calculator's
+   roof area) measured 16px tall -- the track's own height. A drag has to start
+   on the thumb, so on a phone that is a 16px target for the one control the
+   map page is built around.
+
+   The input keeps a 44px hit box while the painted track stays slim, and the
+   thumb grows to 24px on coarse pointers only, so a mouse still gets the
+   finer control it can use. */
+input[type='range'] {
+  min-height: 44px;
+  background: transparent;
+}
+@media (pointer: coarse) {
+  input[type='range']::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+  input[type='range']::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+}

@@ -109,7 +109,7 @@ function BalanceChart({ climatology }: { climatology: MonthClimate[] }) {
                 </span>
               </DataTip>
               <span
-                className={`text-center text-[10px] ${surplus ? 'text-kenya-green-300' : 'text-shade-400'}`}
+                className={`text-center text-micro ${surplus ? 'text-kenya-green-300' : 'text-shade-400'}`}
               >
                 {MONTHS_SHORT[m.month - 1]}
               </span>

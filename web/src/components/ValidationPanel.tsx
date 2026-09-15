@@ -83,7 +83,7 @@ function ErrorBars({ variable }: { variable: VariableValidation }) {
         })}
       </div>
 
-      <div className="mt-1 flex justify-between text-[10px] tabular-nums text-shade-400">
+      <div className="mt-1 flex justify-between text-micro tabular-nums text-shade-400">
         <span>00:00</span>
         <span>06:00</span>
         <span>12:00</span>
@@ -148,27 +148,27 @@ export function VariableCard({ variable }: { variable: VariableValidation }) {
 
       <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
         <div>
-          <dt className="text-[10px] uppercase tracking-[0.15em] text-shade-400">Bias</dt>
+          <dt className="text-micro uppercase tracking-[0.15em] text-shade-400">Bias</dt>
           <dd className="font-display text-xl tabular-nums text-bleach">
             {variable.bias > 0 ? '+' : ''}
             {variable.bias.toFixed(2)}
           </dd>
         </div>
         <div>
-          <dt className="text-[10px] uppercase tracking-[0.15em] text-shade-400">Typical miss</dt>
+          <dt className="text-micro uppercase tracking-[0.15em] text-shade-400">Typical miss</dt>
           <dd className="font-display text-xl tabular-nums text-bleach">
             {variable.mae.toFixed(2)}
           </dd>
         </div>
         <div>
-          <dt className="text-[10px] uppercase tracking-[0.15em] text-shade-400">Worst hour</dt>
+          <dt className="text-micro uppercase tracking-[0.15em] text-shade-400">Worst hour</dt>
           <dd className="font-display text-xl tabular-nums text-kenya-red-400">
             {worst.error > 0 ? '+' : ''}
             {worst.error.toFixed(2)}
           </dd>
         </div>
       </dl>
-      <p className="mt-1 text-center text-[10px] text-shade-200">
+      <p className="mt-1 text-center text-micro text-shade-200">
         all in {variable.unit}, worst at {String(worst.localHour).padStart(2, '0')}:00
       </p>
 

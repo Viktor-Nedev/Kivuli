@@ -6,6 +6,7 @@ import Lenis from 'lenis';
 // so a scroll that reaches the map's edge chains back to the page.
 import 'lenis/dist/lenis.css';
 import { prefersReducedMotion } from './prefersReducedMotion';
+import { isCoarsePointer } from './isCoarsePointer';
 
 /**
  * Smooth scrolling, app-wide.
@@ -25,6 +26,37 @@ import { prefersReducedMotion } from './prefersReducedMotion';
  * and handles them; a hand-rolled version handles the wheel and breaks the
  * rest, which is worse than no smooth scroll at all.
  */
+/**
+ * The live instance, or null when smooth scroll opted out (reduced motion).
+ *
+ * Module-level rather than context: exactly one Lenis exists for the app, it is
+ * created in one place, and the only other code that needs it -- the mobile
+ * menu, which must stop the page scrolling behind itself -- would otherwise
+ * need a provider threaded through the tree for a single imperative call.
+ */
+let current: Lenis | null = null;
+
+/**
+ * Freezes or releases page scrolling.
+ *
+ * Prefers Lenis's own stop()/start(), because setting `overflow: hidden` on
+ * <body> while Lenis is running fights it: Lenis keeps translating its own
+ * scroll position against a container the browser has stopped scrolling, and
+ * the page jumps when it is released. Falls back to `overflow: hidden` when
+ * Lenis opted out under reduced motion, where there is nothing to fight.
+ *
+ * Returns nothing and is safe to call repeatedly; both paths are idempotent.
+ */
+export function setScrollLocked(locked: boolean): void {
+  if (current) {
+    if (locked) current.stop();
+    else current.start();
+    return;
+  }
+  if (typeof document === 'undefined') return;
+  document.body.style.overflow = locked ? 'hidden' : '';
+}
+
 export function useSmoothScroll(): void {
   useEffect(() => {
     // Someone who has asked for less motion has asked for exactly this.
@@ -32,8 +64,7 @@ export function useSmoothScroll(): void {
 
     // Touch devices already have momentum scrolling in hardware. Overriding it
     // costs battery and makes the page feel detached from the finger.
-    const coarse =
-      typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+    const coarse = isCoarsePointer();
 
     const lenis = new Lenis({
       // Long enough to read as gliding, short enough that a deliberate scroll
@@ -52,9 +83,12 @@ export function useSmoothScroll(): void {
     };
     raf = requestAnimationFrame(tick);
 
+    current = lenis;
+
     return () => {
       cancelAnimationFrame(raf);
       lenis.destroy();
+      current = null;
     };
   }, []);
 }

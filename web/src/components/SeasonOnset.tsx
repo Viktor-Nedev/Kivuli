@@ -108,7 +108,7 @@ function OnsetCard({ dist }: { dist: OnsetDistribution }) {
                 aria-hidden
               />
             </div>
-            <div className="flex justify-between text-[10px] text-shade-400">
+            <div className="flex justify-between text-micro text-shade-400">
               <span>{prettyMonthDay(earliestMonthDay)}</span>
               <span>{prettyMonthDay(latestMonthDay)}</span>
             </div>

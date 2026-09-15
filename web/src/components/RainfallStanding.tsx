@@ -103,7 +103,7 @@ function WindowCard({ stat }: { stat: WindowStat }) {
             style={{ width: `${pct * reveal.progress}%`, transition: reveal.transition(0, 'width') }}
           />
         </div>
-        <div className="mt-1 flex justify-between text-[10px] text-shade-400">
+        <div className="mt-1 flex justify-between text-micro text-shade-400">
           <span>driest</span>
           <span>wettest</span>
         </div>

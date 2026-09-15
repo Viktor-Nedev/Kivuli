@@ -36,28 +36,22 @@ export function SiteHeader({
   if (compact) return <CompactHeader />;
 
   return (
-    <header className="relative flex min-h-[62vh] flex-col justify-end overflow-hidden bg-shade-900 sm:min-h-[58vh]">
-      {/* The photo is 1.905:1 and this box is far wider than that on any
-          desktop — 1440x900 at 58vh gives 2.76:1 — so `object-cover` crops
-          the *top and bottom*, not the sides. The previous comment here had
-          that backwards and claimed a laptop "shows the full frame"; showing
-          it whole would need a header 84% of the viewport tall.
-
-          Since a vertical crop is unavoidable, the only question is which end
-          it takes. The standing figures' heads sit at roughly 8-18% of the
-          image height. At the old `38%` the visible band started at 11.8%
-          (1440x900) or 14.4% (1920x1080) — below their chins, which is the
-          decapitation the design review reported. At `12%` it starts at
-          3.7-4.5%, clear of every head at every desktop width.
-
-          On a phone the box is taller than the photo, so it crops the sides
-          instead and this value does almost nothing — the `50%` does the work
-          there. */}
+    // The header is sized by the photograph, not by the viewport: `aspect-[3/2]`
+    // is kenya.jpg's own ratio, so the box is always exactly the shape of the
+    // image and `object-cover` has nothing left to crop. The whole frame shows
+    // — sun, horizon and the walking figure — at every width.
+    //
+    // No `max-h` cap, deliberately. Capping the height would make the box wider
+    // than 3:2 and letterbox the photo: 99px of empty ground either side at
+    // 1440, 215px at 1920. The point of this change was to remove empty space,
+    // so the header is simply as tall as the picture needs, and the nav sits
+    // just below the fold on a laptop.
+    <header className="relative flex aspect-[3/2] w-full flex-col justify-end overflow-hidden bg-shade-950">
       <img
-        src="/hero-community.jpg"
+        src="/kenya.jpg"
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover object-[50%_12%]"
+        className="absolute inset-0 h-full w-full object-cover"
       />
       {/* Three layers rather than two flat scrims.
 
@@ -85,7 +79,6 @@ export function SiteHeader({
         <div className="overflow-hidden pb-[0.12em]">
           <p
             className="animate-wordmark-rise text-gradient font-wordmark text-6xl leading-[0.9] tracking-tight sm:text-8xl"
-            style={{ filter: 'drop-shadow(0 4px 26px rgba(12,9,7,0.85))' }}
           >
             KIVULI
           </p>

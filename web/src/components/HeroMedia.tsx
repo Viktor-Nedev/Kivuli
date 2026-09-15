@@ -50,7 +50,7 @@ export function HeroMedia() {
  */
 function StaticHero() {
   return (
-    <section className="relative -mx-5 overflow-hidden sm:-mx-8">
+    <section className="relative w-[100vw] ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] overflow-hidden">
       <div className="relative min-h-[70vh] w-full">
         <img
           src="/hero-farmer-poster.jpg"
@@ -141,7 +141,7 @@ function ScrollHero() {
   }, []);
 
   return (
-    <div ref={trackRef} className="relative -mx-5 h-[260vh] sm:-mx-8">
+    <div ref={trackRef} className="relative w-[100vw] ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] h-[260vh]">
       <div
         ref={stageRef}
         className="sticky top-0 h-screen overflow-hidden"

@@ -63,23 +63,49 @@ export function Overview() {
           which was the reason this block was hoisted in the first place. */}
       <HeroMedia />
 
-      <section className="pt-14 sm:pt-20">
-        <AnimatedText
-          as="h1"
-          text="A forecast built for a continent is wrong for one field."
-          className="max-w-4xl font-display text-4xl leading-[1.08] tracking-[-0.02em] text-bleach sm:text-6xl"
-        />
-        <AnimatedText
-          as="p"
-          text="KIVULI corrects it against a ground station in Juja, Kenya, and turns it into one instruction."
-          className="text-gradient mt-3 max-w-3xl font-display text-3xl leading-[1.12] tracking-[-0.02em] sm:text-5xl"
-          delay={420}
-        />
-        <p className="rise-in mt-8 max-w-2xl leading-relaxed text-shade-200" style={{ '--i': 9 } as React.CSSProperties}>
-          Spray now or wait. Spread grain or keep it covered. Every number below says whether it
-          was measured at the station, corrected against it, or modelled — so you can tell what is
-          evidence and what is inference.
-        </p>
+      {/* Two columns rather than a stack. The claim and its answer carry the
+          left, at a size that makes them the argument of the page; the reading
+          of how to use the site sits beside them in glass, where it reads as a
+          note rather than as more headline. Below `lg` it falls back to one
+          column in the same order. */}
+      <section className="grid grid-cols-1 gap-x-14 gap-y-8 pt-14 sm:pt-20 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-end">
+        <div>
+          <p
+            className="rise-in mb-5 flex items-center gap-3 font-display text-xs uppercase tracking-[0.3em] text-accent-400"
+            style={{ '--i': 0 } as React.CSSProperties}
+          >
+            <span className="h-px w-8 bg-accent-400/60" aria-hidden />
+            The problem, and the fix
+          </p>
+
+          <AnimatedText
+            as="h1"
+            text="A forecast built for a continent is wrong for one field."
+            className="font-display text-4xl leading-[1.04] tracking-[-0.025em] text-bleach sm:text-6xl lg:text-7xl"
+          />
+
+          <AnimatedText
+            as="p"
+            text="KIVULI corrects it against a ground station in Juja, Kenya, and turns it into one instruction."
+            className="text-gradient mt-5 font-display text-2xl leading-[1.14] tracking-[-0.02em] sm:text-4xl"
+            delay={480}
+          />
+        </div>
+
+        {/* The operating note, set apart. */}
+        <aside
+          className="glass glass-edge rise-in rounded-3xl p-6 sm:p-7"
+          style={{ '--i': 11 } as React.CSSProperties}
+        >
+          <p className="font-display text-lg leading-snug text-bleach sm:text-xl">
+            Spray now or wait. Spread grain or keep it covered.
+          </p>
+          <div className="rule-fade my-5" />
+          <p className="text-sm leading-relaxed text-shade-200">
+            Every number below says whether it was measured at the station, corrected against it,
+            or modelled — so you can tell what is evidence and what is inference.
+          </p>
+        </aside>
       </section>
 
       {data.forecastDegraded && (

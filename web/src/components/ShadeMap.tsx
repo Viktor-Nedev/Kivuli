@@ -74,6 +74,29 @@ function sampleRoute(from: [number, number], to: [number, number], steps = 20): 
  * day's already-computed timeline, so exposed ground is graded by conditions
  * that were actually measured, just recombined with where the sun is.
  */
+/**
+ * Sets a basemap config property, if this style still has one.
+ *
+ * Mapbox Standard changed shape: it used to be an import-based style whose
+ * basemap fragment answered to `setConfigProperty('basemap', …)`, and it now
+ * resolves flat. Calling the old API against the new style throws.
+ *
+ * Returns whether it applied, so a caller can fall back rather than assume.
+ * Deliberately swallowing: every use here is cosmetic — hiding duplicate
+ * buildings, shifting the basemap's own daylight — and none of it is worth a
+ * blank map.
+ */
+function setConfig(map: mapboxgl.Map, key: string, value: unknown): boolean {
+  try {
+    (map as unknown as {
+      setConfigProperty: (id: string, k: string, v: unknown) => void;
+    }).setConfigProperty('basemap', key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function ShadeMap({
   token,
   dayDate,
@@ -197,7 +220,16 @@ export function ShadeMap({
         // project's #273553 extrusion — confirmed via the style's own config
         // schema that show3dBuildings is the property scoped to just buildings
         // (not show3dObjects, which would also hide trees/landmarks).
-        map.setConfigProperty('basemap', 'show3dBuildings', false);
+        // Mapbox Standard used to be an import-based style, where the
+        // basemap lived in a fragment addressed as 'basemap' and configured
+        // through setConfigProperty. It is no longer: the style now resolves
+        // flat, with 190 top-level layers and its own `composite` source, and
+        // that call throws `no such import` — which, running first inside
+        // style.load, took every layer after it down and left a black map.
+        //
+        // So it is attempted rather than assumed, and its failure costs only
+        // the duplicate buildings it was suppressing.
+        setConfig(map, 'show3dBuildings', false);
 
         // The Standard style's own buildings live inside its imported "basemap"
         // fragment, which is opaque to the top-level style API: addLayer
@@ -377,7 +409,7 @@ export function ShadeMap({
     const preset = lightPresetFor(sun);
     if (lastPresetRef.current === preset) return;
     lastPresetRef.current = preset;
-    map.setConfigProperty('basemap', 'lightPreset', preset);
+    setConfig(map, 'lightPreset', preset);
   }, [sun, ready]);
 
   // One computation per tick, shared by the redraw and the readouts.

@@ -1,12 +1,19 @@
 /**
- * Geometric divider motif, inspired by Maasai shuka/beadwork zigzag patterns —
- * a subtle, purely decorative signal that the site is built for Kenya without
- * spelling it out in words or leaning on literal flag colors.
+ * The band that closes the header and the footer.
  *
- * Two sizes share one visual language rather than introducing unrelated
- * motifs for the "subtle" and "more visible" decoration levels: `thin` is a
- * quiet section divider, `bold` is a more visible ornament (e.g. behind a
- * header or footer edge).
+ * It used to be a hard green-and-red zigzag — a literal flag motif, drawn as
+ * repeating triangles. Two problems with that: it read as a warning stripe
+ * rather than as part of the product, and a viewBox spanning two pattern tiles
+ * meant the zigzag restarted halfway across the screen.
+ *
+ * This is the same idea carried quietly. A single continuous gradient runs the
+ * full width — earth through terracotta through sage, the flag's colours
+ * present but muted into the palette rather than shouted — with a soft glow
+ * above it so the band reads as a horizon line catching light rather than as a
+ * rule drawn across the page.
+ *
+ * Pure CSS: no SVG, no pattern, nothing to tile, so it cannot repeat or stop
+ * short at any width.
  */
 export function KenyaDivider({
   variant = 'thin',
@@ -15,62 +22,39 @@ export function KenyaDivider({
   variant?: 'thin' | 'bold';
   className?: string;
 }) {
-  const height = variant === 'thin' ? 10 : 22;
-  const triangleWidth = variant === 'thin' ? 20 : 36;
-
-  // A repeating zigzag built from two colors alternating peak/trough, plus a
-  // muted ochre accent line — reads as woven beadwork at a glance, never as
-  // data (aria-hidden, no semantic role).
-  const patternId = `kenya-zigzag-${variant}`;
+  const bold = variant === 'bold';
 
   return (
-    <svg
+    <div
       role="presentation"
       aria-hidden="true"
-      className={`block w-full ${className}`}
-      style={{ height }}
-      // No viewBox, deliberately.
-      //
-      // With one, the SVG scales its user space to the element width — and the
-      // old value spanned two pattern tiles, so the zigzag repeated exactly
-      // twice and each copy was stretched across half the screen. That is the
-      // "line stops in the middle and starts again" the design review
-      // reported, and no `preserveAspectRatio` setting fixes it, because the
-      // problem is the scaling itself.
-      //
-      // Without a viewBox, one user unit is one CSS pixel, so the `<pattern>`
-      // tiles in real pixels across whatever width the element happens to be:
-      // a continuous edge-to-edge zigzag whose triangles keep the proportions
-      // they are drawn with at every viewport.
+      className={`relative w-full ${className}`}
+      style={{ height: bold ? 3 : 2 }}
     >
-      <defs>
-        <pattern
-          id={patternId}
-          width={triangleWidth}
-          height={height}
-          patternUnits="userSpaceOnUse"
-        >
-          <polygon
-            points={`0,${height} ${triangleWidth / 2},0 ${triangleWidth},${height}`}
-            className="fill-kenya-green-500"
-          />
-          <polygon
-            points={`${triangleWidth / 2},${height} ${triangleWidth},0 ${triangleWidth * 1.5},${height}`}
-            className="fill-kenya-red-500"
-          />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill={`url(#${patternId})`} opacity={variant === 'thin' ? 0.5 : 0.85} />
-      {/* The ochre baseline this component's own docstring has always
-          described. It was never drawn, which also left `kenya-ochre` — a
-          token the palette reserves for exactly this — unused everywhere. */}
-      <rect
-        y={height - 1}
-        width="100%"
-        height={1}
-        className="fill-kenya-ochre"
-        opacity={variant === 'thin' ? 0.55 : 0.8}
+      {/* The band itself. `to-transparent` at both ends would fade it out at
+          the screen edge; it runs edge to edge instead, because a horizon
+          does. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(90deg, #2e2622 0%, #8f2f28 14%, #b9603c 34%, #b8894a 52%, #6b7350 72%, #3f6b46 88%, #2e2622 100%)',
+          opacity: bold ? 0.95 : 0.7,
+        }}
       />
-    </svg>
+
+      {/* Light spilling upward off the band, so it sits in the page rather
+          than on it. Only on the bold variant — the footer's should stay a
+          hairline. */}
+      {bold && (
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-10"
+          style={{
+            background:
+              'linear-gradient(to top, rgba(185,96,60,0.18), rgba(185,96,60,0.06) 40%, transparent 100%)',
+          }}
+        />
+      )}
+    </div>
   );
 }

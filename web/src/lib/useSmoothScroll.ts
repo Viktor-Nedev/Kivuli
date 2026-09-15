@@ -1,5 +1,10 @@
 import { useEffect } from 'react';
 import Lenis from 'lenis';
+// Lenis ships required CSS, and adds the `lenis` classes to <html> expecting
+// it. Without it `html.lenis, html.lenis body { height: auto }` never applies
+// and `data-lenis-prevent` elements never get `overscroll-behavior: contain`,
+// so a scroll that reaches the map's edge chains back to the page.
+import 'lenis/dist/lenis.css';
 import { prefersReducedMotion } from './prefersReducedMotion';
 
 /**

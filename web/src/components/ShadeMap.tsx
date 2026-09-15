@@ -518,7 +518,21 @@ export function ShadeMap({
           route with no h1 is still unnavigable by heading for a screen-reader
           user. This is the one page where the two requirements conflict. */}
       <h1 className="sr-only">Campus shade map</h1>
-      <div ref={containerRef} className="absolute inset-0" data-lenis-prevent />
+      {/* `!absolute` is not a style preference — it is load-bearing.
+          Mapbox adds its own `.mapboxgl-map` class to whatever element it
+          mounts into, and that class declares `position: relative`. Both it
+          and Tailwind's `.absolute` are single-class selectors, so the cascade
+          falls through to source order — and `mapbox-gl.css` is imported by
+          this module, i.e. after Tailwind's utilities. Mapbox therefore won,
+          the element stopped being absolutely positioned, `inset-0` no longer
+          stretched it, and its height collapsed to its content: zero.
+
+          Mapbox measures the container once at construction, so a 0-height box
+          produced a canvas of 1367x300 — 300 being the HTML default height, the
+          fingerprint of a zero measurement — and the map rendered as an empty
+          rectangle with no error anywhere. The `!important` puts the position
+          back under this component's control regardless of import order. */}
+      <div ref={containerRef} className="!absolute inset-0" data-lenis-prevent />
 
       {/* Each panel is positioned individually. A single `inset-0` wrapper
           would be tidier but would sit over the whole canvas and swallow

@@ -25,7 +25,7 @@ export function MapPanel({
 }) {
   return (
     <div
-      className={`pointer-events-auto glass-strong rounded-2xl p-4 shadow-lg backdrop-blur-md ${className}`}
+      className={`pointer-events-auto glass-map rounded-2xl p-4 ${className}`}
       onPointerDownCapture={onPointerDownCapture}
     >
       {children}

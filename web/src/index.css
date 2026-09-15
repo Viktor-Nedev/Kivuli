@@ -320,7 +320,24 @@
     0 28px 80px -26px rgb(12 9 7 / 0.85);
 }
 
-/* The lit top edge — a highlight where a light source would catch the panel. */
+/* Chrome floating over the map needs its own ground.
+   The glass above is calibrated for this site's dark pages, where a 4-10%
+   white wash over a near-black background still yields readable contrast.
+   The Standard basemap in its `day` preset is the opposite: a bright, busy
+   surface of roads and labels. The same wash over that left the panels
+   barely legible - text on a moving photograph.
+   So these panels keep the blur and the border, but sit on an opaque dark
+   ground instead of a transparent wash. */
+.glass-map {
+  background: rgb(20 16 16 / 0.86);
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+  border: 1px solid rgb(255 240 226 / 0.14);
+  box-shadow:
+    0 1px 0 0 rgb(255 240 226 / 0.08) inset,
+    0 24px 70px -28px rgb(12 9 7 / 0.9);
+}
+
 .glass-edge {
   position: relative;
 }

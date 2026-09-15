@@ -110,6 +110,77 @@
   animation: wordmark-rise 1100ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* --------------------------------------------------------------------------
+   The wordmark, letter by letter.
+
+   Each glyph swings up out of the baseline on its own axis rather than the
+   whole word sliding as a block: a rotateX from below reads as the letter
+   turning to face the reader, and staggering it makes the name assemble
+   instead of arrive. The blur clearing as it lands is what sells it as coming
+   into focus rather than merely moving.
+
+   `perspective` has to sit on the container — a rotateX with no perspective
+   is an affine squash, which looks like a bug rather than a rotation.
+   -------------------------------------------------------------------------- */
+.wordmark-stage {
+  perspective: 900px;
+  perspective-origin: 20% 60%;
+}
+
+@keyframes letter-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0.62em, 0) rotateX(-92deg) scale(1.28);
+    filter: blur(14px);
+  }
+  55% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  72% {
+    /* A slight overshoot past upright, so it settles rather than stops. */
+    transform: translate3d(0, -0.045em, 0) rotateX(7deg) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.wordmark-letter {
+  display: inline-block;
+  transform-origin: 50% 100%;
+  will-change: transform, opacity, filter;
+  animation: letter-in 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--l, 0) * 105ms);
+}
+
+/* A light sweeping across the finished word once it has landed. The gradient
+   is twice the width of the text, so moving its position drags a highlight
+   over the glyphs. Runs once — a looping shine on a logotype reads as a
+   banner advert. */
+@keyframes wordmark-sheen {
+  from { background-position: 220% center; }
+  to   { background-position: -120% center; }
+}
+
+.wordmark-sheen {
+  background-image: linear-gradient(
+    100deg,
+    #f7f2ea 0%,
+    #e3a680 34%,
+    #fff6e8 48%,
+    #b8894a 62%,
+    #f7f2ea 100%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: wordmark-sheen 2.4s cubic-bezier(0.4, 0, 0.2, 1) 900ms both;
+}
+
 /* Cards/rows that should feel touchable: a small lift plus a brighter ring,
    applied via one class instead of repeating the same three utilities. */
 .lift-on-hover {

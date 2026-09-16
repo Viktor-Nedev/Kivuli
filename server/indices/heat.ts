@@ -46,12 +46,21 @@ export interface HeatAssessment {
  * acclimatisation and individual health. This is not medical or regulatory
  * advice and must not be presented as either.
  */
-const BANDS: { max: number; band: WorkRestBand; instruction: string }[] = [
+export const BANDS: { max: number; band: WorkRestBand; instruction: string }[] = [
   { max: 28.0, band: 'continuous', instruction: 'Work through the hour — no heat restriction' },
   { max: 30.0, band: 'work45_rest15', instruction: 'Work 45 min, rest 15 min in shade' },
   { max: 31.5, band: 'work30_rest30', instruction: 'Work 30 min, rest 30 min in shade' },
   { max: 32.5, band: 'work15_rest45', instruction: 'Work 15 min, rest 45 min in shade' },
 ];
+
+/**
+ * The WBGT at which work/rest allocation first applies.
+ *
+ * Read from the band table rather than written as a literal, so a watch and
+ * the dashboard can never quote different thresholds: there is one number, and
+ * it lives in BANDS.
+ */
+export const HEAT_FIRST_RESTRICTION_C = BANDS[0].max;
 
 export function assessHeat(r: Reading): HeatAssessment {
   // Prefer the measured globe temperature; fall back to the shade estimate

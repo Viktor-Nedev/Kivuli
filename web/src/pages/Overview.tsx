@@ -6,6 +6,8 @@ import { Term } from '../components/Term';
 import { AskBox } from '../components/AskBox';
 import { Reveal } from '../components/Reveal';
 import { RainOutlookPanel } from '../components/RainOutlookPanel';
+import { WatchBoard } from '../components/WatchBoard';
+import { DecisionTrace } from '../components/DecisionTrace';
 import { useOutlook } from '../lib/useOutlook';
 import { SprayIcon, DryingIcon } from '../components/icons/TaskIcons';
 import type { AppContext } from '../lib/outletContext';
@@ -146,11 +148,31 @@ export function Overview() {
         </Reveal>
       </div>
 
+      {/* The working, below the two cards rather than inside one of them.
+          The grid above is `h-full` so both cards match height; a panel that
+          expands inside one cell would push past the row it belongs to and
+          overlap whatever follows. Spray is the decision with explicit
+          numeric gates, so its chain is the one worth showing. */}
+      <Reveal>
+        <DecisionTrace
+          instruction={d.spray}
+          latest={data.latest}
+          calibration={data.calibration}
+          assessment={d.spray.assessment}
+        />
+      </Reveal>
+
       {outlook.phase === 'ready' && !outlook.data.degraded && outlook.data.rainOutlook && (
         <Reveal>
           <RainOutlookPanel outlook={outlook.data.rainOutlook} />
         </Reveal>
       )}
+
+      {/* Standing risk before the conversational box: a reader scrolling past
+          should meet what is currently firing before being invited to ask. */}
+      <Reveal>
+        <WatchBoard />
+      </Reveal>
 
       <Reveal>
         <AskBox />

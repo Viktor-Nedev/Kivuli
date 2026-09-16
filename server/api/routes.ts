@@ -20,6 +20,7 @@ import { buildSolarCrossCheck } from '../satellite/crosscheck.js';
 import { buildRiverOutlook } from '../climate/rivers.js';
 import { matchIntent, capabilities } from '../query/intents.js';
 import type { DailyRain } from '../climate/rainfall.js';
+import { buildWatches } from '../alerts/watches.js';
 
 /**
  * Timeline point for the UI: one row per observation with each index resolved,
@@ -204,6 +205,96 @@ export function createRouter(root: string): Router {
         detail: err instanceof Error ? err.message : String(err),
       });
     }
+  });
+
+  /**
+   * The watch layer: every standing threshold, and whether it is firing.
+   *
+   * Its own route rather than fields on `/api/today` because it spans sources
+   * the decision cards do not need. A watch board waiting on the flood model
+   * would delay the instruction a farmer actually opened the page for.
+   *
+   * Each upstream fails on its own, following the same rule as `/api/climate`:
+   * a station outage must not cost the rain watch, and an unreachable flood
+   * model must not cost the heat watch. A watch whose source is down reports
+   * `unavailable` with a reason, which is a different claim from `clear`.
+   */
+  router.get('/api/watch', async (req, res) => {
+    const parsed = parseSite(req.query as Record<string, unknown>);
+    if ('error' in parsed) {
+      res.status(400).json({ error: parsed.error });
+      return;
+    }
+
+    // Station readings.
+    let readings: Reading[] = [];
+    try {
+      const latest = await source.getLatest();
+      if (latest) {
+        const day = latest.ts.slice(0, 10);
+        readings = await source.getHistory(
+          new Date(`${day}T00:00:00Z`),
+          new Date(`${day}T23:59:59Z`),
+        );
+      }
+    } catch {
+      // Left empty; the heat and spray watches report unavailable.
+    }
+
+    // Rain within the spray lookahead, and the forward rainfall outlook.
+    let rainWithinLookahead = false;
+    try {
+      const { set } = await rainLookahead();
+      rainWithinLookahead = set.size > 0;
+    } catch {
+      // Treated as no known rain; the spray watch still evaluates the gates
+      // it can measure, and the rain watch reports its own unavailability.
+    }
+
+    // Graded against this site's own record, exactly as `/api/outlook` does
+    // it: the same archive, the same daily summing, the same builder. A watch
+    // that graded rain differently from the rain panel would be a second
+    // opinion nobody asked for.
+    let rain = null;
+    try {
+      const [f, daily] = await Promise.all([
+        meteo.forecast(3),
+        meteo.dailyArchive('2015-01-01', todayInNairobi(), parsed.site),
+      ]);
+      const series: DailyRain[] = daily.time.map((date, i) => ({
+        date,
+        mm: daily.precipitation_sum[i] ?? 0,
+      }));
+
+      const byDay = new Map<string, number>();
+      for (let i = 0; i < f.time.length; i++) {
+        const day = f.time[i].slice(0, 10);
+        byDay.set(day, (byDay.get(day) ?? 0) + (f.precipitation?.[i] ?? 0));
+      }
+      const forecastDaily = [...byDay.entries()].map(([date, mm]) => ({ date, mm }));
+
+      rain = buildRainOutlook(forecastDaily, series);
+    } catch {
+      // Left null; the rain watch says the forecast is unreachable.
+    }
+
+    let river = null;
+    try {
+      const daily = await meteo.dischargeForecast(7, parsed.site);
+      river = buildRiverOutlook(daily, parsed.place);
+    } catch {
+      // Left null; the river watch says there is no modelled reach.
+    }
+
+    const watches = buildWatches({ readings, rainWithinLookahead, rain, river });
+
+    res.json({
+      site: parsed.site,
+      place: parsed.place,
+      generatedAt: new Date().toISOString(),
+      watches,
+      firing: watches.filter((w) => w.state === 'firing').length,
+    });
   });
 
   router.get('/api/climate', async (req, res) => {

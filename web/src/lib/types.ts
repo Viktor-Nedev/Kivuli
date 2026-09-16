@@ -52,6 +52,22 @@ export interface Calibration {
   training_window: { from: string; to: string; station_hours: number; note: string };
 }
 
+/**
+ * The three dry-bulb thermometers on the station mast.
+ *
+ * Optional because a feed may not carry all three. Their spread is the
+ * cheapest evidence available that the instrument is healthy, which is why the
+ * decision trace shows it.
+ */
+export interface TempChannels {
+  /** BMX280 — the channel `tempC` reports and the calibration was fitted to. */
+  bmxC: number;
+  /** MCP9808. */
+  mcpC: number;
+  /** SHT31 — the same sensor package as `humidityPct`. */
+  shtC: number;
+}
+
 export interface Reading {
   ts: string;
   tempC: number;
@@ -63,6 +79,7 @@ export interface Reading {
   windDirDeg: number;
   visCounts: number;
   rainMm: number;
+  temps?: TempChannels;
 }
 
 export interface TodayResponse {

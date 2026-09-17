@@ -7,6 +7,7 @@ import { AskBox } from '../components/AskBox';
 import { Reveal } from '../components/Reveal';
 import { RainOutlookPanel } from '../components/RainOutlookPanel';
 import { WatchBoard } from '../components/WatchBoard';
+import { ScenarioPanel } from '../components/ScenarioPanel';
 import { DecisionTrace } from '../components/DecisionTrace';
 import { useOutlook } from '../lib/useOutlook';
 import { SprayIcon, DryingIcon } from '../components/icons/TaskIcons';
@@ -172,6 +173,13 @@ export function Overview() {
           should meet what is currently firing before being invited to ask. */}
       <Reveal>
         <WatchBoard />
+      </Reveal>
+
+      {/* Directly after the watches: the panel exists to show those same
+          detectors changing hands, so it belongs where a reader has just
+          seen them sitting clear. */}
+      <Reveal>
+        <ScenarioPanel />
       </Reveal>
 
       <Reveal>

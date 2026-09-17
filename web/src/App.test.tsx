@@ -87,6 +87,48 @@ function stubFetch(headers: Record<string, string> = {}) {
           headers: { 'content-type': 'application/json' },
         });
       }
+      // The Overview also mounts the watch board and the scenario panel, which
+      // call their own endpoints. Without their own shapes here they would be
+      // handed the `today` body, and a panel parsing the wrong payload hangs
+      // this test rather than the page it is supposed to be checking.
+      if (url.includes('/api/days')) {
+        return new Response(JSON.stringify({ days: ['2026-09-15'], count: 1 }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (url.includes('/api/watch')) {
+        return new Response(JSON.stringify({ generatedAt: '', watches: [], firing: 0 }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (url.includes('/api/scenario')) {
+        const outcome = {
+          sprayOk: 0,
+          sprayTotal: 0,
+          sprayWindows: [],
+          peakWbgtC: 0,
+          heatBand: '',
+          heatFires: false,
+          commonestBlocker: null,
+        };
+        return new Response(
+          JSON.stringify({
+            day: '2026-09-15',
+            offsets: { tempC: 0, windMs: 0, humidityPct: 0 },
+            measured: outcome,
+            scenario: outcome,
+            isMeasured: true,
+            limits: {
+              tempC: { min: -5, max: 12, step: 0.5 },
+              windMs: { min: -3, max: 8, step: 0.1 },
+              humidityPct: { min: -30, max: 30, step: 1 },
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
       return new Response(JSON.stringify(todayBody()), {
         status: 200,
         headers: { 'content-type': 'application/json', ...headers },

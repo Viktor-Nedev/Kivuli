@@ -15,30 +15,16 @@ import buildingsGeoJson from '../map/jkuat_buildings.geojson?url';
 import type { TimelinePoint } from '../lib/types';
 import { Gauge } from './Gauge';
 import { LegendRow, MapPanel } from './MapPanels';
-import { groundExposurePaint, routeColorFor, shadowPaint } from '../map/sunTint';
+import { groundExposurePaint, shadowPaint } from '../map/sunTint';
 import { isCoarsePointer } from '../lib/isCoarsePointer';
 
 const SHADOW_SOURCE = 'kivuli-shadows';
 const SHADOW_LAYER = 'kivuli-shadows-fill';
-const ROUTE_SOURCE = 'kivuli-route';
-const ROUTE_LAYER = 'kivuli-route-line';
 
 type BuildingsState =
   | { phase: 'loading' }
   | { phase: 'ready'; buildings: Building[]; surveyed: number }
   | { phase: 'error' };
-
-/**
- * Two points across campus. This is a straight transect, not a mapped
- * footpath — it cuts through buildings. The shade measured along it is real
- * (real footprints, real sun geometry), so it answers "how much shade would a
- * walk across this area find right now"; it does not claim to be a route
- * anyone actually walks, and the label says so.
- */
-const ROUTE_ENDPOINTS: [[number, number], [number, number]] = [
-  [37.0132, -1.0962],
-  [37.0158, -1.0946],
-];
 
 /** Minutes since local midnight, on the 24h scale the slider uses. */
 function minutesToDate(baseDate: string, minutes: number): Date {
@@ -50,20 +36,6 @@ function localHHMM(minutes: number): string {
   const h = Math.floor(minutes / 60) % 24;
   const m = Math.round(minutes % 60);
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-
-/**
- * Builds a short walking path between the two route endpoints, sampled every
- * ~15m, so shade coverage can be evaluated along its length rather than only
- * at the two ends.
- */
-function sampleRoute(from: [number, number], to: [number, number], steps = 20): [number, number][] {
-  const pts: [number, number][] = [];
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    pts.push([from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
-  }
-  return pts;
 }
 
 /**
@@ -315,26 +287,6 @@ export function ShadeMap({
           },
         });
 
-        map.addSource(ROUTE_SOURCE, {
-          type: 'geojson',
-          data: { type: 'FeatureCollection', features: [] },
-        });
-        map.addLayer({
-          id: ROUTE_LAYER,
-          type: 'line',
-          source: ROUTE_SOURCE,
-          layout: { 'line-cap': 'round', 'line-join': 'round' },
-          paint: {
-            // Per-segment, not one flat colour: the gauge already reports the
-            // aggregate percentage, so a single-colour line would just repeat
-            // it. Colouring each sampled span shows *where* the shade falls,
-            // which nothing else on screen conveys.
-            'line-color': ['case', ['get', 'shaded'], routeColorFor(1), routeColorFor(0)],
-            'line-width': 5,
-            'line-opacity': 0.9,
-          },
-        });
-
         // Our layers ease between values instead of snapping. Mapbox's own
         // `basemap.lightPreset` still steps through its four buckets — this
         // build exposes no `lightPresetTransition`, and `setLights` is
@@ -429,15 +381,16 @@ export function ShadeMap({
   const frame = useMemo(() => {
     if (!buildings) return null;
     const shadows: ShadowFeature[] = shadowsAt(buildings, deferredDate);
-    const routePts = sampleRoute(...ROUTE_ENDPOINTS);
-    const shadedFlags = routePts.map((p) => isPointShaded(p, shadows));
-    const shadedCount = shadedFlags.filter(Boolean).length;
-    return {
-      shadows,
-      routePts,
-      shadedFlags,
-      shadedFraction: routePts.length ? shadedCount / routePts.length : 0,
-    };
+    // Shade where the instrument actually stands.
+    //
+    // This replaced a straight 339 m transect drawn across campus. That line
+    // cut through a building, was labelled "300 m", and answered a question
+    // nobody had asked: the shade along an arbitrary diagonal between two
+    // points chosen for nothing. The station's own position is a claim this
+    // project can defend, and it is the one point on the map every other
+    // number here already comes from.
+    const stationShaded = isPointShaded([SITE.longitude, SITE.latitude], shadows);
+    return { shadows, stationShaded };
   }, [buildings, deferredDate]);
 
   const deferredSun = useMemo(() => sunPositionAt(deferredDate), [deferredDate]);
@@ -449,23 +402,6 @@ export function ShadeMap({
 
     const shadowSource = map.getSource(SHADOW_SOURCE) as mapboxgl.GeoJSONSource | undefined;
     shadowSource?.setData({ type: 'FeatureCollection', features: frame.shadows });
-
-    // One feature per sampled span, each carrying whether that span is
-    // shaded, so the line shows *where* the shade is rather than repeating
-    // the aggregate percentage the gauge already gives.
-    const segments: GeoJSON.Feature[] = [];
-    for (let i = 0; i < frame.routePts.length - 1; i++) {
-      segments.push({
-        type: 'Feature',
-        properties: { shaded: frame.shadedFlags[i] && frame.shadedFlags[i + 1] },
-        geometry: {
-          type: 'LineString',
-          coordinates: [frame.routePts[i], frame.routePts[i + 1]],
-        },
-      });
-    }
-    const routeSource = map.getSource(ROUTE_SOURCE) as mapboxgl.GeoJSONSource | undefined;
-    routeSource?.setData({ type: 'FeatureCollection', features: segments });
 
     // The continuous half of the time-of-day blend: these are our own layers,
     // so unlike Mapbox's four-step lightPreset they can track sun altitude
@@ -480,7 +416,7 @@ export function ShadeMap({
     map.setPaintProperty(SHADOW_LAYER, 'fill-extrusion-opacity', shade.opacity);
   }, [frame, deferredSun, ready]);
 
-  const routeShadeNote = frame ? Math.round(frame.shadedFraction * 100) : null;
+  const stationShaded = frame ? frame.stationShaded : null;
 
   if (!token) {
     return (
@@ -610,11 +546,22 @@ export function ShadeMap({
             <Gauge value={wbgtNow ?? 0} min={0} max={35} unit="°C" color="#b8433a" size={84} />
             <p className="mt-2 text-xs text-shade-200">Ground WBGT</p>
           </div>
-          <div className="flex flex-col items-center">
-            <Gauge value={routeShadeNote ?? 0} min={0} max={100} unit="%" color="#8697b8" size={84} />
-            <p className="mt-2 max-w-[7rem] text-center text-xs text-shade-200">
-              Shade along a 300 m transect
+          {/* The station's own exposure, not an average over an arbitrary
+              line. A percentage implies a distribution; one instrument at one
+              point is in shade or it is not, so this says which. */}
+          <div className="flex w-[7rem] flex-col items-center justify-center">
+            <p
+              className={`font-display text-2xl ${
+                stationShaded === null
+                  ? 'text-shade-400'
+                  : stationShaded
+                    ? 'text-kenya-green-400'
+                    : 'text-amber-400'
+              }`}
+            >
+              {stationShaded === null ? '—' : stationShaded ? 'In shade' : 'In sun'}
             </p>
+            <p className="mt-2 text-center text-xs text-shade-200">Station right now</p>
           </div>
         </div>
 
@@ -628,12 +575,11 @@ export function ShadeMap({
         <ul className="mt-4 space-y-1.5 border-t border-shade-700/60 pt-3">
           <LegendRow color={ground.color}>Sunlit ground</LegendRow>
           <LegendRow color={shade.color}>Building shadow</LegendRow>
-          <LegendRow color={routeColorFor(1)}>Transect in shade</LegendRow>
-          <LegendRow color={routeColorFor(0)}>Transect exposed</LegendRow>
           <LegendRow color="#b8433a">Conduit station</LegendRow>
         </ul>
         <p className="mt-3 max-w-[13rem] text-micro leading-relaxed text-shade-200">
-          The transect is a straight line across campus, not a mapped footpath.
+          Shadows are cast from surveyed footprints and the sun&apos;s real position for the
+          selected minute.
         </p>
       </MapPanel>
 
@@ -663,7 +609,10 @@ export function ShadeMap({
             WBGT <span className="text-bleach">{(wbgtNow ?? 0).toFixed(1)}°C</span>
           </span>
           <span>
-            Transect shade <span className="text-bleach">{routeShadeNote ?? 0}%</span>
+            Station{' '}
+            <span className="text-bleach">
+              {stationShaded === null ? '—' : stationShaded ? 'in shade' : 'in sun'}
+            </span>
           </span>
         </div>
       </MapPanel>

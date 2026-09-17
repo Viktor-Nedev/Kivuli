@@ -1,8 +1,12 @@
 /**
  * Canonical shape of one Conduit station observation.
  *
- * Deliberately omits `si1145_uv`: it reads 0 for every row in the available
- * sample, so surfacing it would imply a working UV sensor we cannot evidence.
+ * UV was omitted for most of this project's life because the single-day sample
+ * read 0 in every row, and surfacing it would have implied a working sensor
+ * there was no evidence for. The official 13-day exports settle that: the
+ * SI1145 returns 0 to 5.1 with 8,891 non-zero readings, zero only at night.
+ * The channel is carried now because the instrument demonstrably works, and
+ * `uvIndex` stays optional so a feed without it is absent rather than zero.
  *
  * The station measures weather only. There is no soil moisture, vegetation
  * index, water level or water quality field here, and none may be added
@@ -68,8 +72,16 @@ export interface Reading {
   visCounts: number;
   /** Infrared counts (SI1145). Raw sensor counts, not W/m². */
   irCounts: number;
-  /** Tipping-bucket rainfall total for the period, mm. */
+  /** Tipping-bucket rainfall total for the period, mm (Gauge 1). */
   rainMm: number;
+  /**
+   * UV index (SI1145), when the feed carries it.
+   *
+   * Optional rather than defaulted to 0: an absent sensor and a reading of
+   * zero are different statements, and at night this instrument genuinely
+   * reads 0.
+   */
+  uvIndex?: number;
   /**
    * All three dry-bulb thermometers, when the row carried them.
    *

@@ -29,18 +29,24 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CSV_PATH = ROOT / "data" / "weatherdata_september.csv"
+CONDUIT_DIR = ROOT / "data" / "conduit"
 OUT_PATH = ROOT / "data" / "coefficients.json"
 
 LAT, LON = -1.0954, 37.0144
 ARCHIVE = "https://archive-api.open-meteo.com/v1/archive"
 
 # Station column -> ERA5 variable. Only variables both sources measure.
+#
+# Column names are the official GeoCSV export's, which is now the station
+# record this fits against. `BMX Temperature 1` stays the dry-bulb reference
+# for the same reason it always was: the published bias figures mean that
+# channel, and quietly switching to another would make them wrong without
+# changing the number printed beside them.
 VARIABLES = {
-    "tempC": ("temp_bmx", "temperature_2m"),
-    "humidityPct": ("humidity_sht", "relative_humidity_2m"),
-    "windSpeedMs": ("wind_spd", "wind_speed_10m"),
-    "pressureHpa": ("press_bmx", "surface_pressure"),
+    "tempC": ("BMX Temperature 1", "temperature_2m"),
+    "humidityPct": ("SHT Humidity", "relative_humidity_2m"),
+    "windSpeedMs": ("Wind Speed", "wind_speed_10m"),
+    "pressureHpa": ("BMX Pressure 1", "surface_pressure"),
 }
 
 # Below this many samples in an hour bucket, an hour-of-day model is noise.
@@ -48,8 +54,24 @@ MIN_PER_HOUR = 3
 
 
 def load_station() -> list:
-    with CSV_PATH.open(newline="", encoding="utf-8") as fh:
-        return list(csv.DictReader(fh))
+    """Every GeoCSV export in data/conduit, merged and de-duplicated.
+
+    The exports overlap - 31 Aug and 1 Sep appear in two files - so keying by
+    timestamp is required rather than tidy. Left as duplicates, those two days
+    would be weighted twice in every coefficient fitted below.
+    """
+    by_ts = {}
+    for path in sorted(CONDUIT_DIR.glob("*.csv")):
+        with path.open(newline="", encoding="utf-8-sig") as fh:
+            lines = [ln for ln in fh if not ln.startswith("#")]
+        for row in csv.DictReader(lines):
+            ts = (row.get("Time") or "").strip()
+            if ts:
+                # Normalise to the YYYY-MM-DDTHH:MM:SSZ shape the bucketing
+                # below slices on.
+                row["ts"] = ts
+                by_ts[ts] = row
+    return [by_ts[k] for k in sorted(by_ts)]
 
 
 def hourly_station_means(rows: list) -> dict:
@@ -154,7 +176,7 @@ def main() -> None:
     rows = load_station()
     station = hourly_station_means(rows)
     if not station:
-        raise SystemExit("No station rows parsed; check data/weatherdata_september.csv")
+        raise SystemExit("No station rows parsed; check data/conduit/*.csv")
 
     days = sorted({h[:10] for h in station})
     print("Station hours: %d across %s..%s" % (len(station), days[0], days[-1]))

@@ -240,8 +240,12 @@ test('/api/validation carries the station judged against itself', async () => {
     if (body.degraded) return;
 
     const a = body.agreement;
-    assert.ok(a, 'the bundled sample carries all three thermometers');
-    assert.equal(a.n, 95);
+    assert.ok(a, 'the station export carries all three thermometers');
+    // Not a frozen count. The source is now the official GeoCSV export, whose
+    // day length depends on how many readings the station actually logged;
+    // pinning a literal here would break every time the record is extended,
+    // while telling us nothing the invariant below does not.
+    assert.ok(a.n > 0, 'agreement needs paired readings');
     assert.equal(a.channels.length, 3);
     assert.equal(a.channels.filter((c) => c.isReference).length, 1);
 

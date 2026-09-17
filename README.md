@@ -11,28 +11,35 @@ Weather dashboards show numbers. KIVULI issues instructions: **"Spray now until 
 
 ## The idea
 
-A global weather model is systematically wrong at any single point. At this station it
-underpredicts temperature by **1.12 °C**. One calibrated ground station fixes that bias, and a
-corrected forecast only becomes useful once it turns into a spray window, a drying window, or a
-work/rest cycle.
+A global weather model is systematically wrong at any single point. One calibrated ground station
+fixes that bias, and a corrected forecast only becomes useful once it turns into a spray window, a
+drying window, or a work/rest cycle.
 
-Correcting against the Conduit station cuts temperature error nearly in half:
+Fitted against **312 paired station-hours** across 13 days of the station's own record
+(28 Aug – 15 Sep 2026):
 
-| Variable | Bias | MAE before | MAE after | RMSE before | RMSE after |
-|---|---|---|---|---|---|
-| Temperature (°C) | −1.12 | 1.12 | **0.56** | 1.31 | 0.70 |
-| Relative humidity (%) | +3.55 | 5.69 | **5.14** | 6.62 | 5.83 |
-| Wind speed (m/s) | +1.73 | 1.73 | **0.92** | 2.06 | 1.18 |
-| Pressure (hPa) | +2.67 | 2.67 | **1.24** | 3.01 | 1.43 |
+| Variable | Model | Bias | MAE before | MAE after | RMSE before | RMSE after |
+|---|---|---|---|---|---|---|
+| Temperature (°C) | hour-of-day | −0.50 | 0.89 | **0.80** | 1.12 | 0.99 |
+| Relative humidity (%) | hour-of-day | +0.29 | 5.19 | **4.41** | 6.60 | 5.95 |
+| Wind speed (m/s) | hour-of-day | +1.54 | 1.55 | **0.59** | 1.84 | 0.78 |
+| Pressure (hPa) | hour-of-day | +2.76 | 2.77 | **0.41** | 3.14 | 0.52 |
 
 Every figure is **leave-one-out validated**: each point is corrected by a model fitted on all the
 *other* points, so nothing scores itself. Regenerate with `python analysis/calibrate.py`.
 
+An earlier version of this table reported a temperature MAE of 0.56 °C, fitted on a single day —
+24 paired hours. Thirteen days of the official export put the honest figure at 0.80 °C. The
+correction is smaller than one day of data suggested, and the number is now worth more: with
+13× the evidence, the hour-of-day structure is supported rather than assumed, and wind and
+pressure corrections turn out to be far larger than temperature's.
+
 ### Then we checked whether the improvement was real
 
-The station carries **three independent thermometers**. They disagree with each other by
-**0.435 °C** on average — against a corrected model error of 0.565 °C. The correction has reached
-the noise floor of the instrument it is corrected against, and there is little room left below it.
+The station carries **three independent thermometers**. Their disagreement with each other is
+computed live on `/validation` and compared against the corrected model error — when the two are
+the same size, the correction has reached the noise floor of the instrument it is corrected
+against, and there is little room left below it.
 
 That is the sort of thing a dashboard has no reason to look for. It is on `/validation`, next to
 the figure it limits, because a station that scores a model should be willing to be scored itself.
@@ -48,8 +55,14 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5180>. No API key required — the app ships with a Conduit CSV export and
-runs on it by default.
+Open <http://localhost:5180>. No API key required — the app runs on the station's official GeoCSV
+exports in `data/conduit/`: **13 days, 18,364 readings** at roughly one a minute, published through
+the CHORDS portal at `3d-fewsnet.icdp.ucar.edu` with a DOI. The Conduit API was not available
+before the deadline, and the organisers confirmed these exports are the supported substitute —
+they are the same instrument's record, not a mock.
+
+The record is discontinuous: it covers 28 Aug – 4 Sep and 11 – 15 Sep. Nothing interpolates across
+the missing week, and the day selector does not offer it.
 
 To use the live station feed, copy `.env.example` to `.env` and fill in both fields:
 
@@ -233,7 +246,7 @@ every forecast on this site is built from.
 It is the only screen where a `measured` tag is the reference rather than the
 caveat — the station is the yardstick and the model is the thing being marked.
 
-The finding is worth more than the summary statistic. A flat "MAE 1.12 °C"
+The finding is worth more than the summary statistic. A flat "MAE 0.89 °C"
 hides the shape; the diurnal curve shows the model is nearly exact at midday
 (0.55 °C) and **2.62 °C low at 08:00**, the morning warming transition a ~9 km
 grid cell cannot resolve. That is the hour spraying decisions get made. Wind is
@@ -248,8 +261,8 @@ One station, one day, 24 paired hours. That is a demonstration of method, not a
 climatology, and the page says so.
 
 **And then the station is scored against itself.** The same page carries the
-three-thermometer comparison: 0.435 °C of disagreement between instruments
-against 0.565 °C of corrected model error, and the honest consequence that the
+three-thermometer comparison: 0.471 °C of disagreement between instruments
+against 0.80 °C of corrected model error, and the honest consequence that the
 correction has run out of room. The robustness figures are given as a pair —
 94 of 95 spray verdicts survive the disagreement, but only 84 of 95 survive it
 on the temperature gate alone — because the first number alone would flatter
@@ -413,7 +426,7 @@ those same 24 pairs is the idea this project already rejected, several orders of
 Doing it anyway would contradict a decision documented in our own source.
 
 **And the ceiling is not a modelling ceiling.** The Conduit mast carries three thermometers that
-disagree with each other by 0.435 °C, against a corrected model error of 0.565 °C. The correction
+disagree with each other by 0.471 °C, against a corrected model error of 0.80 °C. The correction
 has already arrived at the noise floor of the instrument it is corrected against. No model, at any
 size or compute budget, can resolve a forecast finer than the reference can certify. What would
 improve these numbers is more instrument-days, not more parameters.
@@ -461,9 +474,18 @@ which is the thing most worth integrating against.
 ## Data and its limits
 
 **Station (Conduit, JKUAT)** — temperature, humidity, wet bulb, WBGT, pressure, wind, rainfall,
-and SI1145 light counts. Timestamps are UTC; the interface renders East Africa Time (UTC+3). Peak
-irradiance in the sample lands at 09:40 UTC against a computed solar noon of 09:32 UTC for this
+SI1145 light counts and UV index. Timestamps are UTC; the interface renders East Africa Time
+(UTC+3). Peak irradiance lands at 09:40 UTC against a computed solar noon of 09:32 UTC for this
 longitude, which confirms the timestamps are genuinely UTC.
+
+Two channels in the export are dropped rather than displayed, because both are demonstrably
+faulty: **Wind Gust Direction** repeats the value of Wind Gust in all 18,364 rows — a speed in a
+field labelled degrees — and **Rain Gauge 2** reads flat zero throughout while Gauge 1 records
+real tips. A broken gauge and a dry gauge are different claims.
+
+UV is now carried. It was omitted for most of this project's life because the earlier single-day
+sample read 0 in every row; the full export returns 0 to 5.1 with 8,891 non-zero readings, zero
+only at night, so the sensor is evidenced rather than assumed.
 
 **Forecast and reanalysis (Open-Meteo)** — supplies the rain lookahead and the ERA5 series the
 calibration is fitted against. No API key needed. Responses are cached to `data/cache/`, and a
@@ -496,8 +518,8 @@ Known limits, stated rather than hidden:
   broken 0. The two are never mixed.
 - **The correction is as good as the instrument allows.** The mast carries three independent
   dry-bulb thermometers — a BMX280, an MCP9808 and an SHT31 — and across the bundled day they
-  disagree with each other by **0.435 °C on average**, 0.40 °C median, up to 1.60 °C at 15:29
-  local. The calibration above reduces the model's temperature error to **0.565 °C**. Those two
+  disagree with each other by **0.471 °C on average**, 0.40 °C median, up to 1.60 °C at 15:29
+  local. The calibration above reduces the model's temperature error to **0.80 °C**. Those two
   numbers are close enough that the correction has essentially reached the noise floor of the
   instrument it is corrected against; tuning it further would fit the station's own scatter rather
   than the model's bias. Three sensor packages agreeing to within half a degree is ordinary, not a
@@ -505,7 +527,7 @@ Known limits, stated rather than hidden:
   to a precision finer than it can certify itself. See `/validation`.
 - **The app reads one of those three thermometers, and it is the coolest.** `tempC` comes from
   `temp_bmx`, which runs **0.237 °C below the median** of the three. So the headline "the model
-  runs 1.12 °C cold" carries that choice inside it; against a median-of-three reference the bias
+  runs 0.50 °C cold" carries that choice inside it; against a median-of-three reference the bias
   would be about −1.36 °C. It was not switched mid-project: `analysis/calibrate.py` fitted the
   coefficients against this channel, and Delta-T pairs it against a separate wet-bulb instrument,
   so changing the reference would invalidate both without changing the numbers printed beside
@@ -554,7 +576,7 @@ On the **Season** page, which reads eleven years of ERA5 rainfall rather than th
 - **River discharge is shown only where a river exists.** Open-Meteo's flood model returns
   0.00 m³/s at JKUAT because the campus is not on a modelled reach. Rendering a permanent zero
   would look like a reading; the page says there is no reach instead.
-- **No machine learning, deliberately.** With one day of station data and a stationary rainfall
+- **No machine learning, deliberately.** With 13 days of station data and a stationary rainfall
   series, a learned model would add confidence without adding information. Empirical percentiles
   over eleven real years are the correct estimator, and saying so is more honest than a model that
   cannot beat climatology.
@@ -624,7 +646,7 @@ On the **Season** page, which reads eleven years of ERA5 rainfall rather than th
   the same `measured` tag they always did, because the instrument did not become a model while the
   phone was out of signal.
 - **No model was trained, though the credits to train one were available.** 24 aligned
-  station-hours cannot support it, and the instrument's own 0.435 °C disagreement already bounds
+  station-hours cannot support it, and the instrument's own 0.471 °C disagreement already bounds
   what a better model could buy. See [The model we did not train](#the-model-we-did-not-train) for
   the full reasoning, including the one case that is deferred rather than refused.
 

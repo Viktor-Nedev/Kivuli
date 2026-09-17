@@ -21,6 +21,7 @@ import { buildRiverOutlook } from '../climate/rivers.js';
 import { matchIntent, capabilities } from '../query/intents.js';
 import type { DailyRain } from '../climate/rainfall.js';
 import { buildWatches } from '../alerts/watches.js';
+import { runScenario, SCENARIO_LIMITS, type ScenarioOffsets } from '../alerts/scenario.js';
 
 /**
  * Timeline point for the UI: one row per observation with each index resolved,
@@ -158,7 +159,7 @@ export function createRouter(root: string): Router {
       if (!latest) {
         return res.status(503).json({
           error: 'No station observations available.',
-          hint: 'Check data/weatherdata_september.csv, or set CONDUIT_API_KEY and CONDUIT_EMAIL.',
+          hint: 'Check data/conduit/*.csv, or set CONDUIT_API_KEY and CONDUIT_EMAIL.',
         });
       }
 
@@ -295,6 +296,102 @@ export function createRouter(root: string): Router {
       watches,
       firing: watches.filter((w) => w.state === 'firing').length,
     });
+  });
+
+  /**
+   * A measured day, and the same day under an offset.
+   *
+   * The station's record is honest and, for alerting purposes, quiet: measured
+   * WBGT peaks at 22.6 C across all 13 days, well below the first ISO 7243
+   * work/rest band. So the heat detector never fires on real data, which
+   * leaves no way to tell a working alarm from a decorative one.
+   *
+   * This endpoint answers that without inventing anything. It returns both the
+   * measured outcome and the shifted one, computed by the same index functions
+   * the live page uses, so the comparison is between the real day and a stated
+   * hypothetical rather than between a real day and a fabricated reading.
+   */
+  router.get('/api/scenario', async (req, res) => {
+    const numberParam = (name: string): number => {
+      const raw = req.query[name];
+      const n = typeof raw === 'string' ? Number(raw) : 0;
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const offsets: ScenarioOffsets = {
+      tempC: numberParam('temp'),
+      windMs: numberParam('wind'),
+      humidityPct: numberParam('humidity'),
+    };
+
+    try {
+      const latest = await source.getLatest();
+      if (!latest) {
+        res.status(503).json({ error: 'No station readings available.' });
+        return;
+      }
+
+      // The day may be pinned, so a reader can explore any day the record
+      // actually covers rather than only the most recent one.
+      const requested = typeof req.query.day === 'string' ? req.query.day : null;
+      const day = requested && /^\d{4}-\d{2}-\d{2}$/.test(requested)
+        ? requested
+        : latest.ts.slice(0, 10);
+
+      const readings = await source.getHistory(
+        new Date(`${day}T00:00:00Z`),
+        new Date(`${day}T23:59:59Z`),
+      );
+      if (!readings.length) {
+        // A day outside the record, including the 5-10 September gap. Saying
+        // so is the answer; interpolating across it would not be.
+        res.status(404).json({
+          error: `No station readings for ${day}.`,
+          detail: 'The record is discontinuous. Nothing is interpolated across a gap.',
+        });
+        return;
+      }
+
+      let rainWithinLookahead = false;
+      try {
+        const { set } = await rainLookahead();
+        rainWithinLookahead = set.size > 0;
+      } catch {
+        // Treated as no known rain; the spray gates still evaluate.
+      }
+
+      const result = runScenario(readings, rainWithinLookahead, offsets);
+      res.json({ day, limits: SCENARIO_LIMITS, ...result });
+    } catch (err) {
+      res.status(502).json({
+        error: 'Could not run the scenario.',
+        detail: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
+
+  /**
+   * Which days the station record actually covers.
+   *
+   * Returned as a list rather than a range because the record is not
+   * continuous: the supplied exports cover 28 Aug - 4 Sep and 11 - 15 Sep,
+   * and a range would imply the missing week exists.
+   */
+  router.get('/api/days', async (_req, res) => {
+    try {
+      const withDays = source as unknown as { days?: () => Promise<string[]> };
+      if (typeof withDays.days !== 'function') {
+        res.json({ days: [], note: 'This source does not enumerate days.' });
+        return;
+      }
+      const days = await withDays.days();
+      res.json({ days, count: days.length });
+    } catch (err) {
+      res.status(502).json({
+        error: 'Could not list station days.',
+        detail: err instanceof Error ? err.message : String(err),
+      });
+    }
   });
 
   router.get('/api/climate', async (req, res) => {

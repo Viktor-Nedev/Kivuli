@@ -148,8 +148,10 @@ test('bias and MAE agree with the fitted coefficients', async (t) => {
     ) as { body: { hourly: HourlyForecast } };
     archive = raw.body.hourly;
 
-    const { CsvAdapter, defaultCsvPath } = await import('../ingest/adapters/csvAdapter.js');
-    const adapter = new CsvAdapter(defaultCsvPath(root));
+    const { GeoCsvAdapter, defaultGeoCsvDir } = await import(
+      '../ingest/adapters/geoCsvAdapter.js'
+    );
+    const adapter = new GeoCsvAdapter(defaultGeoCsvDir(root));
     readings = await adapter.getHistory(
       new Date('2026-09-01T00:00:00Z'),
       new Date('2026-09-01T23:59:59Z'),
@@ -158,23 +160,19 @@ test('bias and MAE agree with the fitted coefficients', async (t) => {
     return t.skip('committed archive snapshot or station CSV unavailable');
   }
 
-  const coeffs = JSON.parse(
-    await readFile(path.join(root, 'data', 'coefficients.json'), 'utf8'),
-  ) as { variables: Record<string, { bias: number; metrics: { mae_before: number } }> };
-
   const v = compareToModel(readings, archive, 'tempC');
-  assert.equal(v.n, 24, 'the sample day is a full 24 paired hours');
+  assert.equal(v.n, 24, 'this archive snapshot covers one full 24-hour day');
 
-  // The Python fit defines bias as forecast minus observed, the same sign
-  // this module uses.
-  assert.ok(
-    Math.abs(v.bias - coeffs.variables.tempC.bias) < 0.05,
-    `live bias ${v.bias} vs fitted ${coeffs.variables.tempC.bias}`,
-  );
-  assert.ok(
-    Math.abs(v.mae - coeffs.variables.tempC.metrics.mae_before) < 0.05,
-    `live MAE ${v.mae} vs fitted ${coeffs.variables.tempC.metrics.mae_before}`,
-  );
+  // Deliberately not compared against the published coefficient any more.
+  //
+  // The fit now spans 312 paired hours across 13 days, while this check has
+  // one day of archive to work with — so the two numbers *should* differ, and
+  // asserting they match would only pass by accident. What must still hold is
+  // that the live comparison agrees on sign and order of magnitude: the model
+  // runs cold at this station, by something under 2 °C.
+  assert.ok(v.bias < 0, `the model should underpredict here, got ${v.bias}`);
+  assert.ok(Math.abs(v.bias) < 2, `bias implausibly large: ${v.bias}`);
+  assert.ok(v.mae > 0 && v.mae < 3, `MAE implausible: ${v.mae}`);
   // The finding the page exists to show: the model is worst at the morning
   // transition, not at midday.
   assert.ok(v.worst && Math.abs(v.worst.error) > 2, `worst miss was only ${v.worst?.error}`);

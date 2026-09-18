@@ -25,6 +25,7 @@ import { Skeleton, SkeletonCard, SkeletonBlock } from './components/Skeleton';
 import { SiteFooter } from './components/SiteFooter';
 import { StaleBanner } from './components/StaleBanner';
 import { useSmoothScroll } from './lib/useSmoothScroll';
+import { useToday, stationDate } from './lib/useToday';
 
 type State =
   | { phase: 'loading' }
@@ -120,8 +121,34 @@ function AppLayout() {
     };
   }, []);
 
-  const subtitle =
-    state.phase === 'ready' ? longDate(state.data.timeline[0]?.ts ?? state.data.decisions?.ts) : undefined;
+  // Today at the station, not the date of the newest reading.
+  //
+  // The header sat under the wordmark showing whichever day the data happened
+  // to end on, which read as the site being three days stale even while it was
+  // serving correctly. A dashboard should know what day it is.
+  //
+  // But the readings genuinely are from an earlier day, and a bare "today"
+  // over older measurements would be the more serious error -- it would imply
+  // the station measured this morning. So both are stated: today's date, and
+  // how old the record is whenever it is not from today.
+  const today = useToday();
+  const subtitle = (() => {
+    const todayLong = longDate(`${today}T12:00:00Z`);
+    if (state.phase !== 'ready') return todayLong;
+
+    const readingIso = state.data.timeline[0]?.ts ?? state.data.decisions?.ts;
+    if (!readingIso) return todayLong;
+
+    const readingDay = stationDate(new Date(readingIso));
+    if (readingDay === today) return todayLong;
+
+    const days = Math.round(
+      (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${readingDay}T00:00:00Z`)) / 86_400_000,
+    );
+    return `${todayLong} — readings from ${longDate(readingIso)}, ${
+      days === 1 ? 'a day' : `${days} days`
+    } old`;
+  })();
 
   return (
     <Shell subtitle={subtitle}>

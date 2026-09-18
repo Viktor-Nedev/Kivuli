@@ -53,5 +53,7 @@ app.get('*', (_req, res) => {
 app.listen(port, '0.0.0.0', () => {
   const live = process.env.CONDUIT_API_KEY && process.env.CONDUIT_EMAIL;
   console.log(`KIVULI server on http://localhost:${port}`);
-  console.log(`Station source: ${live ? 'Conduit live API' : 'bundled CSV sample'}`);
+  console.log(
+    `Station source: ${live ? 'Conduit live API' : "official GeoCSV exports in data/conduit/"}`,
+  );
 });

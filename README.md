@@ -7,6 +7,11 @@ Field decisions from the JKUAT Conduit climate station, Juja, Kenya.
 Weather dashboards show numbers. KIVULI issues instructions: **"Spray now until 10:38"**,
 **"Spread grain now — cover by 17:47"**, **"Do not spray now — wind 0.6 m/s, inversion risk"**.
 
+Built on **18,364 readings across 13 days** from the Conduit station's own record, published
+through the CHORDS portal at `3d-fewsnet.icdp.ucar.edu` with a DOI. The Conduit API was not
+available before the deadline; the organisers confirmed these exports are the supported
+substitute, and the live API adapter is written and waiting on a key.
+
 ---
 
 ## The idea
@@ -86,9 +91,10 @@ for Vite's `VITE_` prefix convention. Without a token, the shade map section sho
 instead of failing.
 
 ```bash
-npm test        # 147 tests across ingest, indices, decisions, calibration, climate,
-                # the HTTP layer, the live station adapter and shadow geometry
-npm run test:web   # component tests (vitest + jsdom)
+npm test        # 217 tests across ingest, indices, decisions, calibration, climate,
+                # the watch layer, scenarios, the HTTP layer, the live station
+                # adapter and shadow geometry
+npm run test:web   # 161 component tests (vitest + jsdom)
 npm run typecheck
 npm run build
 ```
@@ -130,8 +136,8 @@ bulb, so this is exact rather than estimated from humidity. A window opens when 
 
 Wind below 0.8 m/s is a **failure**, not ideal conditions: still air signals a temperature
 inversion that lets fine droplets hang and drift off-target. Operators routinely misread calm
-weather as perfect for spraying, so the app always says *why* a window is closed. On the sample
-day only 18 of 95 readings pass both gates, and 74 fail on inversion risk alone.
+weather as perfect for spraying, so the app always says *why* a window is closed. On
+15 September only 49 of 1,412 readings pass both gates, and 1,261 fail on inversion risk alone.
 
 **Grain drying** — a window needs air under 60% humidity *and* real sunlight. Both matter: on the
 sample day humidity stays low until 18:36, but the light sensor bottoms out at 15:02, so grain
@@ -154,8 +160,8 @@ directly. Only 18 of those 133 carry a surveyed height; the rest use the same de
 itself applies.
 
 
-**How this season compares.** The station's record is one day long, so the Season page reads
-eleven years of ERA5 daily rainfall for this exact point instead. Three windows are ranked against
+**How this season compares.** The station's record is thirteen days long, so the Season page
+reads eleven years of ERA5 daily rainfall for this exact point instead. Three windows are ranked against
 *the same calendar window* in every previous year, which is what stops the ordinary dry season
 reading as a drought: right now the 90-day total sits in the 9th percentile while the 180-day
 total sits at the 55th. The recent months genuinely are dry, but the long rains arrived normally —
@@ -227,11 +233,15 @@ crossing day is shown at once, and choosing a soil highlights one row without
 hiding the others. A single default date would have put the largest uncertainty
 in the calculation behind its most confident-looking sentence.
 
-**Sun exposure.** The station's UV channel reads 0 on every row of the sample —
-a dead sensor, and the reason no UV was reported before. The hazard is not
-dead: at 1527 m almost on the equator the modelled index peaks near 9, "very
-high" on the WHO scale, essentially year-round. That figure now appears on the
-Working day page beside the projected WBGT, tagged `raw forecast` and never
+**Sun exposure.** The station's UV channel was reported dead for most of this
+project's life, because the earlier single-day sample read 0 in every row. The
+official thirteen-day export settles it: the SI1145 returns 0 to 5.1 with 8,891
+non-zero readings and zero only at night, so the channel is now carried as a
+measurement. The modelled figure still has a job — at 1527 m almost on the
+equator the forecast index peaks near 9, "very high" on the WHO scale,
+essentially year-round, which is a hazard statement the station's own instant
+reading does not make. It appears on the Working day page beside the projected
+WBGT, tagged `raw forecast` and never
 mixed with anything measured. It is the heat-adjacent risk that actually fires
 here, which is what keeps the honest "no work/rest restriction" from reading as
 an empty feature.
@@ -257,8 +267,8 @@ These numbers reproduce `data/coefficients.json` exactly — the Python fit runs
 offline, this runs live, and a test asserts they agree. Two independent paths
 to the same answer is evidence; one path is an assertion.
 
-One station, one day, 24 paired hours. That is a demonstration of method, not a
-climatology, and the page says so.
+One station, thirteen days, 312 paired hours. That is a demonstration of
+method, not a climatology, and the page says so.
 
 **And then the station is scored against itself.** The same page carries the
 three-thermometer comparison: 0.471 °C of disagreement between instruments
@@ -294,6 +304,74 @@ reach does exist it charts the week and says whether the river is rising.
 Nothing here is a flood forecast for a particular field: discharge is a
 catchment-scale quantity on a coarse grid, with no local terrain, drainage or
 defence data behind it, and the panel says so.
+
+## Standing watches
+
+Four thresholds that sit over the numbers the rest of the app already computes: heat stress, the
+spray window, heavy rain, and river discharge. Each reports `firing`, `clear` or `unavailable`.
+
+**Every limit is imported, not redeclared.** `SPRAY` carries the spray gates, `BANDS` the ISO 7243
+work/rest allocation, and the rain judgement is delegated whole to the same `buildRainOutlook` the
+rain panel displays. A watch that disagreed with the page would be worse than no watch: a farmer
+told "spray now" by one screen and warned off by another has been given nothing.
+
+**A clear watch reports how far it sits from firing.** The record is genuinely quiet — measured
+WBGT peaks at 22.6 °C across all thirteen days, more than five degrees under the first work/rest
+band — so the heat watch never fires on real data. A board of green ticks is indistinguishable
+from a board that never ran, so each clear row carries its value, its threshold and the distance
+between them: *"Peak WBGT 21.5 °C, 6.5 °C below the 28 °C work/rest threshold."*
+
+**`unavailable` is a third state, not a failure.** "No modelled river reach here" is true and
+useful, and it is a different claim from "the river was checked and is fine". Collapsing those into
+one green row would be the most consequential lie this screen could tell.
+
+## What if the day were different?
+
+Sliders shift a recorded day's temperature, wind and humidity, and the project's own index
+functions run again over the result. Both columns are always on screen, so a scenario figure can
+only be read as a comparison.
+
+This exists because of the problem above: the heat detector cannot be demonstrated on real
+weather. The dishonest fix is to ship a hot day that never happened. This is the other one — on
+4 September, the warmest day recorded, the maximum offsets carry WBGT from a measured 21.8 °C to
+31.4 °C and the watch fires, with the measured column still reading 21.8 °C beside it.
+
+Wet-bulb and globe temperatures are re-derived from the shifted air so a scenario reading stays
+physically coherent, which makes it an estimate — and nothing in the panel is labelled a
+measurement. Zero offsets are a genuine no-op: an early version recomputed WBGT even with nothing
+to apply, and the station's measured 20.0 °C came back as 19.8 °C, so the "real day" column had
+quietly stopped being the real day.
+
+## Showing the working
+
+Any decision card opens into the chain that produced it: the measured reading, the three
+thermometers and their spread, the leave-one-out validated bias, each gate with its pass or fail,
+then the sentence.
+
+Every figure is read from the payload, including the Delta-T and wind the gates actually ran on —
+those arrive in `decisions.spray.assessment` rather than being re-derived in the panel. A trace
+that disagreed with its own conclusion would look like evidence while being noise.
+
+A card that says "do not spray today" asks to be trusted. The same card with its working shown
+asks to be checked, which is the stronger claim and the one this project can support.
+
+## On a phone
+
+Measured at 390×844 with touch emulation, then fixed:
+
+- Seven nav links needed 525px in a 390px viewport, and the header clipped the overflow — so
+  **"Model check" and "Calibration" could not be opened at all** on a phone. Below `sm` the bar is
+  now a menu with focus handling, `Escape`, a scrim, and its own close button.
+- The hero header took 78% of the screen on every route. The landing page keeps it; the other six
+  take 46% on phones, so a reader who has already chosen a page sees its content.
+- Timeline spray bands are drawn proportional to duration, so short windows collapsed to 2–11px.
+  A 24px minimum hit width keeps them tappable while `width` keeps the true proportion — 44 would
+  have overlapped neighbouring periods and misreported the day.
+- The shade map required two fingers to pan, which is right for a map inside an article and wrong
+  where the map is the page.
+
+No page scrolls sideways at 320 or 390px, no text sits under 12px, and no tap target is under 24px
+except Mapbox's own required attribution link.
 
 ## Weight
 
@@ -417,9 +495,9 @@ available as the page it sits on.
 This hackathon came with credits to train a custom frontier model. They went unused, and the
 reasoning is worth more to a reader than the model would have been.
 
-**The data does not support it.** The station sample is 95 readings from a single day, which align
-to **24 hours** against the reanalysis — that is the entire empirical base, and it is what
-`data/coefficients.json` was fitted on. `analysis/calibrate.py` already refuses a ridge regression
+**The data does not support it.** The station record is 18,364 readings across thirteen days,
+which align to **312 hours** against the reanalysis — that is the entire empirical base, and it is
+what `data/coefficients.json` was fitted on. `analysis/calibrate.py` already refuses a ridge regression
 on four features at that size, because it would fit the noise; the default is a constant offset,
 escalating to an hour-of-day offset only where each hour has enough support. A trained model on
 those same 24 pairs is the idea this project already rejected, several orders of magnitude larger.
@@ -449,8 +527,8 @@ this project a year of station data and a Kiswahili reviewer, and both answers c
 
 ## The API
 
-Four read-only JSON endpoints. No key, no auth, no rate limit — this is a hackathon prototype, and
-anything public would need all three before it saw real traffic.
+Eleven read-only JSON endpoints. No key, no auth, no rate limit — this is a hackathon prototype,
+and anything public would need all three before it saw real traffic.
 
 | Endpoint | Returns |
 |---|---|
@@ -460,16 +538,15 @@ anything public would need all three before it saw real traffic.
 | `GET /api/water?lat=&lon=&crop=` | Seven-day crop water balance (FAO-56) with the crossing day for every soil texture, plus peak UV. |
 | `GET /api/validation` | The station scoring the model: hourly station means against ERA5 for the same hours, per variable, with the diurnal error shape. Also carries `agreement` — the station scored against *itself*, across its three thermometers. Takes no lat/lon — there is one station. |
 | `GET /api/ask?q=` | Routes a question to a figure the app already computes, naming the endpoint that answered. Unmatched questions return the capability list, never a guess. |
+| `GET /api/watch?lat=&lon=` | The watch layer: heat, spray window, heavy rain and river discharge, each with its state, the threshold it was compared against and — when clear — how far it sits from firing. |
+| `GET /api/scenario?temp=&wind=&humidity=&day=` | One recorded day run twice: as measured, and with the offsets applied through the same index functions. Both outcomes are returned, so a scenario figure can only be read as a comparison. |
+| `GET /api/days` | Which days the station record actually holds. A list rather than a range, because the record is discontinuous. |
+| `GET /api/config` | The Mapbox token, if one is configured. Nothing else. |
 | `GET /api/health` | Liveness plus the name of the active station source. |
 
 ```bash
 curl "localhost:8787/api/climate?lat=-0.4536&lon=39.6461&place=Garissa" | jq '.windows'
 ```
-
-`/api/forecast` is the one endpoint the app's own UI does not call — the Working day page covers
-the same ground from measured readings, which are better. It is documented rather than deleted
-because it is the only surface that exposes the bias-corrected forecast with per-value provenance,
-which is the thing most worth integrating against.
 
 ## Data and its limits
 
@@ -512,10 +589,11 @@ Known limits, stated rather than hidden:
   forward wet-bulb approximation, but Stull is an empirical sea-level fit with no principled
   pressure term — bolting a correction onto a regression would produce a number we could not
   defend.
-- `si1145_uv` reads 0 for every row in the sample, so **no UV is reported from the station**. The
-  UV figures on the Working day page come from the forecast and are tagged `raw forecast`. The
-  sensor is dead; the hazard is not, and reporting a modelled 9 is more useful than reporting a
-  broken 0. The two are never mixed.
+- **UV is now measured.** `si1145_uv` read 0 across the earlier one-day sample, which is why no UV
+  was reported from the station for most of this project. The thirteen-day export shows a working
+  sensor — 0 to 5.1, with 8,891 non-zero readings and zero only at night — so the suppression has
+  been lifted. Forecast UV is still shown separately and tagged `raw forecast`; the two are never
+  mixed.
 - **The correction is as good as the instrument allows.** The mast carries three independent
   dry-bulb thermometers — a BMX280, an MCP9808 and an SHT31 — and across the bundled day they
   disagree with each other by **0.471 °C on average**, 0.40 °C median, up to 1.60 °C at 15:29
@@ -564,7 +642,8 @@ On the **Season** page, which reads eleven years of ERA5 rainfall rather than th
   one-in-eleven year. The sample size is printed on every card rather than left implicit.
 - **ERA5 is a reanalysis, not a rain gauge.** It is a model reconstruction on a ~9 km grid, so it
   will not capture a convective storm that hit one field and missed the next. The station's own
-  tipping bucket is the only *measured* rainfall here, and it covers one day.
+  tipping bucket is the only *measured* rainfall here, and it covers thirteen days — during which
+  it recorded 0.4 mm in total, so the measured rainfall series is real but nearly empty.
 - **This is monitoring, not forecasting.** Every figure describes rain that has already fallen.
   Nothing on the page predicts the season ahead.
 - **Season onset is a historical distribution, not this year's prediction.** The long rains have
@@ -661,15 +740,23 @@ this station's instrument nor a forecast of the future.
 
 ```
 server/
-  ingest/       Conduit adapters (CSV + live API) and shared parsing
+  ingest/       Conduit adapters (GeoCSV export + live API) and shared parsing
   forecast/     Open-Meteo client with disk cache
   calibration/  applies coefficients fitted offline
-  indices/      spray (Delta-T), drying, WBGT, THI
+  indices/      spray (Delta-T), drying, WBGT, THI, UV
   decisions/    thresholds turned into instructions, English + Swahili
+  alerts/       standing watches and the what-if scenario runner
+  validation/   the station scored against the model, and against itself
+  satellite/    NASA POWER client and the solar cross-check
+  climate/      rainfall history, season onset, water balance, rivers
+  query/        natural-language intents behind /api/ask
   api/          Express routes (+ /api/config for the Mapbox token)
 analysis/       calibrate.py (bias model) and build_campus_geojson.py (building footprints)
 web/            React + Vite + Tailwind + Mapbox GL
-data/           station CSV, coefficients, forecast cache
+data/
+  conduit/      the station's official GeoCSV exports — the app's data source
+  coefficients.json  the fitted bias model
+  cache/        Open-Meteo and NASA POWER responses, committed so the app runs offline
 ```
 
 The model is fitted offline in Python and exported as JSON; the server applies it with plain
@@ -677,9 +764,13 @@ arithmetic. One runtime in production, with the notebook-style script kept as ev
 
 ### Demo note
 
-`?at=HH:MM` pins the evaluation moment (East Africa Time). The bundled sample is a fixed
-historical day whose last row falls at 02:55 local, so the interface defaults to `?at=13:00` to
-open on a working-hours decision instead of a dead night-time reading. A live feed needs no pin.
+`?at=HH:MM` pins the evaluation moment (East Africa Time). The record's last day ends at 02:58
+local, so the interface defaults to `?at=13:00` to open on a working-hours decision instead of a
+dead night-time reading. A live feed needs no pin.
+
+The header shows today's date and, while the record is older than today, how old it is — *"Friday
+18 September — readings from Tuesday 15 September, 3 days old"*. It rolls over at midnight in
+Nairobi without a reload, so a dashboard left open overnight does not claim yesterday as today.
 
 ### Shade map rendering note
 

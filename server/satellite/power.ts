@@ -86,8 +86,15 @@ async function cached<T>(
 
   try {
     const body = await load();
-    await mkdir(cacheDir, { recursive: true });
-    await writeFile(file, JSON.stringify({ at: Date.now(), body }));
+    // A failed cache write must not lose a successful fetch: on a read-only
+    // host these calls throw, and inside the outer try that discarded live
+    // data in favour of a stale entry.
+    try {
+      await mkdir(cacheDir, { recursive: true });
+      await writeFile(file, JSON.stringify({ at: Date.now(), body }));
+    } catch {
+      // Read-only filesystem. Serve the fresh response.
+    }
     return body;
   } catch (err) {
     try {

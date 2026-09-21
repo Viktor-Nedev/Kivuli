@@ -120,8 +120,17 @@ async function cached<T>(cacheDir: string, key: string, ttlMs: number, load: () 
 
   try {
     const body = await load();
-    await mkdir(cacheDir, { recursive: true });
-    await writeFile(file, JSON.stringify({ at: Date.now(), body }));
+    // Writing the cache must not be able to lose a good response. On a
+    // read-only filesystem -- a serverless host, a container with no writable
+    // volume -- mkdir/writeFile throw, and inside this try that threw away a
+    // fetch that had already succeeded and fell back to a stale entry instead.
+    // The cache is an optimisation; the data is the point.
+    try {
+      await mkdir(cacheDir, { recursive: true });
+      await writeFile(file, JSON.stringify({ at: Date.now(), body }));
+    } catch {
+      // Read-only or out of space. Serve what was just fetched.
+    }
     return body;
   } catch (err) {
     // Network failed. A stale entry beats no forecast at all.
@@ -191,8 +200,14 @@ async function cachedArchive(
 
   try {
     const body = await load();
-    await mkdir(cacheDir, { recursive: true });
-    await writeFile(file, JSON.stringify({ at: Date.now(), body }));
+    // Same reasoning as `cached` above: a failed cache write must not discard
+    // a fetch that succeeded.
+    try {
+      await mkdir(cacheDir, { recursive: true });
+      await writeFile(file, JSON.stringify({ at: Date.now(), body }));
+    } catch {
+      // Read-only filesystem. Serve the fresh response anyway.
+    }
     return { body, fresh: true };
   } catch (err) {
     // Today's key first, then any older snapshot for the same coordinates.

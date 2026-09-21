@@ -13,5 +13,5 @@
     "allowImportingTsExtensions": true,
     "types": ["node", "geojson"]
   },
-  "include": ["server/**/*.ts", "web/src/**/*.ts", "web/src/**/*.tsx"]
+  "include": ["server/**/*.ts", "api/**/*.ts", "web/src/**/*.ts", "web/src/**/*.tsx"]
 }

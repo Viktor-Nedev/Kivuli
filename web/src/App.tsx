@@ -107,10 +107,19 @@ function AppLayout() {
         setState({ phase: 'ready', data, stale });
       } catch (err) {
         if (!cancelled) {
+          // The hint has to match where the page is actually running. On a
+          // developer's machine the answer is "start the server"; on a
+          // deployed site that instruction is meaningless and reads as a
+          // half-finished project to anyone who opens the link.
+          const local =
+            typeof location !== 'undefined' &&
+            /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
           setState({
             phase: 'error',
             message: 'Could not reach the KIVULI server.',
-            hint: 'Start it with npm run dev, then reload this page.',
+            hint: local
+              ? 'Start it with npm run dev, then reload this page.'
+              : 'The station API did not answer. Reload in a moment — the pages that need no station reading are listed above.',
           });
         }
       }
